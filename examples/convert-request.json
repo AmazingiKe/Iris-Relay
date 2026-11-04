@@ -1,0 +1,86 @@
+{
+  "api_version": "1",
+  "request_id": "example-001",
+  "operation": "convert",
+  "payload": {
+    "material": {
+      "schema_version": "1",
+      "name": "磨损金属",
+      "renderer": {
+        "id": "reference.gloss",
+        "version": "1.0"
+      },
+      "nodes": [
+        {
+          "id": "surface",
+          "type": "Surface",
+          "inputs": {
+            "tint": [
+              0.4,
+              0.3,
+              0.2
+            ],
+            "gloss": 0.8,
+            "metal": 0.9
+          },
+          "outputs": [
+            "out"
+          ],
+          "metadata": {
+            "label": "原始材质"
+          }
+        },
+        {
+          "id": "texture",
+          "type": "Bitmap",
+          "inputs": {
+            "image": {
+              "texture": "albedo"
+            }
+          },
+          "outputs": [
+            "rgb",
+            "value"
+          ],
+          "metadata": {}
+        }
+      ],
+      "links": [
+        {
+          "from": {
+            "node": "texture",
+            "socket": "rgb"
+          },
+          "to": {
+            "node": "surface",
+            "socket": "tint"
+          }
+        }
+      ],
+      "output": {
+        "node": "surface",
+        "socket": "out"
+      },
+      "textures": {
+        "albedo": {
+          "uri": "memory://reference/albedo",
+          "color_space": "sRGB",
+          "coordinates": {
+            "kind": "uv",
+            "set": "UVMap"
+          },
+          "metadata": {
+            "udim": false
+          }
+        }
+      },
+      "metadata": {
+        "asset_family": "metal-a"
+      }
+    },
+    "target": {
+      "id": "reference.rough",
+      "version": "1.0"
+    }
+  }
+}

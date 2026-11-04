@@ -1,0 +1,79 @@
+{
+  "schema_version": "1",
+  "id": "reference.rough.standard",
+  "version": "0.1.0",
+  "renderer": {
+    "id": "reference.rough",
+    "versions": [
+      "1.0"
+    ]
+  },
+  "nodes": {
+    "Standard": {
+      "semantic": "surface.standard",
+      "inputs": {
+        "base_color": {
+          "semantic": "base_color",
+          "type": "color",
+          "default": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "range": [
+            0,
+            1
+          ],
+          "adjustable": true
+        },
+        "roughness": {
+          "semantic": "roughness",
+          "type": "float",
+          "default": 0.5,
+          "range": [
+            0,
+            1
+          ],
+          "transform": "identity",
+          "adjustable": true
+        },
+        "metalness": {
+          "semantic": "metalness",
+          "type": "float",
+          "default": 0.0,
+          "range": [
+            0,
+            1
+          ],
+          "adjustable": true
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "surface",
+          "type": "shader"
+        }
+      }
+    },
+    "Texture": {
+      "semantic": "texture.image",
+      "inputs": {
+        "image": {
+          "semantic": "image",
+          "type": "texture",
+          "default": null
+        }
+      },
+      "outputs": {
+        "rgb": {
+          "semantic": "color",
+          "type": "color"
+        },
+        "value": {
+          "semantic": "value",
+          "type": "float"
+        }
+      }
+    }
+  }
+}

@@ -13,3 +13,17 @@
 Thumbs.db
 *.tmp
 *.log
+
+# Python 构建、测试及本地运行产物
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+.local/

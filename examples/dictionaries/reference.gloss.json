@@ -1,0 +1,79 @@
+{
+  "schema_version": "1",
+  "id": "reference.gloss.standard",
+  "version": "0.1.0",
+  "renderer": {
+    "id": "reference.gloss",
+    "versions": [
+      "1.0"
+    ]
+  },
+  "nodes": {
+    "Surface": {
+      "semantic": "surface.standard",
+      "inputs": {
+        "tint": {
+          "semantic": "base_color",
+          "type": "color",
+          "default": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "range": [
+            0,
+            1
+          ],
+          "adjustable": true
+        },
+        "gloss": {
+          "semantic": "roughness",
+          "type": "float",
+          "default": 0.5,
+          "range": [
+            0,
+            1
+          ],
+          "transform": "one_minus",
+          "adjustable": true
+        },
+        "metal": {
+          "semantic": "metalness",
+          "type": "float",
+          "default": 0.0,
+          "range": [
+            0,
+            1
+          ],
+          "adjustable": true
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "surface",
+          "type": "shader"
+        }
+      }
+    },
+    "Bitmap": {
+      "semantic": "texture.image",
+      "inputs": {
+        "image": {
+          "semantic": "image",
+          "type": "texture",
+          "default": null
+        }
+      },
+      "outputs": {
+        "rgb": {
+          "semantic": "color",
+          "type": "color"
+        },
+        "value": {
+          "semantic": "value",
+          "type": "float"
+        }
+      }
+    }
+  }
+}
