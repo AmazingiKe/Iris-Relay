@@ -28,6 +28,8 @@ def transcode(
     result["renderer"] = deepcopy(renderer)
     input_maps, output_maps, port_types = {}, {}, {}
     linked = {(link["to"]["node"], link["to"]["socket"]) for link in material["links"]}
+    used_outputs = {(link["from"]["node"], link["from"]["socket"]) for link in material["links"]}
+    used_outputs.add((material["output"]["node"], material["output"]["socket"]))
     semantic_rules = {rule["semantic"]: (name, rule) for name, rule in dictionary.nodes.items()}
     for node in result["nodes"]:
         node_id = node["id"]
@@ -42,6 +44,15 @@ def transcode(
             )
             continue
         target_type, rule = entry
+        if rule.get("approximation") and material["renderer"] != renderer:
+            issues.append(
+                issue(
+                    "SHADING_MODEL_APPROXIMATION",
+                    rule["approximation"],
+                    node_id,
+                    severity="warning",
+                )
+            )
         node["type"] = target_type
         input_maps[node_id], output_maps[node_id] = {}, {}
         source_inputs = deepcopy(node["inputs"])
@@ -52,14 +63,38 @@ def transcode(
             target_name = native if encode else port_rule["semantic"]
             expected.add(source_name)
             input_maps[node_id][source_name] = target_name
-            port_types[(node_id, "in", source_name)] = port_rule["type"]
+            semantic_type = (
+                "color" if port_rule.get("transform") == "scalar_to_color" else port_rule["type"]
+            )
+            port_types[(node_id, "in", source_name)] = (
+                semantic_type if encode else port_rule["type"]
+            )
+            if (
+                not encode
+                and port_rule.get("omit_if_default", False)
+                and (node_id, source_name) not in linked
+                and source_inputs.get(source_name, port_rule["default"]) == port_rule["default"]
+            ):
+                issues.append(
+                    issue(
+                        "NATIVE_DEFAULT_OMITTED",
+                        "仅适用于源渲染器的原生默认值保留在源快照中",
+                        node_id,
+                        source_name,
+                        "info",
+                    )
+                )
+                continue
             if source_name in source_inputs:
                 value = source_inputs[source_name]
                 try:
                     if encode:
                         # 先验证语义值的类型，再执行变换，避免错误类型参与算术。
-                        validate_value(value, {"type": port_rule["type"]})
-                        value = transform(value, port_rule)
+                        validate_value(
+                            value,
+                            {"type": semantic_type, "nullable": port_rule.get("nullable", False)},
+                        )
+                        value = transform(value, port_rule, encode=True)
                         validate_value(value, port_rule)
                     else:
                         validate_value(value, port_rule)
@@ -103,10 +138,25 @@ def transcode(
             port_types[(node_id, "out", source_name)] = port_rule["type"]
         for output in node["outputs"]:
             if output not in output_maps[node_id]:
+                if encode and (node_id, output) not in used_outputs:
+                    issues.append(
+                        issue(
+                            "UNUSED_OUTPUT_OMITTED",
+                            "目标缺少未使用的输出，原定义保留在源快照",
+                            node_id,
+                            output,
+                            "info",
+                        )
+                    )
+                    continue
                 issues.append(
                     issue("UNSUPPORTED_OUTPUT", "字典缺少该输出的语义映射", node_id, output)
                 )
-        node["outputs"] = [output_maps[node_id].get(name, name) for name in node["outputs"]]
+        node["outputs"] = [
+            output_maps[node_id].get(name, name)
+            for name in node["outputs"]
+            if not encode or name in output_maps[node_id] or (node_id, name) in used_outputs
+        ]
     for original, link in zip(material["links"], result["links"], strict=True):
         source_type = port_types.get((original["from"]["node"], "out", original["from"]["socket"]))
         target_type = port_types.get((original["to"]["node"], "in", original["to"]["socket"]))

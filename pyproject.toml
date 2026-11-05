@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "iris-relay"
-version = "0.1.0"
+version = "0.2.0"
 description = "面向 DCC 插件的统一材质转换核心"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -21,7 +21,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 
 [tool.coverage.run]
 source = ["iris_relay"]

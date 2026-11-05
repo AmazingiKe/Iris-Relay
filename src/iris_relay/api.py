@@ -1,5 +1,6 @@
 """所有插件共用的版本化服务接口；传输层不参与转换语义。"""
 
+from copy import deepcopy
 from pathlib import Path
 from typing import Protocol
 
@@ -54,10 +55,18 @@ class RelayAPI:
                 fields(payload, set())
                 result = {
                     "renderers": self._registry.capabilities(),
-                    "operations": ["capabilities", "validate", "convert"],
+                    "operations": ["capabilities", "describe", "validate", "convert"],
                     "material_schema_version": "1",
                     "calibration_available": self._predictor is not None,
                     "appearance_verified": False,
+                }
+                status = "ok"
+            elif operation == "describe":
+                fields(payload, {"renderer"})
+                dictionary = self._registry.get(renderer_ref(payload["renderer"]))
+                result = {
+                    "dictionary": deepcopy(dictionary.data),
+                    "fingerprint": dictionary.fingerprint,
                 }
                 status = "ok"
             elif operation == "validate":
@@ -72,8 +81,15 @@ class RelayAPI:
                     renderer={"id": "iris.semantic", "version": "1"},
                     issues=issues,
                 )
-                result = {"valid": not issues, "issues": issues}
-                status = "error" if issues else "ok"
+                valid = not any(item["severity"] == "error" for item in issues)
+                result = {"valid": valid, "issues": issues}
+                status = (
+                    "error"
+                    if not valid
+                    else "warning"
+                    if any(item["severity"] == "warning" for item in issues)
+                    else "ok"
+                )
             elif operation == "convert":
                 fields(payload, {"material", "target"}, {"calibrate"})
                 if type(payload.get("calibrate", False)) is not bool:
@@ -89,7 +105,7 @@ class RelayAPI:
                     "error"
                     if result["material"] is None
                     else "warning"
-                    if result["report"]["issues"]
+                    if any(item["severity"] == "warning" for item in result["report"]["issues"])
                     else "ok"
                 )
             else:

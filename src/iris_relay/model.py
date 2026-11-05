@@ -58,9 +58,15 @@ def json_value(value: Any, depth: int = 0) -> None:
 
 
 def renderer_ref(value: Any) -> dict:
-    fields(value, {"id", "version"})
+    fields(value, {"id", "version"}, {"host", "host_version", "node_system"})
     text(value["id"], "渲染器 ID")
     text(value["version"], "渲染器版本")
+    binding_keys = {"host", "host_version", "node_system"}
+    if binding_keys & value.keys():
+        if not binding_keys <= value.keys():
+            raise ValidationError("宿主绑定必须同时提供 host、host_version 和 node_system")
+        for key in binding_keys:
+            text(value[key], key)
     return value
 
 
