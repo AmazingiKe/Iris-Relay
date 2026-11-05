@@ -2,7 +2,7 @@
 
 所有插件调用同一抽象服务：`RelayService.handle(request) -> response`。业务协议与传输方式分离；Python 插件可直接使用 `RelayAPI`，其他宿主可发送 UTF-8 JSON 给命令行核心。插件只读取和创建宿主材质，不实现字典转换或联合校正。
 
-当前实现为初步协议基线，参考字典没有真实渲染器适配或视觉等价性保证。
+真实宿主配置与参考配置共用此协议。真实绑定范围见[原生字典文档](native-dictionaries.md)；结构验证不代表视觉等价。
 
 ## 快速调用
 
@@ -35,12 +35,13 @@ uv run iris-relay --dictionaries examples/dictionaries --request examples/conver
 | --- | --- |
 | `api_version` | 字符串 `"1"` |
 | `request_id` | 非空字符串，由插件生成，用于对应响应 |
-| `operation` | `capabilities`、`validate` 或 `convert` |
+| `operation` | `capabilities`、`describe`、`validate` 或 `convert` |
 | `payload` | 对应操作的数据对象 |
 
 | 操作 | payload | 结果 |
 | --- | --- | --- |
 | `capabilities` | `{}` | 已加载字典、渲染器精确版本、支持操作、校正器是否配置 |
+| `describe` | `{"renderer": 渲染器引用}` | 完整声明式 `dictionary` 副本及内容 `fingerprint`，供插件查询原生绑定 |
 | `validate` | `{"material": 材质图}` | 图结构和源字典语义检查结果；不检查资源文件是否存在或视觉效果 |
 | `convert` | `{"material": 材质图, "target": {"id": "...", "version": "..."}, "calibrate": false}` | 源图、语义中间结果、目标图和转换报告；`calibrate` 可省略 |
 
@@ -72,7 +73,7 @@ uv run iris-relay --dictionaries examples/dictionaries --request examples/conver
 | --- | --- |
 | `schema_version` | 字符串 `"1"` |
 | `name` | 非空材质名 |
-| `renderer` | `id` 和 `version`；必须匹配已加载字典的精确版本 |
+| `renderer` | `id`、`version`，可选一组 `host`、`host_version`、`node_system`；必须精确匹配字典 |
 | `nodes` | 节点列表，每项包含 `id`、`type`、`inputs`、`outputs`，可含 `metadata` |
 | `links` | 每项为 `{"from": {"node": "...", "socket": "..."}, "to": {"node": "...", "socket": "..."}}` |
 | `output` | 材质输出的 `node` 和 `socket` |
@@ -81,7 +82,9 @@ uv run iris-relay --dictionaries examples/dictionaries --request examples/conver
 
 `inputs` 是端口名到值的对象，`outputs` 是输出端口名列表。节点 ID 必须唯一，连接必须指向存在的端口，每个输入最多一条连接，图必须无环。连接输入仍应在 `inputs` 中提供默认值；核心保留默认值和连接的区别。
 
-字典允许的输入类型为 `float`、三个分量的 `color` / `vector`、`string`、`bool`、`texture`、`shader`。`texture` 值为 `null` 或 `{"texture": "资源ID"}`，`shader` 默认值为 `null`，实际层次通过连接表达。资源引用必须存在于 `textures`。
+字典允许的输入类型为 `float`、三个分量的 `color` / `vector`、四分量 `color4`、`string`、`bool`、`texture`、`shader`。`texture` 值为 `null` 或 `{"texture": "资源ID"}`，`shader` 默认值为 `null`，实际层次通过连接表达。资源引用必须存在于 `textures`。
+
+真实配置的宿主三个字段必须一起提供，`target` 和 `describe.payload.renderer` 使用相同引用结构。`nullable: true` 的输入可使用 `null` 表示隐式值。
 
 每项贴图描述包含 `uri`、`color_space`、`coordinates` 对象，可含 `metadata`。核心保留它们，但不读取贴图像素、不自动转换色彩空间、不解析 UV、不下载资源，也不更改资源路径。真实适配器须根据共同约定解析这些信息。示例使用的 `memory://reference/albedo` 只代表参考资源，并无附带图像文件。
 
@@ -93,12 +96,16 @@ API 接受有限数值；JSON 文件拒绝重复键、NaN 和 Infinity，单次 
 
 完整格式见 [参考光泽度字典](../examples/dictionaries/reference.gloss.json) 和 [参考粗糙度字典](../examples/dictionaries/reference.rough.json)。字典目录由核心启动方指定，API 请求不能指定加载路径或可执行代码。
 
-- 顶层包含 `schema_version`、`id`、`version`、`renderer`、`nodes`。
-- `renderer` 包含 `id` 及明确列出的 `versions`；同一渲染器版本不能由多份字典覆盖。
+- 顶层包含 `schema_version`、`id`、`version`、`renderer`、`nodes`；可选 `host`、`description`、`evidence`。`host` 含 `id`、`versions` 和 `node_system`。
+- `renderer` 包含 `id` 及明确列出的 `versions`；同一渲染器版本、宿主版本和节点系统组合不能由多份字典覆盖。
 - 每个原生节点类型映射到唯一 `semantic`；同一字典不能把多个目标实现映射到同一语义后再隐式选择。
-- 输入规则包含 `semantic`、`type`、`default`，可指定 `range`、`transform`、`adjustable`；输出规则包含 `semantic`、`type`。
-- `transform` 当前只允许 `identity` 和用于浮点值的 `one_minus`。默认值和范围描述原生参数域，解码后进入语义域，编码时逆变换回目标原生域。
+- 输入规则包含 `semantic`、`type`、`default`，可指定 `range`、`transform`、`adjustable`、`nullable`、`omit_if_default`；输出规则包含 `semantic`、`type`。节点和端口可包含 `native`；节点可通过 `approximation` 声明近似。
+- `transform` 白名单包含 `identity`、用于浮点值的 `one_minus`、`{"op":"scale","factor":非零有限数值}` 及 `scalar_to_color`。后者将标量展开为三个相等的颜色分量，逆变换只接受灰度颜色。默认值和范围描述原生参数域，解码后进入语义域，编码时逆变换回目标原生域。
 - 非恒等变换遇到连接时返回阻断报告，不将单个数值操作误当作整张贴图变换。
+
+`native` 含实际 `id`（字符串或整数 code），可选 `label`、`properties`、`kind`、`codec`、`colorspace_id`、`uv_id`。`kind` 为 `socket`／`property`／`resource`；`codec` 白名单为 `identity`／`rgb`／`srgb`／`bool`／`normal`／`texture`。这些是声明式宿主读写信息，不可携带执行代码。数值编码由宿主适配层的公开辅助函数处理，语义变换只由核心处理。
+
+`omit_if_default` 仅允许省略未连接、等于默认值的源原生控制项，并在源快照保留其值；目标使用自己的默认值。已知输出未连接且不是最终出口时允许省略。信息码为 `NATIVE_DEFAULT_OMITTED`、`UNUSED_OUTPUT_OMITTED`；不同 BSDF 的近似使用 `SHADING_MODEL_APPROXIMATION` 警告。信息记录不影响状态，错误阻断，警告需要插件明确接受。
 
 字典对语义、单位、默认值和范围的陈述必须有具体渲染器依据。核心只能验证声明的一致性，不能自动证明物理含义或视觉等价性。
 
