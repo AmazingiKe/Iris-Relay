@@ -5,7 +5,7 @@ from pathlib import Path
 import bpy
 
 from iris_relay.model import Material, ValidationError
-from iris_relay.native import decode_value, describe, encode_value
+from iris_relay.native import decode_value, describe, encode_value, identify
 
 
 def renderer_ref():
@@ -77,17 +77,23 @@ class BlenderAdapter:
                 continue
             if node.mute:
                 raise ValidationError("暂不转换静音节点，必须显式解析旁路语义")
-            rule = schema["nodes"].get(node.bl_idname)
-            if rule is None:
-                raise ValidationError(f"已发现但未建立转换规则的 Blender 节点：{node.bl_idname}")
-            for prop, expected in rule["native"].get("properties", {}).items():
-                if getattr(node, prop) != expected:
-                    raise ValidationError(
-                        f"未支持的原生配置：{node.name}.{prop}={getattr(node, prop)}"
-                    )
+            property_names = {
+                prop
+                for rule in schema["nodes"].values()
+                if rule["native"]["id"] == node.bl_idname
+                for prop in rule["native"].get("properties", {})
+            }
+            match = identify(
+                self.service,
+                renderer_ref(),
+                node.bl_idname,
+                {prop: getattr(node, prop) for prop in property_names},
+            )
+            implementation = match["implementation"]
+            rule = schema["nodes"][implementation]
             record = {
                 "id": node.name,
-                "type": node.bl_idname,
+                "type": implementation,
                 "inputs": {},
                 "outputs": list(rule["outputs"]),
                 "metadata": {},

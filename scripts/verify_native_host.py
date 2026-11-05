@@ -11,7 +11,8 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "plugins"))
 
 from iris_relay import RelayAPI  # noqa: E402
-from iris_relay.native import decode_value, encode_value  # noqa: E402
+from iris_relay.model import Material  # noqa: E402
+from iris_relay.native import decode_value, encode_value, identify  # noqa: E402
 
 
 def equal(actual, expected):
@@ -44,9 +45,11 @@ def run_blender(job, api):
         actual = BlenderAdapter(bpy.data.materials[name], api).read_material()
         expected = case["material"]
         assert actual["links"] == expected["links"], (actual["links"], expected["links"])
+        assert actual["output"] == expected["output"]
         checks = 0
         for node in expected["nodes"]:
             found = next(n for n in actual["nodes"] if n["id"] == node["id"])
+            assert found["type"] == node["type"], (found["type"], node["type"])
             for port, value in node["inputs"].items():
                 if isinstance(value, dict) and "texture" in value:
                     resource = actual["textures"][found["inputs"][port]["texture"]]
@@ -65,6 +68,7 @@ def run_blender(job, api):
                 "status": "ok",
                 "checked_inputs": checks,
                 "checked_links": len(actual["links"]) + 1,
+                "material": actual,
             }
         )
     # 确认新建目标不修改源，并验证资源错误的失败清理。
@@ -175,6 +179,7 @@ def run_cinema4d(job, api):
                     if is_rs:
                         set_rs(node, code, value)
                     else:
+                        code = int(code)
                         old = node[code]
                         if isinstance(value, list):
                             value = c4d.Vector(*value)
@@ -253,7 +258,11 @@ def run_cinema4d(job, api):
         is_rs = data["renderer"]["id"] == "redshift"
         if is_rs:
             graph = material.GetNodeMaterialReference().GetGraph(space)
-            nodes = {str(n.GetId()): n for n in graph.GetRoot().GetChildren()}
+            nodes = {
+                str(n.GetId()): n
+                for n in graph.GetViewRoot().GetChildren()
+                if n.GetKind() == maxon.NODE_KIND.NODE
+            }
         else:
             network = message(material, 1028, {})
             nodes = {}
@@ -261,11 +270,129 @@ def run_cinema4d(job, api):
                 node = network.GetLink(10000 + index, document)
                 nodes[node.GetName()] = node
         checks = 0
+        actual = {
+            "schema_version": "1",
+            "renderer": data["renderer"],
+            "name": material.GetName(),
+            "nodes": [],
+            "links": [],
+            "textures": {},
+            "output": {},
+        }
+        bindings = {}
+        # 直接读取原生类型和模式；不以预期的实现键代替识别证据。
+        for name, node in nodes.items():
+            native_id = (
+                str(node.GetValue(maxon.nodes.AssetId)[0]) if is_rs else node[200]
+            )  # C4DtoA gvarnoldshader.h: C4DAI_GVSHADER_TYPE
+            if is_rs and native_id == output_asset:
+                continue
+            properties = {
+                key
+                for rule in schema["nodes"].values()
+                if rule["native"]["id"] == native_id
+                for key in rule["native"].get("properties", {})
+            }
+
+            def read(code, node=node):
+                return json_value(port(node, code).GetPortValue() if is_rs else node[int(code)])
+
+            match = identify(
+                api, data["renderer"], native_id, {key: read(key) for key in properties}
+            )
+            rule = schema["nodes"][match["implementation"]]
+            bindings[name] = rule
+            record = {
+                "id": name,
+                "type": match["implementation"],
+                "inputs": {},
+                "outputs": list(rule["outputs"]),
+                "metadata": {},
+            }
+            for key, definition in rule["inputs"].items():
+                binding = definition["native"]
+                if binding["kind"] == "resource":
+                    uri = read(binding["id"])
+                    if uri:
+                        resource_id = "image_" + str(len(actual["textures"]))
+                        actual["textures"][resource_id] = {
+                            "uri": uri,
+                            "color_space": read(binding["colorspace_id"]),
+                            "coordinates": {"kind": "uv", "set": read(binding["uv_id"])},
+                            "metadata": {},
+                        }
+                        record["inputs"][key] = {"texture": resource_id}
+                    else:
+                        record["inputs"][key] = None
+                else:
+                    record["inputs"][key] = decode_value(read(binding["id"]), definition)
+            actual["nodes"].append(record)
+
+        def endpoint_for(name, code, direction):
+            rule = bindings[name]
+            keys = [
+                key
+                for key, definition in rule[direction].items()
+                if str(definition["native"]["id"]) == str(code)
+            ]
+            assert len(keys) == 1, (name, code, direction)
+            return {"node": name, "socket": keys[0]}
+
+        if is_rs:
+            from probe_cinema4d import describe_ports
+
+            for name, node in nodes.items():
+                for socket in describe_ports(node.GetInputs()):
+                    origins = port(node, socket["id"]).GetConnections(maxon.PORT_DIR.INPUT)
+                    for origin, _wires in origins:
+                        source_name = str(origin.GetParent().GetParent().GetId())
+                        source = endpoint_for(source_name, str(origin.GetId()), "outputs")
+                        if name not in bindings:
+                            assert socket["id"] == output_asset + ".surface"
+                            assert not actual["output"], "多个材质表面输出"
+                            actual["output"] = source
+                        else:
+                            actual["links"].append(
+                                {"from": source, "to": endpoint_for(name, socket["id"], "inputs")}
+                            )
+        else:
+            for index in range(network.GetInt32(2012)):
+                connection = network.GetContainer(20000 + index)
+                actual["links"].append(
+                    {
+                        "from": endpoint_for(
+                            connection.GetLink(0, document).GetName(),
+                            connection.GetInt32(1),
+                            "outputs",
+                        ),
+                        "to": endpoint_for(
+                            connection.GetLink(2, document).GetName(),
+                            connection.GetInt32(3),
+                            "inputs",
+                        ),
+                    }
+                )
+            output_node = network.GetLink(2013, document)
+            assert output_node is not None
+            # 当前支持的表面节点只有一个已核验输出。
+            output_name = output_node.GetName()
+            assert len(bindings[output_name]["outputs"]) == 1
+            actual["output"] = {
+                "node": output_name,
+                "socket": next(iter(bindings[output_name]["outputs"])),
+            }
+        actual = Material.parse(actual).to_dict()
+        assert sorted(actual["links"], key=str) == sorted(data["links"], key=str)
+        assert actual["output"] == data["output"]
+        assert {n["id"]: n["type"] for n in actual["nodes"]} == {
+            n["id"]: n["type"] for n in data["nodes"]
+        }
+        exported = actual
         for record in data["nodes"]:
             node = nodes[record["id"]]
             rule = schema["nodes"][record["type"]]
             for code, expected in rule["native"].get("properties", {}).items():
-                actual = json_value(port(node, code).GetPortValue() if is_rs else node[code])
+                actual = json_value(port(node, code).GetPortValue() if is_rs else node[int(code)])
                 assert equal(actual, expected), (code, actual, expected)
             for name, expected in record["inputs"].items():
                 binding = rule["inputs"][name]["native"]
@@ -331,6 +458,7 @@ def run_cinema4d(job, api):
             "status": "ok",
             "checked_inputs": checks,
             "checked_links": len(data["links"]) + 1,
+            "material": exported,
         }
 
     document = c4d.documents.BaseDocument()

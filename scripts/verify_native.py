@@ -54,88 +54,112 @@ def main():
         json.loads(path.read_text(encoding="utf-8"))
         for path in sorted((ROOT / "dictionaries").glob("*.json"))
     ]
-    jobs = {
-        host: {
-            "run_id": run_id,
-            "host": host,
-            "output": str(output / f"{host}_result.json"),
-            "cases": [],
+
+    def new_jobs(phase):
+        return {
+            host: {
+                "run_id": run_id,
+                "host": host,
+                "output": str(output / f"{phase}_{host}_result.json"),
+                "cases": [],
+            }
+            for host in ("blender", "cinema4d")
         }
-        for host in ("blender", "cinema4d")
-    }
+
+    jobs = new_jobs("source")
     for source in profiles:
-        for target in profiles:
-            case_id = source["renderer"]["id"] + "_to_" + target["renderer"]["id"]
-            material = fixture(source, str(texture))
-            result = api.handle(
-                {
-                    "api_version": "1",
-                    "request_id": case_id,
-                    "operation": "convert",
-                    "payload": {"material": material, "target": renderer(target)},
-                }
-            )
-            (output / f"{case_id}_conversion.json").write_text(
-                json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
-            if result["status"] == "error":
-                raise RuntimeError(f"核心转换失败：{case_id}")
-            jobs[target["host"]["id"]]["cases"].append(
-                {"id": case_id, "material": result["result"]["material"]}
+        for semantic in ("normal.tangent", "bump.height"):
+            case_id = source["renderer"]["id"] + "_" + semantic
+            jobs[source["host"]["id"]]["cases"].append(
+                {"id": case_id, "material": fixture(source, str(texture), normal_semantic=semantic)}
             )
     summary = {
         "run_id": run_id,
         "scope": (
-            "字典生成的夹具经过 API 转换，在宿主创建、保存、重开、读回；"
-            "不代表任意用户场景导出或外观一致"
+            "原生夹具保存重开并通过统一 API 识别读回，"
+            "再跨宿主转换、创建、保存重开核对；不证明外观一致"
         ),
-        "hosts": {},
+        "phases": {},
     }
     worker = str(ROOT / "scripts/verify_native_host.py")
-    for host, job in jobs.items():
-        job_path = output / f"{host}_job.json"
-        job_path.write_text(json.dumps(job, ensure_ascii=False, indent=2), encoding="utf-8")
-        command = (
-            [
-                str(args.blender),
-                "--background",
-                "--factory-startup",
-                "--disable-autoexec",
-                "--python-exit-code",
-                "1",
-                "--python",
-                worker,
-            ]
-            if host == "blender"
-            else [str(args.c4dpy), "-g_licenseModel=LICENSEMODEL::MAXONAPP", worker]
-        )
-        with (output / f"{host}.log").open("wb") as log:
-            completed = subprocess.run(
-                command,
-                env=dict(os.environ, IRIS_RELAY_JOB=str(job_path), PYTHONUTF8="1"),
-                stdout=log,
-                stderr=subprocess.STDOUT,
-                stdin=subprocess.DEVNULL,
-                timeout=300,
-                check=False,
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+
+    def execute(jobs, phase):
+        reports = {}
+        for host, job in jobs.items():
+            job_path = output / f"{phase}_{host}_job.json"
+            job_path.write_text(json.dumps(job, ensure_ascii=False, indent=2), encoding="utf-8")
+            command = (
+                [
+                    str(args.blender),
+                    "--background",
+                    "--factory-startup",
+                    "--disable-autoexec",
+                    "--python-exit-code",
+                    "1",
+                    "--python",
+                    worker,
+                ]
+                if host == "blender"
+                else [str(args.c4dpy), "-g_licenseModel=LICENSEMODEL::MAXONAPP", worker]
             )
-        report_path = Path(job["output"])
-        report = (
-            json.loads(report_path.read_text(encoding="utf-8"))
-            if report_path.is_file()
-            else {"status": "error", "message": "宿主没有生成完成报告"}
-        )
-        summary["hosts"][host] = {"exit_code": completed.returncode, "report": report}
-        print(host, report["status"], flush=True)
-    summary["status"] = (
-        "ok"
-        if all(
+            with (output / f"{phase}_{host}.log").open("wb") as log:
+                completed = subprocess.run(
+                    command,
+                    env=dict(os.environ, IRIS_RELAY_JOB=str(job_path), PYTHONUTF8="1"),
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    stdin=subprocess.DEVNULL,
+                    timeout=300,
+                    check=False,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                )
+            report_path = Path(job["output"])
+            report = (
+                json.loads(report_path.read_text(encoding="utf-8"))
+                if report_path.is_file()
+                else {"status": "error", "message": "宿主没有生成完成报告"}
+            )
+            reports[host] = {"exit_code": completed.returncode, "report": report}
+            print(phase, host, report["status"], flush=True)
+        return reports
+
+    def passed(reports):
+        return all(
             item["exit_code"] == 0
             and item["report"].get("run_id") == run_id
             and item["report"]["status"] == "ok"
-            for item in summary["hosts"].values()
+            for item in reports.values()
         )
+
+    source_reports = execute(jobs, "source")
+    summary["phases"]["source"] = source_reports
+    if passed(source_reports):
+        jobs = new_jobs("conversion")
+        for host_result in source_reports.values():
+            for case in host_result["report"]["cases"]:
+                for target in profiles:
+                    case_id = case["id"] + "_to_" + target["renderer"]["id"]
+                    result = api.handle(
+                        {
+                            "api_version": "1",
+                            "request_id": case_id,
+                            "operation": "convert",
+                            "payload": {"material": case["material"], "target": renderer(target)},
+                        }
+                    )
+                    (output / f"{case_id}_conversion.json").write_text(
+                        json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
+                    )
+                    if result["status"] == "error":
+                        raise RuntimeError(f"读回后的核心转换失败：{case_id}")
+                    jobs[target["host"]["id"]]["cases"].append(
+                        {"id": case_id, "material": result["result"]["material"]}
+                    )
+        summary["phases"]["conversion"] = execute(jobs, "conversion")
+    summary["status"] = (
+        "ok"
+        if len(summary["phases"]) == 2
+        and all(passed(reports) for reports in summary["phases"].values())
         else "error"
     )
     (output / "summary.json").write_text(
