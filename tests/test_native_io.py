@@ -1,7 +1,7 @@
 import pytest
 
 from iris_relay import RelayAPI
-from iris_relay.native import decode_value, describe, encode_value
+from iris_relay.native import decode_value, describe, encode_value, identify
 
 
 def test_srgb_codec_preserves_linear_color_roundtrip():
@@ -39,3 +39,24 @@ def test_native_identity_is_detached_and_bool_is_explicit():
     copied = decode_value(value, {})
     copied[0] = 9
     assert value == [1, 2, 3]
+
+
+def test_gray_height_codec_does_not_guess_a_channel():
+    rule = {"native": {"codec": "gray"}}
+    assert encode_value(0.4, rule) == [0.4, 0.4, 0.4]
+    assert decode_value([0.4, 0.4, 0.4], rule) == 0.4
+    assert decode_value(0.4, rule) == 0.4
+    with pytest.raises(ValueError):
+        decode_value([0.2, 0.4, 0.6], rule)
+    with pytest.raises(ValueError):
+        encode_value([0.4, 0.4, 0.4], rule)
+
+
+def test_identify_helper_uses_service_and_preserves_error_code(profiles):
+    profiles[0]["nodes"]["Bitmap"]["native"] = {"id": 123, "properties": {"mode": 0}}
+    api = RelayAPI(profiles)
+    renderer = {"id": "reference.gloss", "version": "1.0"}
+    assert identify(api, renderer, 123, {"mode": 0})["implementation"] == "Bitmap"
+    with pytest.raises(ValueError) as caught:
+        identify(api, renderer, 123, {"mode": 1})
+    assert caught.value.code == "UNSUPPORTED_NODE_CONFIGURATION"

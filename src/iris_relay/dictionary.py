@@ -7,6 +7,7 @@ from hashlib import sha256
 from typing import Any
 
 from .model import ValidationError, fields, json_value, text
+from .semantics import validate_contract
 
 VALUE_TYPES = {"float", "color", "color4", "vector", "string", "bool", "texture"}
 
@@ -82,6 +83,7 @@ def native_binding(value: Any) -> None:
         "normal",
         "texture",
         "srgb",
+        "gray",
     }:
         raise ValidationError("不支持的原生值编码")
     for key in ("colorspace_id", "uv_id"):
@@ -100,7 +102,7 @@ class Dictionary:
         fields(
             value,
             {"schema_version", "id", "version", "renderer", "nodes"},
-            {"host", "description", "evidence"},
+            {"host", "description", "evidence", "semantic_schema_version"},
         )
         if value["schema_version"] != "1":
             raise ValidationError("不支持的字典协议版本")
@@ -132,18 +134,27 @@ class Dictionary:
             raise ValidationError("字典版本列表重复")
         if not isinstance(value["nodes"], dict) or not value["nodes"]:
             raise ValidationError("字典 nodes 必须为非空对象")
-        semantics = set()
+        if "semantic_schema_version" in value and value["semantic_schema_version"] != "1":
+            raise ValidationError("不支持的通用语义版本")
+        defaults = set()
         for native, node in value["nodes"].items():
             text(native, "原生节点类型")
-            fields(node, {"semantic", "inputs", "outputs"}, {"native", "approximation"})
+            fields(
+                node,
+                {"semantic", "inputs", "outputs"},
+                {"native", "approximation", "target_default"},
+            )
             if "native" in node:
                 native_binding(node["native"])
             if "approximation" in node:
                 text(node["approximation"], "近似说明")
             semantic = text(node["semantic"], "节点语义")
-            if semantic in semantics:
-                raise ValidationError(f"节点语义有多个目标实现，无法确定选择：{semantic}")
-            semantics.add(semantic)
+            if type(node.get("target_default", False)) is not bool:
+                raise ValidationError("target_default 必须为布尔值")
+            if node.get("target_default"):
+                if semantic in defaults:
+                    raise ValidationError(f"通用功能存在多个默认目标实现：{semantic}")
+                defaults.add(semantic)
             for direction in ("inputs", "outputs"):
                 if not isinstance(node[direction], dict):
                     raise ValidationError("字典端口映射必须为对象")
@@ -210,6 +221,8 @@ class Dictionary:
                         ):
                             raise ValidationError("无效的输入范围")
                     validate_value(rule["default"], rule)
+            if value.get("semantic_schema_version"):
+                validate_contract(node)
         encoded = json.dumps(value, sort_keys=True, ensure_ascii=False, allow_nan=False).encode(
             "utf-8"
         )
@@ -219,10 +232,58 @@ class Dictionary:
     def nodes(self) -> dict:
         return self.data["nodes"]
 
+    def target_node(self, semantic):
+        candidates = [
+            (key, rule) for key, rule in self.nodes.items() if rule["semantic"] == semantic
+        ]
+        defaults = [entry for entry in candidates if entry[1].get("target_default")]
+        if defaults:
+            return defaults[0]
+        if len(candidates) > 1:
+            raise ValidationError(
+                f"通用功能缺少明确的默认目标实现：{semantic}", "AMBIGUOUS_TARGET_NODE"
+            )
+        return candidates[0] if candidates else None
+
+    def identify(self, native_id, properties):
+        if type(native_id) not in (str, int) or native_id == "":
+            raise ValidationError("原生节点 ID 必须为非空字符串或整数")
+        if not isinstance(properties, dict):
+            raise ValidationError("原生配置必须为对象")
+        candidates = [
+            (key, rule)
+            for key, rule in self.nodes.items()
+            if rule.get("native", {}).get("id") == native_id
+        ]
+        if not candidates:
+            raise ValidationError(f"未支持的原生节点：{native_id}", "UNSUPPORTED_NODE")
+        matches = [
+            (key, rule)
+            for key, rule in candidates
+            if all(
+                k in properties and type(properties[k]) is type(v) and properties[k] == v
+                for k, v in rule["native"].get("properties", {}).items()
+            )
+        ]
+        if not matches:
+            raise ValidationError(
+                f"原生节点配置未支持或缺失：{native_id}", "UNSUPPORTED_NODE_CONFIGURATION"
+            )
+        if len(matches) > 1:
+            raise ValidationError(f"原生配置匹配多个实现：{native_id}", "AMBIGUOUS_NATIVE_NODE")
+        key, rule = matches[0]
+        return {
+            "implementation": key,
+            "semantic": rule["semantic"],
+            "native": deepcopy(rule["native"]),
+            "dictionary_fingerprint": self.fingerprint,
+        }
+
     def summary(self) -> dict:
         return {
             "dictionary_id": self.data["id"],
             "dictionary_version": self.data["version"],
+            "semantic_schema_version": self.data.get("semantic_schema_version"),
             "renderer": deepcopy(self.data["renderer"]),
             "host": deepcopy(self.data.get("host")),
             "fingerprint": self.fingerprint,

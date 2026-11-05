@@ -20,8 +20,33 @@ def describe(service, renderer):
     return response["result"]["dictionary"]
 
 
+def identify(service, renderer, native_id, properties):
+    response = service.handle(
+        {
+            "api_version": "1",
+            "request_id": str(uuid4()),
+            "operation": "identify",
+            "payload": {"renderer": renderer, "native_id": native_id, "properties": properties},
+        }
+    )
+    if response["status"] != "ok":
+        raise ValidationError(response["error"]["message"], response["error"]["code"])
+    return response["result"]
+
+
 def decode_value(value, rule):
     codec = rule.get("native", {}).get("codec", "identity")
+    if codec == "gray":
+        if type(value) in (float, int):
+            return value
+        if (
+            not isinstance(value, list)
+            or len(value) != 3
+            or any(type(v) not in (float, int) for v in value)
+            or max(value) - min(value) > 1e-6
+        ):
+            raise ValidationError("高度输入必须为标量或灰度三通道，不能猜测颜色通道")
+        return value[0]
     if codec == "rgb":
         if len(value) == 4 and abs(value[3] - 1) > 1e-6:
             raise ValidationError("该颜色端口含非默认 Alpha，不能静默丢弃")
@@ -37,6 +62,10 @@ def decode_value(value, rule):
 
 def encode_value(value, rule):
     codec = rule.get("native", {}).get("codec", "identity")
+    if codec == "gray":
+        if type(value) not in (float, int):
+            raise ValidationError("高度输入必须为标量")
+        return [value, value, value]
     if codec == "rgb":
         return list(value) + [1.0]
     if codec == "srgb":

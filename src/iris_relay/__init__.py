@@ -3,4 +3,4 @@
 from .api import RelayAPI, RelayService
 
 __all__ = ["RelayAPI", "RelayService"]
-__version__ = "0.2.0"
+__version__ = "0.3.0"

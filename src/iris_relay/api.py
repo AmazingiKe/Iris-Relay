@@ -8,6 +8,7 @@ from .conversion import convert, transcode
 from .correction import JointPredictor, calibrate
 from .dictionary import Registry
 from .model import Material, ValidationError, fields, json_value, load_json, renderer_ref, text
+from .semantics import describe_semantics
 
 
 class RelayService(Protocol):
@@ -55,11 +56,28 @@ class RelayAPI:
                 fields(payload, set())
                 result = {
                     "renderers": self._registry.capabilities(),
-                    "operations": ["capabilities", "describe", "validate", "convert"],
+                    "operations": [
+                        "capabilities",
+                        "semantics",
+                        "identify",
+                        "describe",
+                        "validate",
+                        "convert",
+                    ],
+                    "semantic_schema_version": "1",
                     "material_schema_version": "1",
                     "calibration_available": self._predictor is not None,
                     "appearance_verified": False,
                 }
+                status = "ok"
+            elif operation == "semantics":
+                fields(payload, set())
+                result = describe_semantics()
+                status = "ok"
+            elif operation == "identify":
+                fields(payload, {"renderer", "native_id", "properties"})
+                dictionary = self._registry.get(renderer_ref(payload["renderer"]))
+                result = dictionary.identify(payload["native_id"], payload["properties"])
                 status = "ok"
             elif operation == "describe":
                 fields(payload, {"renderer"})

@@ -30,11 +30,14 @@ def transcode(
     linked = {(link["to"]["node"], link["to"]["socket"]) for link in material["links"]}
     used_outputs = {(link["from"]["node"], link["from"]["socket"]) for link in material["links"]}
     used_outputs.add((material["output"]["node"], material["output"]["socket"]))
-    semantic_rules = {rule["semantic"]: (name, rule) for name, rule in dictionary.nodes.items()}
     for node in result["nodes"]:
         node_id = node["id"]
         if encode:
-            entry = semantic_rules.get(node["type"])
+            try:
+                entry = dictionary.target_node(node["type"])
+            except ValidationError as exc:
+                issues.append(issue(exc.code, str(exc), node_id))
+                continue
         else:
             rule = dictionary.nodes.get(node["type"])
             entry = (rule["semantic"], rule) if rule else None
