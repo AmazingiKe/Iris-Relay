@@ -176,6 +176,26 @@ def probe():
                             "datatype": did[0].dtype,
                         }
                 inputs = []
+                # 此内置节点无独立资源头文件，使用实机动态描述记录参数和枚举。
+                if name == "rgb_to_float" and not parameters:
+                    for bc, did, _group in node.GetDescription(c4d.DESCFLAGS_DESC_0):
+                        label = bc.GetString(c4d.DESC_NAME)
+                        if did.GetDepth() != 1 or label not in {"Input", "Mode"}:
+                            continue
+                        param_code = did[0].id
+                        entry = {
+                            "id": label.lower(),
+                            "code": param_code,
+                            "label": label,
+                            "datatype": did[0].dtype,
+                            "default": json_value(node[param_code]),
+                            "evidence": "runtime_description",
+                        }
+                        if label == "Mode":
+                            entry["items"] = {
+                                str(k): str(v) for k, v in bc.GetContainer(c4d.DESC_CYCLE)
+                            }
+                        inputs.append(entry)
                 for parameter, param_id in parameters:
                     if "__" in parameter:
                         continue

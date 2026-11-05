@@ -13,9 +13,16 @@ def renderer(profile):
     }
 
 
-def fixture(profile, texture="fixture.png"):
+def fixture(profile, texture="fixture.png", *, normal_semantic="normal.tangent"):
+    if normal_semantic not in {"normal.tangent", "bump.height"}:
+        raise ValueError("未知法线功能")
     nodes, meanings = [], {}
+    included = {"surface.standard", "texture.image", normal_semantic}
+    if normal_semantic == "bump.height":
+        included.add("channel.red")
     for key, rule in profile["nodes"].items():
+        if rule["semantic"] not in included:
+            continue
         node = {
             "id": rule["semantic"].replace(".", "_"),
             "type": key,
@@ -32,6 +39,8 @@ def fixture(profile, texture="fixture.png"):
                 }[value["semantic"]]
             if value["type"] == "texture":
                 node["inputs"][port] = {"texture": "fixture"}
+            if value["semantic"] in {"height", "height.scale"}:
+                node["inputs"][port] = {"height": 0.4, "height.scale": 0.2}[value["semantic"]]
         nodes.append(node)
         meanings[rule["semantic"]] = (node, rule)
 
@@ -44,7 +53,7 @@ def fixture(profile, texture="fixture.png"):
             ),
         }
 
-    return {
+    data = {
         "schema_version": "1",
         "name": "原生字典验证",
         "renderer": renderer(profile),
@@ -52,10 +61,14 @@ def fixture(profile, texture="fixture.png"):
         "links": [
             {
                 "from": endpoint("texture.image", "outputs", "color"),
-                "to": endpoint("surface.standard", "inputs", "base.color"),
+                "to": (
+                    endpoint("channel.red", "inputs", "color")
+                    if normal_semantic == "bump.height"
+                    else endpoint("normal.tangent", "inputs", "normal.color")
+                ),
             },
             {
-                "from": endpoint("normal.tangent", "outputs", "normal"),
+                "from": endpoint(normal_semantic, "outputs", "normal"),
                 "to": endpoint("surface.standard", "inputs", "normal"),
             },
         ],
@@ -63,10 +76,18 @@ def fixture(profile, texture="fixture.png"):
         "textures": {
             "fixture": {
                 "uri": texture,
-                "color_space": "sRGB",
+                "color_space": "Raw",
                 "coordinates": {"kind": "uv", "set": ""},
                 "metadata": {},
             }
         },
         "metadata": {},
     }
+    if normal_semantic == "bump.height":
+        data["links"].append(
+            {
+                "from": endpoint("channel.red", "outputs", "value"),
+                "to": endpoint("bump.height", "inputs", "height"),
+            }
+        )
+    return data

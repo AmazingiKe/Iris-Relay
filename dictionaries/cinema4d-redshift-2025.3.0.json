@@ -1,8 +1,9 @@
 {
   "schema_version": "1",
   "id": "cinema4d.redshift.native",
-  "version": "0.2.0",
-  "description": "真实原生绑定；标准表面、图片与切线空间法线的受限转换。其余节点见完整探测目录。",
+  "version": "0.3.0",
+  "semantic_schema_version": "1",
+  "description": "真实原生绑定；标准表面、图片、切线法线、高度凹凸与显式 R 通道提取。其余节点见探测目录。",
   "renderer": {
     "id": "redshift",
     "versions": [
@@ -1564,6 +1565,188 @@
         }
       },
       "approximation": "切线空间法线需要相同 UV、切线约定及几何体；首版只支持默认方向约定。"
+    },
+    "com.redshift3d.redshift4c4d.nodes.core.bumpmap.height": {
+      "semantic": "bump.height",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap",
+        "label": "bumpmap",
+        "properties": {
+          "com.redshift3d.redshift4c4d.nodes.core.bumpmap.inputtype": 0
+        }
+      },
+      "inputs": {
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.inuse": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.inuse",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.inuse",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.scale": {
+          "semantic": "height.scale",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.scale",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.input": {
+          "semantic": "height",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.input",
+            "kind": "socket",
+            "codec": "gray"
+          },
+          "omit_if_default": false
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.factorinobjscale": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.factorinobjscale",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.factorinobjscale",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.oldrange_min": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.oldrange_min",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.oldrange_min",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.oldrange_max": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.oldrange_max",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.oldrange_max",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.newrange_min": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.newrange_min",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.newrange_min",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.newrange_max": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.newrange_max",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.newrange_max",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.unbiasednormalmap": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.unbiasednormalmap",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.unbiasednormalmap",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.flipy": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.flipy",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.flipy",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.legacynormalmap": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.legacynormalmap",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.legacynormalmap",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        }
+      },
+      "outputs": {
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.out": {
+          "semantic": "normal",
+          "type": "vector",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.out",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "approximation": "高度幅度、单位、滤波与空间导数依赖宿主及几何体；当前只验证参数和连接，不保证外观等价。"
+    },
+    "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter": {
+      "semantic": "channel.red",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter",
+        "label": "rscolorsplitter",
+        "properties": {}
+      },
+      "inputs": {
+        "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter.input": {
+          "semantic": "color",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter.input",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false
+        }
+      },
+      "outputs": {
+        "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter.outr": {
+          "semantic": "value",
+          "type": "float",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter.outr",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
     }
   }
 }

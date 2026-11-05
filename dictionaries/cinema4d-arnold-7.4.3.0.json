@@ -1,8 +1,9 @@
 {
   "schema_version": "1",
   "id": "cinema4d.arnold.native",
-  "version": "0.2.0",
-  "description": "真实原生绑定；标准表面、图片与切线空间法线的受限转换。其余节点见完整探测目录。",
+  "version": "0.3.0",
+  "semantic_schema_version": "1",
+  "description": "真实原生绑定；标准表面、图片、切线法线、高度凹凸与显式 R 通道提取。其余节点见探测目录。",
   "renderer": {
     "id": "arnold",
     "versions": [
@@ -1322,6 +1323,103 @@
         }
       },
       "approximation": "切线空间法线需要相同 UV、切线约定及几何体；首版只支持默认方向约定。"
+    },
+    "bump2d": {
+      "semantic": "bump.height",
+      "native": {
+        "id": 184848913,
+        "label": "bump2d",
+        "properties": {}
+      },
+      "inputs": {
+        "bump_map": {
+          "semantic": "height",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 1722542866,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "bump_height": {
+          "semantic": "height.scale",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": 149592681,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "normal": {
+          "semantic": "normal",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": 1554257242,
+            "kind": "socket",
+            "codec": "normal"
+          },
+          "omit_if_default": true,
+          "nullable": true
+        }
+      },
+      "outputs": {
+        "0": {
+          "semantic": "normal",
+          "type": "vector",
+          "native": {
+            "id": 0,
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "approximation": "高度幅度、单位、滤波与空间导数依赖宿主及几何体；当前只验证参数和连接，不保证外观等价。"
+    },
+    "rgb_to_float": {
+      "semantic": "channel.red",
+      "native": {
+        "id": 420837449,
+        "label": "rgb_to_float",
+        "properties": {
+          "1609892874": 5
+        }
+      },
+      "inputs": {
+        "input": {
+          "semantic": "color",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": 1582091381,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        }
+      },
+      "outputs": {
+        "0": {
+          "semantic": "value",
+          "type": "float",
+          "native": {
+            "id": 0,
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
     }
   }
 }

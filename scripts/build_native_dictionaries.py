@@ -154,9 +154,11 @@ def build(catalog):
     profile = {
         "schema_version": "1",
         "id": f"{host['id']}.{engine}.native",
-        "version": "0.2.0",
+        "version": "0.3.0",
+        "semantic_schema_version": "1",
         "description": (
-            "真实原生绑定；标准表面、图片与切线空间法线的受限转换。其余节点见完整探测目录。"
+            "真实原生绑定；标准表面、图片、切线法线、高度凹凸与显式 R 通道提取。"
+            "其余节点见探测目录。"
         ),
         "renderer": {"id": engine, "versions": [catalog["renderer"]["version"]]},
         "host": {
@@ -184,10 +186,18 @@ def build(catalog):
         "redshift": RS + "bumpmap",
         "arnold": "normal_map",
     }[engine]
+    bump_key = {"cycles": "ShaderNodeBump", "redshift": RS + "bumpmap", "arnold": "bump2d"}[engine]
+    channel_key = {
+        "cycles": "ShaderNodeSeparateColor",
+        "redshift": RS + "rscolorsplitter",
+        "arnold": "rgb_to_float",
+    }[engine]
     for key, semantic in [
         (shader_key, "surface.standard"),
         (image_key, "texture.image"),
         (normal_key, "normal.tangent"),
+        (bump_key, "bump.height"),
+        (channel_key, "channel.red"),
     ]:
         observed = catalog["nodes"][key]
         if observed["status"] != "instantiated":
@@ -220,6 +230,22 @@ def build(catalog):
                     "convention": "OPENGL",
                     "base": "DISPLACED",
                 }
+        if semantic == "bump.height":
+            rule["approximation"] = (
+                "高度幅度、单位、滤波与空间导数依赖宿主及几何体；当前只验证参数和连接，不保证外观等价。"
+            )
+            if engine == "redshift":
+                native["properties"][RS + "bumpmap.inputtype"] = 0
+            elif engine == "cycles":
+                native["properties"]["invert"] = False
+        if semantic == "channel.red":
+            if engine == "cycles":
+                native["properties"]["mode"] = "RGB"
+            elif engine == "arnold":
+                mode = next(p for p in observed["inputs"] if p["id"] == "mode")
+                native["properties"][str(mode["code"])] = int(
+                    next(k for k, v in mode["items"].items() if v == "r")
+                )
         if engine == "cycles" and semantic == "texture.image":
             native["properties"] = {
                 "interpolation": "Linear",
@@ -232,6 +258,7 @@ def build(catalog):
             short = identifier.rsplit(".", 1)[-1]
             if (
                 identifier in native["properties"]
+                or str(port.get("code", identifier)) in native["properties"]
                 or short in {"inputtype"}
                 and semantic == "normal.tangent"
             ):
@@ -246,6 +273,19 @@ def build(catalog):
                     "strength": "normal.strength",
                     "input": "normal.color",
                 }.get(short)
+            elif semantic == "bump.height":
+                mapped = {
+                    "Height": "height",
+                    "input": "height",
+                    "bump_map": "height",
+                    "Distance": "height.scale",
+                    "scale": "height.scale",
+                    "bump_height": "height.scale",
+                    "Normal": "normal",
+                    "normal": "normal",
+                }.get(short)
+            elif semantic == "channel.red":
+                mapped = "color" if short in {"Color", "input"} else None
             else:
                 mapped = None
             input_rule = infer_rule(port, engine, mapped)
@@ -254,6 +294,18 @@ def build(catalog):
             if semantic == "normal.tangent" and mapped == "normal.color":
                 input_rule.update(type="color", default=[0.5, 0.5, 1.0])
                 input_rule.pop("nullable", None)
+            if semantic == "bump.height" and mapped == "height":
+                input_rule.update(type="float", default=0.0)
+                input_rule.pop("nullable", None)
+                if engine == "redshift":
+                    input_rule["native"]["codec"] = "gray"
+            if semantic == "bump.height" and mapped == "normal":
+                input_rule["omit_if_default"] = True
+            if semantic == "channel.red" and mapped == "color":
+                input_rule["type"] = "color"
+                if engine == "redshift":
+                    input_rule["default"] = input_rule["default"][:3]
+                    input_rule["native"]["codec"] = "rgb"
             rule["inputs"][identifier] = input_rule
         if semantic == "texture.image":
             if engine == "cycles":
@@ -289,9 +341,18 @@ def build(catalog):
                 "native": binding,
             }
         for index, port in enumerate(observed["outputs"]):
-            if semantic == "surface.standard":
+            if semantic == "channel.red":
+                red_output = {
+                    "cycles": "Red",
+                    "redshift": RS + "rscolorsplitter.outr",
+                    "arnold": "0",
+                }[engine]
+                if port["id"] != red_output:
+                    continue
+                port_semantic, datatype = "value", "float"
+            elif semantic == "surface.standard":
                 port_semantic, datatype = "surface", "shader"
-            elif semantic == "normal.tangent":
+            elif semantic in {"normal.tangent", "bump.height"}:
                 port_semantic, datatype = "normal", "vector"
             else:
                 port_semantic, datatype = ("color", "color") if index == 0 else ("alpha", "float")
@@ -304,7 +365,10 @@ def build(catalog):
                     "codec": "identity",
                 },
             }
-        profile["nodes"][key] = rule
+        implementation = (
+            key + ".height" if engine == "redshift" and semantic == "bump.height" else key
+        )
+        profile["nodes"][implementation] = rule
     return profile
 
 

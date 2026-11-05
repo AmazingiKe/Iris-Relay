@@ -5356,7 +5356,38 @@
       "code": 420837449,
       "label": "rgb_to_float",
       "status": "instantiated",
-      "inputs": [],
+      "inputs": [
+        {
+          "code": 1582091381,
+          "label": "Input",
+          "datatype": 3,
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "id": "input",
+          "evidence": "runtime_description"
+        },
+        {
+          "code": 1609892874,
+          "label": "Mode",
+          "datatype": 15,
+          "default": 2,
+          "items": {
+            "0": "min",
+            "1": "max",
+            "2": "average",
+            "3": "sum",
+            "4": "luminance",
+            "5": "r",
+            "6": "g",
+            "7": "b"
+          },
+          "id": "mode",
+          "evidence": "runtime_description"
+        }
+      ],
       "outputs": [
         {
           "id": "0",
