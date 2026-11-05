@@ -1,0 +1,1327 @@
+{
+  "schema_version": "1",
+  "id": "cinema4d.arnold.native",
+  "version": "0.2.0",
+  "description": "真实原生绑定；标准表面、图片与切线空间法线的受限转换。其余节点见完整探测目录。",
+  "renderer": {
+    "id": "arnold",
+    "versions": [
+      "7.4.3.0"
+    ]
+  },
+  "host": {
+    "id": "cinema4d",
+    "versions": [
+      "2025.3.2"
+    ],
+    "node_system": "arnold.gvnodes"
+  },
+  "evidence": {
+    "kind": "installed_headers_and_runtime_instantiation",
+    "appearance_verified": false,
+    "color_context": {
+      "color_management": 0,
+      "color_profile": 0,
+      "linear_workflow": 1
+    }
+  },
+  "nodes": {
+    "standard_surface": {
+      "semantic": "surface.standard",
+      "native": {
+        "id": 314733630,
+        "label": "standard_surface",
+        "properties": {}
+      },
+      "inputs": {
+        "base": {
+          "semantic": "native.arnold.base",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": 1182964519,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "base_color": {
+          "semantic": "base.color",
+          "type": "color",
+          "default": [
+            0.7999999293458716,
+            0.7999999293458716,
+            0.7999999293458716
+          ],
+          "native": {
+            "id": 1044225467,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "diffuse_roughness": {
+          "semantic": "diffuse.roughness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 2099493681,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "specular": {
+          "semantic": "reflection.weight",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": 1046994997,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "specular_color": {
+          "semantic": "reflection.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": 801517079,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "specular_roughness": {
+          "semantic": "reflection.roughness",
+          "type": "float",
+          "default": 0.20000000298023224,
+          "native": {
+            "id": 1876347704,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "specular_ior": {
+          "semantic": "reflection.ior",
+          "type": "float",
+          "default": 1.5,
+          "native": {
+            "id": 220096084,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            1,
+            10
+          ]
+        },
+        "specular_anisotropy": {
+          "semantic": "reflection.anisotropy",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 1972131714,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "specular_rotation": {
+          "semantic": "reflection.rotation",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 1849574042,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "metalness": {
+          "semantic": "metalness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 1875191464,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "transmission": {
+          "semantic": "native.arnold.transmission",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 1053345482,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "transmission_color": {
+          "semantic": "native.arnold.transmission_color",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": 1738477460,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": true
+        },
+        "transmission_depth": {
+          "semantic": "native.arnold.transmission_depth",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 1739308522,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "transmission_scatter": {
+          "semantic": "native.arnold.transmission_scatter",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": 2122510187,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": true
+        },
+        "transmission_scatter_anisotropy": {
+          "semantic": "native.arnold.transmission_scatter_anisotropy",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 1825710882,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "transmission_dispersion": {
+          "semantic": "native.arnold.transmission_dispersion",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 1333763157,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "transmission_extra_roughness": {
+          "semantic": "native.arnold.transmission_extra_roughness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 953388842,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "transmission_shadow_density": {
+          "semantic": "native.arnold.transmission_shadow_density",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": 576955334,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "transmit_aovs": {
+          "semantic": "native.arnold.transmit_aovs",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 385532682,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "subsurface": {
+          "semantic": "native.arnold.subsurface",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 639969601,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "subsurface_color": {
+          "semantic": "native.arnold.subsurface_color",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": 676401187,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": true
+        },
+        "subsurface_radius": {
+          "semantic": "native.arnold.subsurface_radius",
+          "type": "vector",
+          "default": [
+            10.0,
+            10.0,
+            10.0
+          ],
+          "native": {
+            "id": 276268506,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "subsurface_scale": {
+          "semantic": "native.arnold.subsurface_scale",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": 657869786,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "subsurface_anisotropy": {
+          "semantic": "native.arnold.subsurface_anisotropy",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 1290161654,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "subsurface_type": {
+          "semantic": "native.arnold.subsurface_type",
+          "type": "float",
+          "default": 1,
+          "native": {
+            "id": 110275456,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "thin_walled": {
+          "semantic": "native.arnold.thin_walled",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 1710963383,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "sheen": {
+          "semantic": "sheen.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 403520543,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "sheen_color": {
+          "semantic": "sheen.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": 187686205,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "sheen_roughness": {
+          "semantic": "sheen.roughness",
+          "type": "float",
+          "default": 0.30000001192092896,
+          "native": {
+            "id": 589089308,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "normal": {
+          "semantic": "normal",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": 244376085,
+            "kind": "socket",
+            "codec": "normal"
+          },
+          "omit_if_default": false,
+          "nullable": true
+        },
+        "tangent": {
+          "semantic": "native.arnold.tangent",
+          "type": "vector",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": 1919500835,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "coat": {
+          "semantic": "coat.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 1183015123,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "coat_color": {
+          "semantic": "coat.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": 178501873,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "coat_roughness": {
+          "semantic": "coat.roughness",
+          "type": "float",
+          "default": 0.10000000149011612,
+          "native": {
+            "id": 733962192,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "coat_ior": {
+          "semantic": "coat.ior",
+          "type": "float",
+          "default": 1.5,
+          "native": {
+            "id": 1470960804,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            1,
+            10
+          ]
+        },
+        "coat_anisotropy": {
+          "semantic": "native.arnold.coat_anisotropy",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 2081954934,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "coat_rotation": {
+          "semantic": "native.arnold.coat_rotation",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 2058824866,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "coat_normal": {
+          "semantic": "coat.normal",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": 2026296827,
+            "kind": "socket",
+            "codec": "normal"
+          },
+          "omit_if_default": false,
+          "nullable": true
+        },
+        "coat_affect_color": {
+          "semantic": "native.arnold.coat_affect_color",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 1197050137,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "coat_affect_roughness": {
+          "semantic": "native.arnold.coat_affect_roughness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 1907426296,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "thin_film_thickness": {
+          "semantic": "native.arnold.thin_film_thickness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 1681998321,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "thin_film_ior": {
+          "semantic": "native.arnold.thin_film_ior",
+          "type": "float",
+          "default": 1.5,
+          "native": {
+            "id": 1992954513,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "emission": {
+          "semantic": "emission.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 108737517,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            100000
+          ]
+        },
+        "emission_color": {
+          "semantic": "emission.color",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": 274240561,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "opacity": {
+          "semantic": "opacity",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": 784568645,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "caustics": {
+          "semantic": "native.arnold.caustics",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 1589331029,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "internal_reflections": {
+          "semantic": "native.arnold.internal_reflections",
+          "type": "float",
+          "default": 1,
+          "native": {
+            "id": 456574586,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "exit_to_background": {
+          "semantic": "native.arnold.exit_to_background",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 1863588601,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "indirect_diffuse": {
+          "semantic": "native.arnold.indirect_diffuse",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": 1652395229,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "indirect_specular": {
+          "semantic": "native.arnold.indirect_specular",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": 1039690236,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "dielectric_priority": {
+          "semantic": "native.arnold.dielectric_priority",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 591083365,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "aov_id1": {
+          "semantic": "native.arnold.aov_id1",
+          "type": "string",
+          "default": "id1",
+          "native": {
+            "id": 130489137,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "id1": {
+          "semantic": "native.arnold.id1",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": 614897558,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": true
+        },
+        "aov_id2": {
+          "semantic": "native.arnold.aov_id2",
+          "type": "string",
+          "default": "id2",
+          "native": {
+            "id": 130489136,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "id2": {
+          "semantic": "native.arnold.id2",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": 614897557,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": true
+        },
+        "aov_id3": {
+          "semantic": "native.arnold.aov_id3",
+          "type": "string",
+          "default": "id3",
+          "native": {
+            "id": 130489135,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "id3": {
+          "semantic": "native.arnold.id3",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": 614897556,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": true
+        },
+        "aov_id4": {
+          "semantic": "native.arnold.aov_id4",
+          "type": "string",
+          "default": "id4",
+          "native": {
+            "id": 130489134,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "id4": {
+          "semantic": "native.arnold.id4",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": 614897555,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": true
+        },
+        "aov_id5": {
+          "semantic": "native.arnold.aov_id5",
+          "type": "string",
+          "default": "id5",
+          "native": {
+            "id": 130489133,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "id5": {
+          "semantic": "native.arnold.id5",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": 614897554,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": true
+        },
+        "aov_id6": {
+          "semantic": "native.arnold.aov_id6",
+          "type": "string",
+          "default": "id6",
+          "native": {
+            "id": 130489132,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "id6": {
+          "semantic": "native.arnold.id6",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": 614897553,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": true
+        },
+        "aov_id7": {
+          "semantic": "native.arnold.aov_id7",
+          "type": "string",
+          "default": "id7",
+          "native": {
+            "id": 130489131,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "id7": {
+          "semantic": "native.arnold.id7",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": 614897552,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": true
+        },
+        "aov_id8": {
+          "semantic": "native.arnold.aov_id8",
+          "type": "string",
+          "default": "id8",
+          "native": {
+            "id": 130489130,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "id8": {
+          "semantic": "native.arnold.id8",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": 614897551,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": true
+        }
+      },
+      "outputs": {
+        "0": {
+          "semantic": "surface",
+          "type": "shader",
+          "native": {
+            "id": 0,
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "approximation": "不同渲染器的 BSDF、能量分配及各层响应不保证一致；数值映射需渲染对照。"
+    },
+    "image": {
+      "semantic": "texture.image",
+      "native": {
+        "id": 262700200,
+        "label": "image",
+        "properties": {}
+      },
+      "inputs": {
+        "filename": {
+          "semantic": "image",
+          "type": "texture",
+          "default": null,
+          "native": {
+            "id": 1737748425,
+            "kind": "resource",
+            "codec": "texture",
+            "colorspace_id": 868305056,
+            "uv_id": 1528989165
+          }
+        },
+        "filter": {
+          "semantic": "native.arnold.filter",
+          "type": "float",
+          "default": 3,
+          "native": {
+            "id": 1685648580,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "mipmap_bias": {
+          "semantic": "native.arnold.mipmap_bias",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 324750408,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "single_channel": {
+          "semantic": "native.arnold.single_channel",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 333361456,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "start_channel": {
+          "semantic": "native.arnold.start_channel",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 424767676,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "swrap": {
+          "semantic": "native.arnold.swrap",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 1526652035,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "twrap": {
+          "semantic": "native.arnold.twrap",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 1527837956,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "sscale": {
+          "semantic": "native.arnold.sscale",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": 1165373167,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "tscale": {
+          "semantic": "native.arnold.tscale",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": 1126237774,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "sflip": {
+          "semantic": "native.arnold.sflip",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 1526034836,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "tflip": {
+          "semantic": "native.arnold.tflip",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 1527220757,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "soffset": {
+          "semantic": "native.arnold.soffset",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 44594768,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "toffset": {
+          "semantic": "native.arnold.toffset",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": 1336062737,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "swap_st": {
+          "semantic": "native.arnold.swap_st",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 352086359,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "uvcoords": {
+          "semantic": "native.arnold.uvcoords",
+          "type": "vector",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": 1152645675,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "multiply": {
+          "semantic": "native.arnold.multiply",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": 1426019114,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": true
+        },
+        "offset": {
+          "semantic": "native.arnold.offset",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": 1337204515,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": true
+        },
+        "ignore_missing_textures": {
+          "semantic": "native.arnold.ignore_missing_textures",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 1878757686,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "missing_texture_color": {
+          "semantic": "native.arnold.missing_texture_color",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": 1758127714,
+            "kind": "socket",
+            "codec": "srgb"
+          },
+          "omit_if_default": true
+        }
+      },
+      "outputs": {
+        "0": {
+          "semantic": "color",
+          "type": "color",
+          "native": {
+            "id": 0,
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "normal_map": {
+      "semantic": "normal.tangent",
+      "native": {
+        "id": 1512478027,
+        "label": "normal_map",
+        "properties": {}
+      },
+      "inputs": {
+        "input": {
+          "semantic": "normal.color",
+          "type": "color",
+          "default": [
+            0.5,
+            0.5,
+            1.0
+          ],
+          "native": {
+            "id": 2075543287,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "tangent": {
+          "semantic": "native.arnold.tangent",
+          "type": "vector",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": 304243734,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "normal": {
+          "semantic": "native.arnold.normal",
+          "type": "vector",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": 423473794,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "order": {
+          "semantic": "native.arnold.order",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 2068297611,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "invert_x": {
+          "semantic": "native.arnold.invert_x",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 2113820040,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "invert_y": {
+          "semantic": "native.arnold.invert_y",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 2113820041,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "invert_z": {
+          "semantic": "native.arnold.invert_z",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": 2113820042,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "color_to_signed": {
+          "semantic": "native.arnold.color_to_signed",
+          "type": "float",
+          "default": 1,
+          "native": {
+            "id": 974115091,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "tangent_space": {
+          "semantic": "native.arnold.tangent_space",
+          "type": "float",
+          "default": 1,
+          "native": {
+            "id": 451179179,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "strength": {
+          "semantic": "normal.strength",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": 2098661928,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        }
+      },
+      "outputs": {
+        "0": {
+          "semantic": "normal",
+          "type": "vector",
+          "native": {
+            "id": 0,
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "approximation": "切线空间法线需要相同 UV、切线约定及几何体；首版只支持默认方向约定。"
+    }
+  }
+}

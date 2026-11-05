@@ -1,0 +1,1569 @@
+{
+  "schema_version": "1",
+  "id": "cinema4d.redshift.native",
+  "version": "0.2.0",
+  "description": "真实原生绑定；标准表面、图片与切线空间法线的受限转换。其余节点见完整探测目录。",
+  "renderer": {
+    "id": "redshift",
+    "versions": [
+      "2025.3.0"
+    ]
+  },
+  "host": {
+    "id": "cinema4d",
+    "versions": [
+      "2025.3.2"
+    ],
+    "node_system": "redshift.maxon"
+  },
+  "evidence": {
+    "kind": "installed_schema_and_runtime_instantiation",
+    "appearance_verified": false,
+    "color_context": {
+      "color_management": 0,
+      "color_profile": 0,
+      "linear_workflow": 1
+    }
+  },
+  "nodes": {
+    "com.redshift3d.redshift4c4d.nodes.core.standardmaterial": {
+      "semantic": "surface.standard",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial",
+        "label": "standardmaterial",
+        "properties": {}
+      },
+      "inputs": {
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.base_color": {
+          "semantic": "base.color",
+          "type": "color",
+          "default": [
+            0.21404114365577698,
+            0.21404114365577698,
+            0.21404114365577698
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.base_color",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.base_color_weight": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.base_color_weight",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.base_color_weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.diffuse_model": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.diffuse_model",
+          "type": "float",
+          "default": 0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.diffuse_model",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.diffuse_roughness": {
+          "semantic": "diffuse.roughness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.diffuse_roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.metalness": {
+          "semantic": "metalness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.metalness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_color": {
+          "semantic": "reflection.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_color",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_weight": {
+          "semantic": "reflection.weight",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_roughness": {
+          "semantic": "reflection.roughness",
+          "type": "float",
+          "default": 0.20000000298023224,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_ior": {
+          "semantic": "reflection.ior",
+          "type": "float",
+          "default": 1.5,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_ior",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            1,
+            10
+          ]
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_aniso": {
+          "semantic": "reflection.anisotropy",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_aniso",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_aniso_rotation": {
+          "semantic": "reflection.rotation",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_aniso_rotation",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_samples": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_samples",
+          "type": "float",
+          "default": 16,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_samples",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_color": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_color",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_color",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_weight": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_roughness": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_roughness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_samples": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_samples",
+          "type": "float",
+          "default": 8,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_samples",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ss_depth": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ss_depth",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ss_depth",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ss_scatter_color": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ss_scatter_color",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ss_scatter_color",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ss_phase": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ss_phase",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ss_phase",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ss_samples": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ss_samples",
+          "type": "float",
+          "default": 16,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ss_samples",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_abbe": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_abbe",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_abbe",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_color": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_color",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_color",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_amount": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_amount",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_amount",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_radius": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_radius",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_radius",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_radius_scale": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_radius_scale",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_radius_scale",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_phase": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_phase",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_phase",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_mode": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_mode",
+          "type": "float",
+          "default": 2,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_mode",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_samples": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_samples",
+          "type": "float",
+          "default": 64,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_samples",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_include_mode": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_include_mode",
+          "type": "float",
+          "default": 1,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.ms_include_mode",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_color": {
+          "semantic": "sheen.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_color",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_weight": {
+          "semantic": "sheen.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_roughness": {
+          "semantic": "sheen.roughness",
+          "type": "float",
+          "default": 0.30000001192092896,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_samples": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_samples",
+          "type": "float",
+          "default": 64,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_samples",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.thinfilm_ior": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.thinfilm_ior",
+          "type": "float",
+          "default": 1.5,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.thinfilm_ior",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.thinfilm_thickness": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.thinfilm_thickness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.thinfilm_thickness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_color": {
+          "semantic": "coat.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_color",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_weight": {
+          "semantic": "coat.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_roughness": {
+          "semantic": "coat.roughness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_ior": {
+          "semantic": "coat.ior",
+          "type": "float",
+          "default": 1.5,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_ior",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            1,
+            10
+          ]
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_aniso": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_aniso",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_aniso",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_aniso_rotation": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_aniso_rotation",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_aniso_rotation",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_samples": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_samples",
+          "type": "float",
+          "default": 16,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_samples",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_bump_input": {
+          "semantic": "coat.normal",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_bump_input",
+            "kind": "socket",
+            "codec": "normal"
+          },
+          "omit_if_default": false,
+          "nullable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.emission_color": {
+          "semantic": "emission.color",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.emission_color",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.emission_weight": {
+          "semantic": "emission.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.emission_weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            100000
+          ]
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.opacity_color": {
+          "semantic": "opacity",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.opacity_color",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_thin_walled": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_thin_walled",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_thin_walled",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.bump_input": {
+          "semantic": "normal",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.bump_input",
+            "kind": "socket",
+            "codec": "normal"
+          },
+          "omit_if_default": false,
+          "nullable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.overall_color": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.overall_color",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.overall_color",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.overallaffectsemission": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.overallaffectsemission",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.overallaffectsemission",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.depth_override": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.depth_override",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.depth_override",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_depth": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_depth",
+          "type": "float",
+          "default": 3,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_depth",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_enablecutoff": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_enablecutoff",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_enablecutoff",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_cutoff": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_cutoff",
+          "type": "float",
+          "default": 0.009999999776482582,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_cutoff",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_depth": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_depth",
+          "type": "float",
+          "default": 5,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_depth",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_enablecutoff": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_enablecutoff",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_enablecutoff",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_cutoff": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_cutoff",
+          "type": "float",
+          "default": 0.009999999776482582,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_cutoff",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.combined_depth": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.combined_depth",
+          "type": "float",
+          "default": 6,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.combined_depth",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.diffuse_direct": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.diffuse_direct",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.diffuse_direct",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.diffuse_indirect": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.diffuse_indirect",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.diffuse_indirect",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_direct": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_direct",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_direct",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_indirect": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_indirect",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_indirect",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_isglossiness": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_isglossiness",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_isglossiness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_endmode": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_endmode",
+          "type": "float",
+          "default": 1,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_endmode",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_direct": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_direct",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_direct",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.shadow_affected_by_fresnel_mode": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.shadow_affected_by_fresnel_mode",
+          "type": "float",
+          "default": 2,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.shadow_affected_by_fresnel_mode",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.shadow_opacity": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.shadow_opacity",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.shadow_opacity",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_isglossiness": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_isglossiness",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_isglossiness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.affects_alpha": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.affects_alpha",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.affects_alpha",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.block_volumes": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.block_volumes",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.block_volumes",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_legacy_light_sampling": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_legacy_light_sampling",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_legacy_light_sampling",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_direct": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_direct",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_direct",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_indirect": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_indirect",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_indirect",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_isglossiness": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_isglossiness",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_isglossiness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_direct": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_direct",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_direct",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_indirect": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_indirect",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_indirect",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_isglossiness": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_isglossiness",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_isglossiness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_enablemultiscattercomp": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_enablemultiscattercomp",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_enablemultiscattercomp",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.anisotropy_orientation": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.anisotropy_orientation",
+          "type": "float",
+          "default": 2,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.anisotropy_orientation",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.anisotropy_uvchannel": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.anisotropy_uvchannel",
+          "type": "string",
+          "default": "",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.anisotropy_uvchannel",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.anisotropy_tangentchannel": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.anisotropy_tangentchannel",
+          "type": "string",
+          "default": "",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.anisotropy_tangentchannel",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        }
+      },
+      "outputs": {
+        "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.outcolor": {
+          "semantic": "surface",
+          "type": "shader",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.outcolor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "approximation": "不同渲染器的 BSDF、能量分配及各层响应不保证一致；数值映射需渲染对照。"
+    },
+    "com.redshift3d.redshift4c4d.nodes.core.texturesampler": {
+      "semantic": "texture.image",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler",
+        "label": "texturesampler",
+        "properties": {}
+      },
+      "inputs": {
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/path": {
+          "semantic": "image",
+          "type": "texture",
+          "default": null,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/path",
+            "kind": "resource",
+            "codec": "texture",
+            "colorspace_id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/colorspace",
+            "uv_id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tspace_id"
+          }
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/frameend": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/frameend",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/frameend",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "nullable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/framestart": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/framestart",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/framestart",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "nullable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/layerset": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/layerset",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/layerset",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "nullable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/framerate": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/framerate",
+          "type": "float",
+          "default": 30,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/framerate",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/animation": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/animation",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/animation",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "nullable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/timing": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/timing",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/timing",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "nullable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/rangestart": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/rangestart",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/rangestart",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "nullable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/rangeend": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/rangeend",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/rangeend",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "nullable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/loops": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/loops",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/loops",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "nullable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/startoffset": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/startoffset",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/startoffset",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "nullable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0_gamma": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0_gamma",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0_gamma",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.mirroru": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.mirroru",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.mirroru",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.mirrorv": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.mirrorv",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.mirrorv",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.wrapu": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.wrapu",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.wrapu",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.wrapv": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.wrapv",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.wrapv",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.rotate": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.rotate",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.rotate",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.color_multiplier": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.color_multiplier",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.color_multiplier",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.color_offset": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.color_offset",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.color_offset",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.alpha_multiplier": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.alpha_multiplier",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.alpha_multiplier",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.alpha_offset": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.alpha_offset",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.alpha_offset",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.alpha_is_luminance": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.alpha_is_luminance",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.alpha_is_luminance",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.invalid_color": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.invalid_color",
+          "type": "color4",
+          "default": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.invalid_color",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.filter_enable_type": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.filter_enable_type",
+          "type": "float",
+          "default": 2,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.filter_enable_type",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.filter_bicubic": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.filter_bicubic",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.filter_bicubic",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.prefer_sharp": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.prefer_sharp",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.prefer_sharp",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.mip_bias": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.mip_bias",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.mip_bias",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tone_map_enable": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.tone_map_enable",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tone_map_enable",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.default_uv_if_invalid": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.default_uv_if_invalid",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.default_uv_if_invalid",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        }
+      },
+      "outputs": {
+        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.outcolor": {
+          "semantic": "color",
+          "type": "color",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.outcolor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "com.redshift3d.redshift4c4d.nodes.core.bumpmap": {
+      "semantic": "normal.tangent",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap",
+        "label": "bumpmap",
+        "properties": {
+          "com.redshift3d.redshift4c4d.nodes.core.bumpmap.inputtype": 1
+        }
+      },
+      "inputs": {
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.inuse": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.inuse",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.inuse",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.scale": {
+          "semantic": "normal.strength",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.scale",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.input": {
+          "semantic": "normal.color",
+          "type": "color",
+          "default": [
+            0.5,
+            0.5,
+            1.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.input",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.factorinobjscale": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.factorinobjscale",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.factorinobjscale",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.oldrange_min": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.oldrange_min",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.oldrange_min",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.oldrange_max": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.oldrange_max",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.oldrange_max",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.newrange_min": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.newrange_min",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.newrange_min",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.newrange_max": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.newrange_max",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.newrange_max",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.unbiasednormalmap": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.unbiasednormalmap",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.unbiasednormalmap",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.flipy": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.flipy",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.flipy",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.legacynormalmap": {
+          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.legacynormalmap",
+          "type": "bool",
+          "default": true,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.legacynormalmap",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        }
+      },
+      "outputs": {
+        "com.redshift3d.redshift4c4d.nodes.core.bumpmap.out": {
+          "semantic": "normal",
+          "type": "vector",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.out",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "approximation": "切线空间法线需要相同 UV、切线约定及几何体；首版只支持默认方向约定。"
+    }
+  }
+}
