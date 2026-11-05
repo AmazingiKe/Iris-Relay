@@ -35,12 +35,14 @@ uv run iris-relay --dictionaries examples/dictionaries --request examples/conver
 | --- | --- |
 | `api_version` | 字符串 `"1"` |
 | `request_id` | 非空字符串，由插件生成，用于对应响应 |
-| `operation` | `capabilities`、`describe`、`validate` 或 `convert` |
+| `operation` | `capabilities`、`semantics`、`identify`、`describe`、`validate` 或 `convert` |
 | `payload` | 对应操作的数据对象 |
 
 | 操作 | payload | 结果 |
 | --- | --- | --- |
 | `capabilities` | `{}` | 已加载字典、渲染器精确版本、支持操作、校正器是否配置 |
+| `semantics` | `{}` | 通用功能契约版本、节点含义、端口类型、必要端口、边界及标准参考；无需宿主或字典 |
+| `identify` | `{"renderer": 渲染器引用, "native_id": 原生ID, "properties": 原生配置}` | `implementation` 实现键、`semantic` 功能、`native` 绑定副本及 `dictionary_fingerprint` |
 | `describe` | `{"renderer": 渲染器引用}` | 完整声明式 `dictionary` 副本及内容 `fingerprint`，供插件查询原生绑定 |
 | `validate` | `{"material": 材质图}` | 图结构和源字典语义检查结果；不检查资源文件是否存在或视觉效果 |
 | `convert` | `{"material": 材质图, "target": {"id": "...", "version": "..."}, "calibrate": false}` | 源图、语义中间结果、目标图和转换报告；`calibrate` 可省略 |
@@ -64,6 +66,25 @@ uv run iris-relay --dictionaries examples/dictionaries --request examples/conver
 | `report.appearance_verified` | 当前固定为 `false`，没有执行视觉验证 |
 
 常见错误码包括 `INVALID_REQUEST`、`UNSUPPORTED_API_VERSION`、`UNSUPPORTED_SCHEMA`、`UNSUPPORTED_OPERATION`、`UNSUPPORTED_RENDERER`、`MATERIAL_REJECTED`。具体问题报告可包含 `UNSUPPORTED_NODE`、`UNSUPPORTED_INPUT`、`UNSUPPORTED_OUTPUT`、`INVALID_VALUE`、`LINK_TYPE_MISMATCH`、`LINK_TRANSFORM_UNSUPPORTED`。`TARGET_DEFAULT` 是需要插件展示的近似处理警告。
+
+`identify` 不按显示名识别，也不猜测缺失的模式。它匹配精确版本下的 `native.id` 和声明的全部 `native.properties`；属性类型和值均须一致。未知 ID 返回 `UNSUPPORTED_NODE`，缺失或未支持的配置返回 `UNSUPPORTED_NODE_CONFIGURATION`，多重匹配返回 `AMBIGUOUS_NATIVE_NODE`。属性只是适配器对宿主的读取结果，不能用目标默认模式冒充来源观测值。识别操作不读取材质，也不证明未提交参数或连接受支持；随后仍须调用 `validate`／`convert`。
+
+例如查询 Redshift 高度凹凸实现：
+
+```python
+api = RelayAPI.from_directory("dictionaries")
+response = api.handle({
+    "api_version": "1", "request_id": "识别高度凹凸", "operation": "identify",
+    "payload": {
+        "renderer": {"id": "redshift", "version": "2025.3.0", "host": "cinema4d",
+                     "host_version": "2025.3.2", "node_system": "redshift.maxon"},
+        "native_id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap",
+        "properties": {"com.redshift3d.redshift4c4d.nodes.core.bumpmap.inputtype": 0}
+    }
+})
+```
+
+此配置识别为 `bump.height`；模式 `1` 对应 `normal.tangent`。返回的 `implementation` 才是原生材质图的节点 `type`。一个宿主节点 ID 可以对应不同实现键，创建时从键查询绑定，不能把实现键直接当宿主节点 ID。
 
 ## 材质图
 
@@ -98,12 +119,14 @@ API 接受有限数值；JSON 文件拒绝重复键、NaN 和 Infinity，单次 
 
 - 顶层包含 `schema_version`、`id`、`version`、`renderer`、`nodes`；可选 `host`、`description`、`evidence`。`host` 含 `id`、`versions` 和 `node_system`。
 - `renderer` 包含 `id` 及明确列出的 `versions`；同一渲染器版本、宿主版本和节点系统组合不能由多份字典覆盖。
-- 每个原生节点类型映射到唯一 `semantic`；同一字典不能把多个目标实现映射到同一语义后再隐式选择。
+- 节点键表示一种确定的原生实现配置，映射到唯一 `semantic`。多个键可以共用原生 ID，通过 `native.properties` 区分模式；多个原生实现也可以归入同一通用功能。
+- 同一功能仅一个目标实现时直接选择；多个实现须声明唯一布尔值 `target_default: true`，否则转换返回 `AMBIGUOUS_TARGET_NODE` 并保留源图。多个默认值在加载字典时拒绝。默认选择不免除参数、连接和支持边界检查。
+- 新真实字典声明 `semantic_schema_version: "1"`，加载时按核心集中契约校验功能名、端口名、类型、可空性和必要端口。`native.*` 专用输入只允许显式声明 `omit_if_default`；未声明语义版本的旧协议示例保留兼容，不作为标准定义。
 - 输入规则包含 `semantic`、`type`、`default`，可指定 `range`、`transform`、`adjustable`、`nullable`、`omit_if_default`；输出规则包含 `semantic`、`type`。节点和端口可包含 `native`；节点可通过 `approximation` 声明近似。
 - `transform` 白名单包含 `identity`、用于浮点值的 `one_minus`、`{"op":"scale","factor":非零有限数值}` 及 `scalar_to_color`。后者将标量展开为三个相等的颜色分量，逆变换只接受灰度颜色。默认值和范围描述原生参数域，解码后进入语义域，编码时逆变换回目标原生域。
 - 非恒等变换遇到连接时返回阻断报告，不将单个数值操作误当作整张贴图变换。
 
-`native` 含实际 `id`（字符串或整数 code），可选 `label`、`properties`、`kind`、`codec`、`colorspace_id`、`uv_id`。`kind` 为 `socket`／`property`／`resource`；`codec` 白名单为 `identity`／`rgb`／`srgb`／`bool`／`normal`／`texture`。这些是声明式宿主读写信息，不可携带执行代码。数值编码由宿主适配层的公开辅助函数处理，语义变换只由核心处理。
+`native` 含实际 `id`（字符串或整数 code），可选 `label`、`properties`、`kind`、`codec`、`colorspace_id`、`uv_id`。`kind` 为 `socket`／`property`／`resource`；`codec` 白名单为 `identity`／`rgb`／`srgb`／`bool`／`normal`／`texture`／`gray`。`gray` 仅将标量读写为相等的三个分量，读取非灰度三通道时拒绝，不做亮度或通道猜测。这些是声明式宿主读写信息，不可携带执行代码。数值编码由宿主适配层的公开辅助函数处理，语义变换只由核心处理。
 
 `omit_if_default` 仅允许省略未连接、等于默认值的源原生控制项，并在源快照保留其值；目标使用自己的默认值。已知输出未连接且不是最终出口时允许省略。信息码为 `NATIVE_DEFAULT_OMITTED`、`UNUSED_OUTPUT_OMITTED`；不同 BSDF 的近似使用 `SHADING_MODEL_APPROXIMATION` 警告。信息记录不影响状态，错误阻断，警告需要插件明确接受。
 
