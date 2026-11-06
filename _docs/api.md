@@ -13,8 +13,8 @@ import json
 from pathlib import Path
 from iris_relay import RelayAPI
 
-api = RelayAPI.from_directory("examples/dictionaries")
-request = json.loads(Path("examples/convert-request.json").read_text(encoding="utf-8"))
+api = RelayAPI.from_directory("_examples/dictionaries")
+request = json.loads(Path("_examples/convert-request.json").read_text(encoding="utf-8"))
 response = api.handle(request)
 print(response["status"])
 ```
@@ -22,7 +22,7 @@ print(response["status"])
 等价的命令行调用：
 
 ```powershell
-uv run python -m iris_relay --dictionaries examples/dictionaries --request examples/convert-request.json
+uv run python -m iris_relay --dictionaries _examples/dictionaries --request _examples/convert-request.json
 ```
 
 `--request -` 从标准输入读取 JSON，`--output -` 向标准输出写入 JSON；两者均为默认值。`--output 新文件.json` 写入一个新文件，不覆盖已有文件，也不自动创建父目录。退出码 `0` 表示有可用响应（可能包含警告），`2` 表示请求、转换或文件读写失败。插件必须查看 JSON 的 `status` 和报告，不能只看退出码。
@@ -88,7 +88,7 @@ response = api.handle({
 
 ## 材质图
 
-完整示例见 [convert-request.json](../examples/convert-request.json)。材质本身只允许以下顶层字段，不接受灯光、相机或曝光修改：
+完整示例见 [convert-request.json](../_examples/convert-request.json)。材质本身只允许以下顶层字段，不接受灯光、相机或曝光修改：
 
 | 字段 | 要求 |
 | --- | --- |
@@ -115,7 +115,7 @@ API 接受有限数值；JSON 文件拒绝重复键、NaN 和 Infinity，单次 
 
 ## 字典
 
-完整格式见 [参考光泽度字典](../examples/dictionaries/reference.gloss.json) 和 [参考粗糙度字典](../examples/dictionaries/reference.rough.json)。字典目录由核心启动方指定，API 请求不能指定加载路径或可执行代码。
+完整格式见 [参考光泽度字典](../_examples/dictionaries/reference.gloss.json) 和 [参考粗糙度字典](../_examples/dictionaries/reference.rough.json)。字典目录由核心启动方指定，API 请求不能指定加载路径或可执行代码。
 
 - 顶层包含 `schema_version`、`id`、`version`、`renderer`、`nodes`；可选 `host`、`description`、`evidence`。`host` 含 `id`、`versions` 和 `node_system`。
 - `renderer` 包含 `id` 及明确列出的 `versions`；同一渲染器版本、宿主版本和节点系统组合不能由多份字典覆盖。
@@ -153,11 +153,11 @@ class MyAdapter:
 
 `create_material` 必须只创建材质及必要的派生资源，不从 metadata 中读取或执行任何场景修改命令，不原地覆盖源材质或源贴图。真实适配器负责 DCC 事务、撤销和失败清理；参考插件仅验证接口，不证明实际 DCC 具备这些保证。
 
-运行 [参考插件](../examples/plugin_demo.py)：
+运行 [参考插件](../_examples/plugin_demo.py)：
 
 ```powershell
-uv run python examples/plugin_demo.py --transport python
-uv run python examples/plugin_demo.py --transport process
+uv run python _examples/plugin_demo.py --transport python
+uv run python _examples/plugin_demo.py --transport process
 ```
 
 两种方式返回相同业务结果，核心没有 DCC 依赖。独立进程方式需要能定位仓库源码且装有第三方依赖的 Python 环境；CLI 使用 UTF-8，默认子进程超时为 60 秒，可由客户端调整。

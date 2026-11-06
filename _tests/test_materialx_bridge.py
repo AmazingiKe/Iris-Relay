@@ -7,8 +7,8 @@ from pathlib import Path
 import MaterialX as mx
 import pytest
 
+from _scripts.native_fixture import fixture, renderer
 from iris_relay import RelayAPI
-from scripts.native_fixture import fixture, renderer
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILES = [

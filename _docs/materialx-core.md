@@ -11,7 +11,7 @@ from pathlib import Path
 from iris_relay import RelayAPI
 
 api = RelayAPI.from_directory("dictionaries")
-document = Path("examples/materialx-example.mtlx").read_text(encoding="utf-8")
+document = Path("_examples/materialx-example.mtlx").read_text(encoding="utf-8")
 response = api.handle({
     "api_version": "1",
     "request_id": "检查材质",
@@ -27,7 +27,7 @@ if response["status"] != "error":
 完整示例：
 
 ```powershell
-uv run python examples/materialx_demo.py --out .local/materialx-demo-新编号
+uv run python _examples/materialx_demo.py --out .local/materialx-demo-新编号
 ```
 
 输出规范化 `.mtlx` 和转换响应 JSON，目录必须不存在。示例中的自定义表面节点通过标准 `standard_surface` 子图实现；演示生成 Blender 原生节点数据，不自动启动 Blender。
@@ -77,14 +77,14 @@ uv run python examples/materialx_demo.py --out .local/materialx-demo-新编号
 ## 验证与复现
 
 ```powershell
-uv run pytest tests/test_materialx_core.py tests/test_materialx_bridge.py -q
-uv run python scripts/verify_materialx.py --blender "本机blender.exe路径" --out .local/materialx-check-新编号
+uv run pytest _tests/test_materialx_core.py _tests/test_materialx_bridge.py -q
+uv run python _scripts/verify_materialx.py --blender "本机blender.exe路径" --out .local/materialx-check-新编号
 ```
 
 独立验证脚本自行生成小型纹理，以字典夹具导出两条标准 MaterialX 链路，再转入 Blender，创建、保存、重开并检查参数、连接、资源及失败清理。最后将真实读回结果再次导出 `.mtlx`。脚本只创建独立文件，不打开用户场景。通过条件同时检查宿主退出码、此次 run_id 和报告状态。
 
 2026-11-06 本机验证：Blender 5.2.3 LTS，`run_id=805f2ecd-60aa-48cd-8b3a-da61de23764a`，两条链路通过。忽略目录 `.local/materialx-verify-03/summary.json` 保存报告。没有新增 Maya 验证或渲染图像，所有结果 `appearance_verified=false`。
 
-同日完整自动测试 160 项通过，总覆盖率 91%；MaterialX 文档核心与桥接分别达到 92% 和 88%。检查包含 1,100 层节点连接链、标准库覆盖拒绝、输入限制及本地 JSON 子进程。Ruff 检查通过，公开 API 往返曾在独立 Python 3.11 环境验证；开发环境为 Python 3.13。当前直接使用仓库源码，示例 `.mtlx` 位于 `examples/`，宿主字典位于 `dictionaries/`；不再生成或验证发行包。
+同日完整自动测试 160 项通过，总覆盖率 91%；MaterialX 文档核心与桥接分别达到 92% 和 88%。检查包含 1,100 层节点连接链、标准库覆盖拒绝、输入限制及本地 JSON 子进程。Ruff 检查通过，公开 API 往返曾在独立 Python 3.11 环境验证；开发环境为 Python 3.13。当前直接使用仓库源码，示例 `.mtlx` 位于 `_examples/`，宿主字典位于 `dictionaries/`；不再生成或验证发行包。
 
 完整架构取舍见 [ADR-0005](adr/0005-MaterialX材质图核心与自定义节点扩展.md)。

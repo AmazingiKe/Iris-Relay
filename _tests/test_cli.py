@@ -142,7 +142,7 @@ def test_command_service_timeout_is_bounded():
 def test_reference_plugin_example_runs_with_utf8_output(transport, tmp_path):
     root = Path(__file__).parents[1]
     result = subprocess.run(
-        [sys.executable, str(root / "examples" / "plugin_demo.py"), "--transport", transport],
+        [sys.executable, str(root / "_examples" / "plugin_demo.py"), "--transport", transport],
         capture_output=True,
         check=False,
         cwd=tmp_path,

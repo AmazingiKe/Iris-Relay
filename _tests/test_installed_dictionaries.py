@@ -1,4 +1,4 @@
-"""真实绑定的离线回归；宿主创建与重开验证由 scripts 单独执行。"""
+"""真实绑定的离线回归；宿主创建与重开验证由 _scripts 单独执行。"""
 
 import json
 from copy import deepcopy
@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from _scripts.native_fixture import fixture, renderer
 from iris_relay import RelayAPI
-from scripts.native_fixture import fixture, renderer
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILES = [
@@ -46,7 +46,7 @@ def test_real_profiles_preserve_nodes_links_resources(source, target, normal_sem
 
 
 def test_generated_profiles_are_reproducible_and_declare_semantic_contract():
-    from scripts.build_native_dictionaries import build
+    from _scripts.build_native_dictionaries import build
 
     for path in sorted((ROOT / "dictionaries/catalogs").glob("*.json")):
         catalog = json.loads(path.read_text(encoding="utf-8"))

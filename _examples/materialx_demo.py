@@ -17,7 +17,7 @@ def main():
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=False)
     service = RelayAPI.from_directory(ROOT / "dictionaries")
-    document = (ROOT / "examples/materialx-example.mtlx").read_text(encoding="utf-8")
+    document = (ROOT / "_examples/materialx-example.mtlx").read_text(encoding="utf-8")
 
     def request(operation, payload):
         response = service.handle(

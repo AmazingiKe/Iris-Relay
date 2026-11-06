@@ -244,7 +244,12 @@ def test_materialx_subprocess_and_public_example(tmp_path):
     assert response["status"] == "ok", response
     assert response["result"]["source"] == CUSTOM
     result = subprocess.run(
-        [sys.executable, str(root / "examples/materialx_demo.py"), "--out", str(tmp_path / "demo")],
+        [
+            sys.executable,
+            str(root / "_examples/materialx_demo.py"),
+            "--out",
+            str(tmp_path / "demo"),
+        ],
         capture_output=True,
         check=False,
     )

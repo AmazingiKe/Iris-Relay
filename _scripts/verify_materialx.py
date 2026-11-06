@@ -63,7 +63,7 @@ def main():
                 "--python-exit-code",
                 "1",
                 "--python",
-                str(ROOT / "scripts/verify_native_host.py"),
+                str(ROOT / "_scripts/verify_native_host.py"),
             ],
             env=dict(os.environ, IRIS_RELAY_JOB=str(job_path), PYTHONUTF8="1"),
             stdin=subprocess.DEVNULL,

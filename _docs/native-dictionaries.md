@@ -99,7 +99,7 @@ fingerprint = response["result"]["fingerprint"]
 安装开发依赖后，将路径替换为本机实际可执行文件；输出目录必须不存在：
 
 ```powershell
-uv run python scripts/verify_native.py --blender "你的路径/blender.exe" --c4dpy "你的路径/c4dpy.exe" --out .local/native-check-新编号
+uv run python _scripts/verify_native.py --blender "你的路径/blender.exe" --c4dpy "你的路径/c4dpy.exe" --out .local/native-check-新编号
 ```
 
 查看 `--out` 目录中的 `summary.json`，其中包含本次 `run_id`、总体 `status`、宿主退出码及宿主报告。日志为 `blender.log`、`cinema4d.log`，每个方向还保存独立的核心转换报告。
@@ -123,10 +123,10 @@ Redshift 图根的子项包含端口列表，读取时只枚举 `NODE_KIND.NODE`
 
 ## 更新目录
 
-[`probe_blender.py`](../scripts/probe_blender.py) 在 Blender 中运行；[`probe_cinema4d.py`](../scripts/probe_cinema4d.py) 在 c4dpy 中运行。设置环境变量 `IRIS_RELAY_OUTPUT` 指向不存在的 JSON 文件。探测器从已安装 API／资源头文件获取标识，并实际实例化节点；新版本应重新探测，不能复制旧版本号。
+[`probe_blender.py`](../_scripts/probe_blender.py) 在 Blender 中运行；[`probe_cinema4d.py`](../_scripts/probe_cinema4d.py) 在 c4dpy 中运行。设置环境变量 `IRIS_RELAY_OUTPUT` 指向不存在的 JSON 文件。探测器从已安装 API／资源头文件获取标识，并实际实例化节点；新版本应重新探测，不能复制旧版本号。
 
 ```powershell
-uv run python scripts/build_native_dictionaries.py --blender 本次Blender探测.json --cinema4d 本次C4D探测.json --out 新字典目录
+uv run python _scripts/build_native_dictionaries.py --blender 本次Blender探测.json --cinema4d 本次C4D探测.json --out 新字典目录
 ```
 
 审核生成内容后再更新仓库字典，重新执行离线测试与实机验证。当前直接使用仓库中的核心源码、字典、插件模块和脚本；宿主接入时显式指定字典目录与宿主脚本路径。

@@ -81,7 +81,7 @@ def main():
         ),
         "phases": {},
     }
-    worker = str(ROOT / "scripts/verify_native_host.py")
+    worker = str(ROOT / "_scripts/verify_native_host.py")
 
     def execute(jobs, phase):
         reports = {}
