@@ -66,7 +66,7 @@ def test_cli_subprocess_json_transport(files):
     dictionaries, request = files
     env = {
         **os.environ,
-        "PYTHONPATH": str(Path(__file__).parents[1] / "src"),
+        "PYTHONPATH": str(Path(__file__).parents[1]),
         "PYTHONIOENCODING": "utf-8",
     }
     result = subprocess.run(
@@ -139,14 +139,28 @@ def test_command_service_timeout_is_bounded():
 
 
 @pytest.mark.parametrize("transport", ["python", "process"])
-def test_reference_plugin_example_runs_with_utf8_output(transport):
+def test_reference_plugin_example_runs_with_utf8_output(transport, tmp_path):
     root = Path(__file__).parents[1]
     result = subprocess.run(
         [sys.executable, str(root / "examples" / "plugin_demo.py"), "--transport", transport],
         capture_output=True,
         check=False,
+        cwd=tmp_path,
     )
     assert result.returncode == 0, result.stderr
     summary = json.loads(result.stdout.decode("utf-8"))
     assert summary["状态"] == "ok"
     assert summary["源材质保持不变"] is True
+
+
+def test_core_imports_from_repository_without_site_packages():
+    root = Path(__file__).resolve().parents[1]
+    code = (
+        "from pathlib import Path; import iris_relay; "
+        "assert Path(iris_relay.__file__).resolve() == "
+        "Path.cwd() / 'iris_relay' / '__init__.py'"
+    )
+    result = subprocess.run(
+        [sys.executable, "-S", "-c", code], cwd=root, capture_output=True, check=False
+    )
+    assert result.returncode == 0, result.stderr

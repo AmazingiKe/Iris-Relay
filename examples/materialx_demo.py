@@ -5,9 +5,10 @@ import json
 import sys
 from pathlib import Path
 
-from iris_relay import RelayAPI
-
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from iris_relay import RelayAPI  # noqa: E402
 
 
 def main():

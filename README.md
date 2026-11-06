@@ -18,7 +18,7 @@ Iris Relay 探索跨渲染器的材质转换：以字典建立材质语义对应
 
 ```powershell
 uv sync --extra dev
-uv run iris-relay --dictionaries examples/dictionaries --request examples/convert-request.json
+uv run python -m iris_relay --dictionaries examples/dictionaries --request examples/convert-request.json
 uv run python examples/plugin_demo.py --transport python
 uv run python examples/plugin_demo.py --transport process
 uv run python examples/materialx_demo.py --out .local/materialx-demo-新编号
@@ -30,7 +30,7 @@ uv run python examples/materialx_demo.py --out .local/materialx-demo-新编号
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m pip install "materialx==1.39.5"
 .\.venv\Scripts\python.exe -m iris_relay --dictionaries examples/dictionaries --request examples/convert-request.json
 ```
 
@@ -43,7 +43,7 @@ API 提供能力查询、通用功能定义查询（`semantics`）、原生模�
 ## 目录
 
 ```text
-src/iris_relay/         核心、公开 API、插件辅助接口与命令行
+iris_relay/         核心、公开 API、插件辅助接口与命令行
 dictionaries/          真实转换字典；catalogs/ 保存原生节点探测目录
 plugins/               宿主脚本适配器，目前提供 Blender 实验模块
 scripts/               节点探测、字典生成和独立宿主验证
@@ -52,7 +52,7 @@ tests/                 图转换、接口、失败回退和跨进程测试
 docs/                  API 文档和架构决策
 ```
 
-按实际内容创建目录，不预建空目录。字典的具体 code 与支持边界见[原生字典文档](docs/native-dictionaries.md)。
+核心 `iris_relay/` 与宿主接入 `plugins/` 在根目录并列，不使用 `src/`。示例和验证脚本自行定位仓库根目录；第三方插件在导入核心前将仓库根目录加入 Python 搜索路径。按实际内容创建目录，不预建空目录。字典的具体 code 与支持边界见[原生字典文档](docs/native-dictionaries.md)。
 
 ## 开发检查
 
@@ -60,12 +60,11 @@ docs/                  API 文档和架构决策
 uv run --extra dev pytest -q
 uv run --extra dev coverage run -m pytest -q
 uv run --extra dev coverage report
-uv run --extra dev ruff check src tests examples scripts plugins
-uv run --extra dev ruff format --check src tests examples scripts plugins
-uv build
+uv run --extra dev ruff check iris_relay tests examples scripts plugins
+uv run --extra dev ruff format --check iris_relay tests examples scripts plugins
 ```
 
-测试包含单元、API 集成及 JSON 子进程流程；覆盖率门槛为 80%。`uv.lock` 固定开发依赖，构建生成的 wheel 和源码包位于 `dist/`，不提交构建产物。
+测试包含单元、API 集成及 JSON 子进程流程；覆盖率门槛为 80%。`uv.lock` 固定开发依赖。当前直接从仓库根目录导入 `iris_relay/`。`uv sync` 只安装第三方依赖，不安装项目自身；开发检查不生成源码发行包或 wheel，不需要 `dist/`。
 
 ## 文档与后续工作
 

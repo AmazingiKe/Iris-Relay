@@ -4,7 +4,7 @@ Iris Relay 0.4.0 使用官方 MaterialX 1.39.5 SDK，提供材质文档校验、
 
 ## 最小调用
 
-在仓库根目录运行 `uv sync --extra dev`，然后：
+核心位于仓库根目录的 `iris_relay/`，无需安装项目自身。在仓库根目录运行 `uv sync --extra dev` 安装第三方依赖，然后：
 
 ```python
 from pathlib import Path
@@ -85,6 +85,6 @@ uv run python scripts/verify_materialx.py --blender "本机blender.exe路径" --
 
 2026-11-06 本机验证：Blender 5.2.3 LTS，`run_id=805f2ecd-60aa-48cd-8b3a-da61de23764a`，两条链路通过。忽略目录 `.local/materialx-verify-03/summary.json` 保存报告。没有新增 Maya 验证或渲染图像，所有结果 `appearance_verified=false`。
 
-同日完整自动测试 160 项通过，总覆盖率 91%；MaterialX 文档核心与桥接分别达到 92% 和 88%。检查包含 1,100 层节点连接链、标准库覆盖拒绝、输入限制及本地 JSON 子进程。Ruff 检查通过，wheel 在独立 Python 3.11 环境安装并验证公开 API 往返；开发环境为 Python 3.13。源码发行包包含示例 `.mtlx`，wheel 只包含核心，宿主字典仍需随插件另行提供。
+同日完整自动测试 160 项通过，总覆盖率 91%；MaterialX 文档核心与桥接分别达到 92% 和 88%。检查包含 1,100 层节点连接链、标准库覆盖拒绝、输入限制及本地 JSON 子进程。Ruff 检查通过，公开 API 往返曾在独立 Python 3.11 环境验证；开发环境为 Python 3.13。当前直接使用仓库源码，示例 `.mtlx` 位于 `examples/`，宿主字典位于 `dictionaries/`；不再生成或验证发行包。
 
 完整架构取舍见 [ADR-0005](adr/0005-MaterialX材质图核心与自定义节点扩展.md)。

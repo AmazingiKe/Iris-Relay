@@ -5,6 +5,7 @@ import math
 import subprocess
 from copy import deepcopy
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Protocol
 from uuid import uuid4
 
@@ -15,7 +16,7 @@ from .model import Material, ValidationError, parse_json
 class JsonCommandService:
     """通过无 shell 的子进程调用同一 API，隔离 DCC 内置 Python 与核心环境。"""
 
-    def __init__(self, command: list[str], *, timeout: float = 60):
+    def __init__(self, command: list[str], *, timeout: float = 60, cwd: str | Path | None = None):
         if (
             not isinstance(command, list)
             or not command
@@ -26,6 +27,7 @@ class JsonCommandService:
             raise ValidationError("timeout 必须为有限正数")
         self._command = list(command)
         self._timeout = timeout
+        self._cwd = cwd
 
     def handle(self, request: dict) -> dict:
         content = json.dumps(request, ensure_ascii=False, allow_nan=False).encode("utf-8")
@@ -37,6 +39,7 @@ class JsonCommandService:
                 timeout=self._timeout,
                 check=False,
                 shell=False,
+                cwd=self._cwd,
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
         except subprocess.TimeoutExpired as exc:

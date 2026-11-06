@@ -1,7 +1,3 @@
-[build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "iris-relay"
 version = "0.4.0"
@@ -13,17 +9,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<10", "coverage[toml]>=7,<8", "build>=1,<2", "ruff>=0.12,<1"]
+dev = ["pytest>=8,<10", "coverage[toml]>=7,<8", "ruff>=0.12,<1"]
 
-[project.scripts]
-iris-relay = "iris_relay.cli:main"
-
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.uv]
+package = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src", "."]
+pythonpath = ["."]
 
 [tool.coverage.run]
 source = ["iris_relay"]

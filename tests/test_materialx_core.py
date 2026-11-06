@@ -267,7 +267,7 @@ print(json.dumps([request("capabilities", {}), request("semantics", {}),
                   request("materialx.validate", {"document": "unused"})]))
 """
     result = subprocess.run(
-        [sys.executable, "-S", "-c", code, str(root / "src")], capture_output=True, check=False
+        [sys.executable, "-S", "-c", code, str(root)], capture_output=True, check=False
     )
     assert result.returncode == 0, result.stderr
     capabilities, legacy, missing = json.loads(result.stdout)

@@ -4,15 +4,17 @@ import argparse
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 from uuid import uuid4
 
-from native_fixture import fixture, renderer
-from verify_native import write_png
-
-from iris_relay import RelayAPI
-
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from native_fixture import fixture, renderer  # noqa: E402
+from verify_native import write_png  # noqa: E402
+
+from iris_relay import RelayAPI  # noqa: E402
 
 
 def main():

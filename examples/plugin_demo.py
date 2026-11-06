@@ -6,8 +6,11 @@ import sys
 from copy import deepcopy
 from pathlib import Path
 
-from iris_relay import RelayAPI
-from iris_relay.plugin import JsonCommandService, convert_material
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from iris_relay import RelayAPI  # noqa: E402
+from iris_relay.plugin import JsonCommandService, convert_material  # noqa: E402
 
 
 class ReferenceAdapter:
@@ -40,7 +43,8 @@ def main():
                 "iris_relay",
                 "--dictionaries",
                 str(root / "dictionaries"),
-            ]
+            ],
+            cwd=ROOT,
         )
     else:
         service = RelayAPI.from_directory(root / "dictionaries")

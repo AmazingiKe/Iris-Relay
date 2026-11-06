@@ -38,7 +38,7 @@ Arnold `rgb_to_float` 没有对应独立参数头文件；Input code `1582091381
 
 ## 通用功能如何定义和识别
 
-集中定义在 [`src/iris_relay/semantics.py`](../src/iris_relay/semantics.py)，插件通过 `semantics` 查询，不需要导入核心内部模块。原生字典声明 `semantic_schema_version: "1"`，加载时校验功能、端口和类型，不再只依赖分散的语义名称。
+集中定义在 [`iris_relay/semantics.py`](../iris_relay/semantics.py)，插件通过 `semantics` 查询，不需要导入核心内部模块。原生字典声明 `semantic_schema_version: "1"`，加载时校验功能、端口和类型，不再只依赖分散的语义名称。
 
 | 通用功能 | 含义 | 主要输入 → 输出 |
 | --- | --- | --- |
@@ -129,6 +129,6 @@ Redshift 图根的子项包含端口列表，读取时只枚举 `NODE_KIND.NODE`
 uv run python scripts/build_native_dictionaries.py --blender 本次Blender探测.json --cinema4d 本次C4D探测.json --out 新字典目录
 ```
 
-审核生成内容后再更新仓库字典，重新执行离线测试与实机验证。源码包附带字典、插件模块及脚本；wheel 仅提供独立核心，部署时需另行提供字典目录与宿主脚本。
+审核生成内容后再更新仓库字典，重新执行离线测试与实机验证。当前直接使用仓库中的核心源码、字典、插件模块和脚本；宿主接入时显式指定字典目录与宿主脚本路径。
 
 实现依据包括 [Blender ShaderNode API](https://docs.blender.org/api/current/bpy.types.ShaderNode.html)、[Maxon GraphNode API](https://developers.maxon.net/docs/py/2025_3_1/modules/maxon_generated/frameworks/graph/datatype/maxon.GraphNode.html)、[C4DtoA Linear Workflow 说明](https://help.autodesk.com/cloudhelp/ENU/AR-Cinema4D/files/ci-tutorials/ci-rendering-tutorials/arnold_for_cinema_4d_ci_Rendering_Tutorials_ci_Linear_Workflow_html.html)，以及目录记录的本机资源与运行时结果。节点 code 和版本以此次本机探测为准。

@@ -6,7 +6,7 @@
 
 ## 快速调用
 
-在仓库根目录执行 `uv sync --extra dev` 后：
+在仓库根目录执行 `uv sync --extra dev` 后，可直接导入源码（不安装项目自身）：
 
 ```python
 import json
@@ -22,7 +22,7 @@ print(response["status"])
 等价的命令行调用：
 
 ```powershell
-uv run iris-relay --dictionaries examples/dictionaries --request examples/convert-request.json
+uv run python -m iris_relay --dictionaries examples/dictionaries --request examples/convert-request.json
 ```
 
 `--request -` 从标准输入读取 JSON，`--output -` 向标准输出写入 JSON；两者均为默认值。`--output 新文件.json` 写入一个新文件，不覆盖已有文件，也不自动创建父目录。退出码 `0` 表示有可用响应（可能包含警告），`2` 表示请求、转换或文件读写失败。插件必须查看 JSON 的 `status` 和报告，不能只看退出码。
@@ -160,7 +160,9 @@ uv run python examples/plugin_demo.py --transport python
 uv run python examples/plugin_demo.py --transport process
 ```
 
-两种方式返回相同业务结果，核心没有 DCC 依赖。独立进程方式需要一套已安装核心的 Python 环境；CLI 使用 UTF-8，默认子进程超时为 60 秒，可由客户端调整。
+两种方式返回相同业务结果，核心没有 DCC 依赖。独立进程方式需要能定位仓库源码且装有第三方依赖的 Python 环境；CLI 使用 UTF-8，默认子进程超时为 60 秒，可由客户端调整。
+
+本地子进程从其他工作目录启动时，可传入 `JsonCommandService([...], cwd=仓库根目录)`，使 `python -m iris_relay` 能定位核心；该设置只影响子进程，不改变宿主工作目录。
 
 ## 联合校正扩展
 
