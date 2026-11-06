@@ -26,6 +26,8 @@ if response["status"] != "error":
 
 完整示例：
 
+Blender 中可直接运行 [GUI demo](../_examples/blender_demo_gui.py)，经宿主适配器读取所选材质并调用本页的导出／校验 API。操作步骤、警告接受策略和核心环境要求见 [README](../README.md#blender-gui-demo)。这一入口不扩展下述节点支持范围。
+
 ```powershell
 uv run python _examples/materialx_demo.py --out .local/materialx-demo-新编号
 ```

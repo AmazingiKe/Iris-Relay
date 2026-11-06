@@ -83,12 +83,17 @@ class BlenderAdapter:
                 if rule["native"]["id"] == node.bl_idname
                 for prop in rule["native"].get("properties", {})
             }
-            match = identify(
-                self.service,
-                renderer_ref(),
-                node.bl_idname,
-                {prop: getattr(node, prop) for prop in property_names},
-            )
+            try:
+                match = identify(
+                    self.service,
+                    renderer_ref(),
+                    node.bl_idname,
+                    {prop: getattr(node, prop) for prop in property_names},
+                )
+            except ValidationError as exc:
+                raise ValidationError(
+                    f"节点「{node.name}」({node.bl_idname})：{exc}", exc.code
+                ) from exc
             implementation = match["implementation"]
             rule = schema["nodes"][implementation]
             record = {

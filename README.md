@@ -36,11 +36,23 @@ python -m venv .venv
 
 ## Blender GUI demo
 
-第一步界面验证入口为 [`_examples/blender_demo_gui.py`](_examples/blender_demo_gui.py)。在 Blender 文本编辑器打开它，按需填写顶部 `REPO_ROOT` 为仓库根目录的绝对路径，然后点击“运行脚本”。从仓库原位置打开时可以留空自动定位；复制到未保存文本块或移到别处时需要填写路径。本机路径只在 Blender 中修改，不提交。
+脚本入口为 [`_examples/blender_demo_gui.py`](_examples/blender_demo_gui.py)，现已接入真实 MaterialX 导出。在 Blender 文本编辑器打开它，按需填写顶部 `REPO_ROOT` 为仓库根目录的绝对路径，然后点击“运行脚本”。从仓库原位置打开时可以留空自动定位；复制到未保存文本块或移到别处时需要填写路径。本机路径只在 Blender 中修改，不提交；不需要安装 Blender 插件。
 
-运行后在文本编辑器或 3D 视图的 `N` 侧栏选择 **Iris Relay** 标签，侧栏过窄时可拖动左边界加宽。选择材质（也可点击“使用活动材质”），选择尚不存在的 `.mtlx` 文件绝对路径，再点击“演示导出”。界面会检查选择与路径，并显示“演示检查通过，未生成文件”。当前不调用转换核心、不校验材质的可转换性、不写文件；重复运行入口会重新注册界面并清空演示输入。关闭 Blender 后不会自动安装或启用。
+运行后在文本编辑器或 3D 视图的 `N` 侧栏选择 **Iris Relay** 标签，侧栏过窄时可拖动左边界加宽：
 
-界面实现在 `plugins/blender/ui.py`，原材质读写适配器迁至 `plugins/blender/adapter.py`；`from plugins.blender import BlenderAdapter` 和现有验证脚本的导入方式保持兼容。GUI 按需加载，不要求此阶段安装 MaterialX。需要在当前会话卸载时，在 Blender Python 控制台执行 `from plugins.blender import ui; ui.unregister()`。
+1. 选择材质，或点击“使用活动材质”。
+2. 点击“检查材质”，读取当前节点图，调用 `materialx.export` 和 `materialx.validate`，查看下方诊断。此操作不写文件。
+3. 选择尚不存在的 `.mtlx` 文件绝对路径，父目录须已存在。
+4. 若有近似转换警告，查看诊断后按需勾选“允许带警告导出”；默认不保存有警告的结果，阻断错误不能通过勾选绕过。
+5. 点击“导出 .mtlx”。每次导出重新读取并校验当前材质，成功后明确显示“已导出”。可通过“复制完整报告”取得核心响应、源图快照和诊断。
+
+导出采用排他创建，不覆盖现有文件；写入失败会尝试清理本次创建的残留。源材质、绑定和贴图保持不变，不改变场景渲染条件。贴图保留原文件路径引用，不复制或打包资源，因此输出不是独立资源包。文件可保存、目标可转换和外观一致是不同结论。
+
+界面位于 `plugins/blender/ui.py`，`controller.py` 负责核心连接、检查和保存流程，`adapter.py` 负责 Blender 材质读写；`from plugins.blender import BlenderAdapter` 保持兼容。首次操作时优先使用仓库已有 `.venv` 通过公开 `JsonCommandService` 调用核心，不向 Blender 安装依赖。不存在 `.venv` 时尝试进程内服务，两种方式都要求 MaterialX 1.39.5；依赖缺失或版本不同会明确报错。本机 Blender 5.2.3 自带 SDK 为 1.39.4，因此本轮使用仓库环境的 1.39.5。
+
+GUI 按需加载核心；重复运行入口会重新加载宿主模块、清空输入和诊断。关闭 Blender 后不会自动启用。需要在当前会话移除界面时，在 Blender Python 控制台执行 `from plugins.blender import ui; ui.unregister()`。
+
+当前仍受既有五类节点及精确版本字典限制，未知节点、节点组、未支持的参数或连接会阻断。建议先用简单 Principled BSDF 材质测试，再加入默认 UV 的外部图片、法线或高度链路，具体范围见[原生字典文档](_docs/native-dictionaries.md)。
 
 独立宿主交互逻辑验证（不会操作当前打开的 Blender 场景）：
 
@@ -48,9 +60,9 @@ python -m venv .venv
 & "本机blender.exe路径" --background --factory-startup --disable-autoexec --python-exit-code 1 --python _scripts/verify_blender_gui.py
 ```
 
-该检查覆盖入口重复运行、输入反馈、未写文件与材质保护、注册卸载和导入兼容；真实面板绘制与文件浏览器还需在 Blender 前台检查。本阶段没有接入真实 `.mtlx` 导出。
+该检查覆盖入口重复运行、真实导出及文档校验、警告策略、已有文件保护、未知节点阻断、源材质保护、图片法线／高度链路、注册卸载和导入兼容；真实面板绘制与文件浏览器还需在 Blender 前台检查。初版 GUI 的界面验证记录保留在 Git 历史中；本轮未扩大转换规则，也没有新增渲染外观证据。
 
-2026-11-06 在 Blender 5.2.3 LTS 中通过 13 组宿主检查，并在独立前台实例验证文本编辑器直接运行、面板、活动材质选择、文件浏览器和演示反馈。原 MaterialX 两条链路的保存重开验证通过；本轮未修改转换规则，也没有新增渲染外观证据。
+2026-11-06 验证：180 项自动测试、15 组 Blender 5.2.3 LTS 宿主检查通过，核心及导出控制层合计覆盖率 91%（控制层 95%）。独立前台实例完成检查、警告确认和实际保存，保存后的文件重新读回并通过 MaterialX 校验。
 
 ## 统一接口
 
@@ -64,7 +76,7 @@ API 提供能力查询、通用功能定义查询（`semantics`）、原生模�
 iris_relay/            核心、公开 API、插件辅助接口与命令行
 dictionaries/          真实转换字典；catalogs/ 保存原生节点探测目录
 plugins/               宿主接入层，按实际宿主分目录
-  blender/             GUI（ui.py）与材质读写（adapter.py）
+  blender/             GUI（ui.py）、导出控制（controller.py）、材质读写（adapter.py）
 _scripts/              节点探测、字典生成和独立宿主验证
 _examples/             可执行参考插件、GUI 测试入口、请求和示例字典
 _tests/                图转换、接口、失败回退和跨进程测试

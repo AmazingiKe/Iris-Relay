@@ -92,7 +92,7 @@ dictionary = response["result"]["dictionary"]
 fingerprint = response["result"]["fingerprint"]
 ```
 
-返回 `dictionary` 和内容 `fingerprint`。参考实现 [`plugins/blender/adapter.py`](../plugins/blender/adapter.py) 使用该操作完成受限节点图的读写、创建新材质及失败清理；包入口保持原有 `BlenderAdapter` 导入兼容。另有 [GUI demo](../_examples/blender_demo_gui.py) 验证界面交互，尚未接入真实导出，没有菜单安装器或完整交互式撤销。C4D 读写代码目前用于独立集成验证，不是现成的 C4D 场景转换插件。
+返回 `dictionary` 和内容 `fingerprint`。参考实现 [`plugins/blender/adapter.py`](../plugins/blender/adapter.py) 使用该操作完成受限节点图的读写、创建新材质及失败清理；包入口保持原有 `BlenderAdapter` 导入兼容。[GUI demo](../_examples/blender_demo_gui.py) 可在文本编辑器直接运行，支持材质检查、诊断及受限 `.mtlx` 导出，使用同一核心 API，不安装到 Blender 插件目录。没有完整交互式撤销；导出只创建新文件，不更换场景绑定。C4D 读写代码目前用于独立集成验证，不是现成的 C4D 场景转换插件。
 
 ## 复现实机验证
 

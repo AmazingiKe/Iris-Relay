@@ -59,28 +59,37 @@ def main():
     original_data = (len(bpy.data.materials), len(bpy.data.images), len(material.node_tree.nodes))
     original_engine = bpy.context.scene.render.engine
 
-    def demo(expected):
-        result = bpy.ops.iris_relay.demo_export()
-        assert result == {"FINISHED" if expected == "ready" else "CANCELLED"}, result
+    def export(expected, *, saved=False):
+        result = bpy.ops.iris_relay.export_materialx()
+        assert result == {"FINISHED" if saved else "CANCELLED"}, result
         assert settings.status == expected, settings.message
 
     with TemporaryDirectory(prefix="iris-gui-") as temporary:
         output = Path(temporary) / "中文材质.mtlx"
         settings.material = None
         settings.filepath = str(output)
-        demo("error")
+        export("error")
         checks.append("未选材质的错误反馈")
 
         assert bpy.ops.iris_relay.demo_use_active() == {"FINISHED"}
         assert settings.material == material
-        demo("ready")
-        assert "未生成" in settings.message
+        assert bpy.ops.iris_relay.check_material() == {"FINISHED"}
+        assert settings.status == "warning"
+        assert any(i.code == "SHADING_MODEL_APPROXIMATION" for i in settings.issues)
+        export("warning")
         assert not output.exists()
-        checks.append("活动材质选择与演示成功，未生成文件")
+        settings.accept_warnings = True
+        export("warning", saved=True)
+        assert output.is_file()
+        report = json.loads(settings.report_json)
+        assert report["validation_response"]["result"]["valid"] is True
+        assert report["saved_path"] == str(output)
+        original_document = output.read_text("utf-8")
+        checks.append("真实导出通过 MaterialX 校验，警告默认阻止保存")
 
         settings.filepath = ""
         assert settings.status == "idle", "修改输入应清除旧结果"
-        demo("error")
+        export("error")
         for path in (
             "relative.mtlx",
             "//relative.mtlx",
@@ -88,22 +97,27 @@ def main():
             str(output.parent / "不存在" / "demo.mtlx"),
         ):
             settings.filepath = path
-            demo("error")
+            export("error")
         checks.append("空路径、歧义相对路径、扩展名和目录检查")
 
-        output.write_text("保留已有内容", encoding="utf-8")
         settings.filepath = str(output)
-        demo("error")
-        assert output.read_text(encoding="utf-8") == "保留已有内容"
+        export("error")
+        assert output.read_text(encoding="utf-8") == original_document
         checks.append("已有文件不被覆盖")
 
         selected = output.parent / "选择路径.mtlx"
         assert bpy.ops.iris_relay.demo_choose_path(filepath=str(selected)) == {"FINISHED"}
         assert settings.filepath == str(selected)
         assert settings.status == "idle"
-        demo("ready")
         assert not selected.exists()
         checks.append("文件选择确认只更新路径")
+
+        unsupported = material.node_tree.nodes.new("ShaderNodeTexNoise")
+        export("error")
+        assert not selected.exists()
+        assert settings.issues
+        material.node_tree.nodes.remove(unsupported)
+        checks.append("未知节点明确报告并阻断保存")
 
         bpy.context.view_layer.objects.active = None
         assert bpy.ops.iris_relay.demo_use_active() == {"CANCELLED"}
@@ -118,13 +132,39 @@ def main():
         assert len(material.node_tree.nodes) == original_data[2]
         bpy.ops.iris_relay.demo_use_active()
         bpy.data.materials.remove(material)
-        demo("error")
+        export("error")
         checks.append("材质删除后不使用失效选择")
 
         # 验证其余数据和渲染条件；材质数量扣除测试主动删除的夹具。
         assert (len(bpy.data.materials) + 1, len(bpy.data.images)) == original_data[:2]
         assert bpy.context.scene.render.engine == original_engine
-        checks.append("演示未新增材质资源或更改渲染器")
+        checks.append("导出未修改源材质、资源或渲染器")
+
+        sys.path.insert(0, str(ROOT / "_scripts"))
+        from native_fixture import fixture
+        from verify_native import write_png
+
+        from plugins.blender import BlenderAdapter
+
+        texture = output.parent / "法线高度.png"
+        write_png(texture)
+        original_texture = texture.read_bytes()
+        profile = json.loads((ROOT / "dictionaries/blender-cycles-5.2.3.json").read_text("utf-8"))
+        for semantic in ("normal.tangent", "bump.height"):
+            source = BlenderAdapter(None, ui._service).create_material(
+                fixture(profile, str(texture), normal_semantic=semantic)
+            )
+            before = BlenderAdapter(source, ui._service).read_material()
+            settings.material = source
+            settings.filepath = str(output.parent / (semantic + ".mtlx"))
+            export("warning", saved=True)
+            report = json.loads(settings.report_json)
+            assert report["validation_response"]["result"]["valid"] is True
+            document = Path(settings.filepath).read_text("utf-8")
+            assert "raw" in document and str(texture) in document
+            assert BlenderAdapter(source, ui._service).read_material() == before
+            assert texture.read_bytes() == original_texture
+        checks.append("图片驱动法线和高度凹凸的真实导出、连接与 Raw 语义")
 
     ui.unregister()
     ui.unregister()
