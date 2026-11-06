@@ -4,11 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "iris-relay"
-version = "0.3.0"
+version = "0.4.0"
 description = "面向 DCC 插件的统一材质转换核心"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "materialx==1.39.5",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10", "coverage[toml]>=7,<8", "build>=1,<2", "ruff>=0.12,<1"]

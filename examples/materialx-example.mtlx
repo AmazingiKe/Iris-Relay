@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!-- Iris Relay 自行构造的示例：自定义节点用标准表面子图实现，不依赖外部资源。 -->
+<materialx version="1.39">
+  <nodedef name="ND_iris_surface" node="iris_surface" version="1.0">
+    <input name="roughness" type="float" value="0.42" />
+    <input name="color" type="color3" value="0.12, 0.3, 0.5" />
+    <output name="out" type="surfaceshader" />
+  </nodedef>
+  <nodegraph name="NG_iris_surface" nodedef="ND_iris_surface">
+    <standard_surface name="surface" type="surfaceshader"
+                      nodedef="ND_standard_surface_surfaceshader">
+      <input name="specular_roughness" type="float" interfacename="roughness" />
+      <input name="base_color" type="color3" interfacename="color" />
+    </standard_surface>
+    <output name="out" type="surfaceshader" nodename="surface" />
+  </nodegraph>
+  <iris_surface name="custom_surface" type="surfaceshader" nodedef="ND_iris_surface">
+    <input name="roughness" type="float" value="0.35" />
+  </iris_surface>
+  <surfacematerial name="example_material" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="custom_surface" />
+  </surfacematerial>
+</materialx>

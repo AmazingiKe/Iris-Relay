@@ -6,6 +6,12 @@ from .dictionary import Dictionary, transform, validate_value
 from .model import Material, ValidationError
 
 
+def status_for(issues):
+    if any(i["severity"] == "error" for i in issues):
+        return "error"
+    return "warning" if any(i["severity"] == "warning" for i in issues) else "ok"
+
+
 def issue(
     code: str,
     message: str,

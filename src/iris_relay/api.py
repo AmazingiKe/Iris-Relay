@@ -4,7 +4,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Protocol
 
-from .conversion import convert, transcode
+from .conversion import convert, status_for, transcode
 from .correction import JointPredictor, calibrate
 from .dictionary import Registry
 from .model import Material, ValidationError, fields, json_value, load_json, renderer_ref, text
@@ -23,6 +23,28 @@ class RelayAPI:
     def __init__(self, profiles=(), *, predictor: JointPredictor | None = None):
         self._registry = Registry(profiles)
         self._predictor = predictor
+        self._materialx = None
+
+    @property
+    def _mx(self):
+        if self._materialx is None:
+            try:
+                from .materialx_core import MaterialXCore
+            except ImportError as exc:
+                raise ValidationError(
+                    "当前 Python 缺少可加载的 MaterialX SDK，请安装项目依赖",
+                    "MATERIALX_UNAVAILABLE",
+                ) from exc
+            self._materialx = MaterialXCore()
+        return self._materialx
+
+    def _materialx_capabilities(self):
+        try:
+            return self._mx.capabilities()
+        except ValidationError as exc:
+            if exc.code != "MATERIALX_UNAVAILABLE":
+                raise
+            return {"available": False, "reason": str(exc)}
 
     @classmethod
     def from_directory(cls, path: str | Path, *, predictor: JointPredictor | None = None):
@@ -63,13 +85,48 @@ class RelayAPI:
                         "describe",
                         "validate",
                         "convert",
+                        "materialx.definitions",
+                        "materialx.validate",
+                        "materialx.normalize",
+                        "materialx.export",
+                        "materialx.convert",
                     ],
                     "semantic_schema_version": "1",
                     "material_schema_version": "1",
                     "calibration_available": self._predictor is not None,
                     "appearance_verified": False,
+                    "materialx": self._materialx_capabilities(),
                 }
                 status = "ok"
+            elif operation == "materialx.definitions":
+                result = self._mx.definitions(payload)
+                status = "ok"
+            elif operation in {"materialx.validate", "materialx.normalize"}:
+                result = self._mx.process(payload, normalize=operation == "materialx.normalize")
+                status = status_for(result["issues"])
+            elif operation == "materialx.export":
+                core = self._mx
+                from .materialx_bridge import export_material
+
+                fields(payload, {"material"})
+                material = Material.parse(payload["material"])
+                dictionary = self._registry.get(material.data["renderer"])
+                result = export_material(core, material, dictionary)
+                status = status_for(result["report"]["issues"])
+            elif operation == "materialx.convert":
+                core = self._mx
+                from .materialx_bridge import convert_document
+
+                fields(payload, {"document", "target"}, {"material_name"})
+                target = renderer_ref(payload["target"])
+                name = (
+                    text(payload["material_name"], "材质名称")
+                    if "material_name" in payload
+                    else None
+                )
+                dictionary = self._registry.get(target)
+                result = convert_document(core, payload["document"], dictionary, target, name)
+                status = status_for(result["report"]["issues"])
             elif operation == "semantics":
                 fields(payload, set())
                 result = describe_semantics()

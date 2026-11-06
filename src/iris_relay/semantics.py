@@ -99,7 +99,10 @@ def describe_semantics():
     return {
         "version": "1",
         "nodes": deepcopy(_NODES),
-        "standard_compatibility": "参考标准的功能划分，尚未实现 USD/MaterialX 文件导入导出。",
+        "standard_compatibility": (
+            "旧字典功能契约；MaterialX 标准定义通过 materialx.definitions 查询，"
+            "受限桥接见 materialx.export / materialx.convert。"
+        ),
     }
 
 
