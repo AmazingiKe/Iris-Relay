@@ -34,6 +34,24 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m iris_relay --dictionaries _examples/dictionaries --request _examples/convert-request.json
 ```
 
+## Blender GUI demo
+
+第一步界面验证入口为 [`_examples/blender_demo_gui.py`](_examples/blender_demo_gui.py)。在 Blender 文本编辑器打开它，按需填写顶部 `REPO_ROOT` 为仓库根目录的绝对路径，然后点击“运行脚本”。从仓库原位置打开时可以留空自动定位；复制到未保存文本块或移到别处时需要填写路径。本机路径只在 Blender 中修改，不提交。
+
+运行后在文本编辑器或 3D 视图的 `N` 侧栏选择 **Iris Relay** 标签，侧栏过窄时可拖动左边界加宽。选择材质（也可点击“使用活动材质”），选择尚不存在的 `.mtlx` 文件绝对路径，再点击“演示导出”。界面会检查选择与路径，并显示“演示检查通过，未生成文件”。当前不调用转换核心、不校验材质的可转换性、不写文件；重复运行入口会重新注册界面并清空演示输入。关闭 Blender 后不会自动安装或启用。
+
+界面实现在 `plugins/blender/ui.py`，原材质读写适配器迁至 `plugins/blender/adapter.py`；`from plugins.blender import BlenderAdapter` 和现有验证脚本的导入方式保持兼容。GUI 按需加载，不要求此阶段安装 MaterialX。需要在当前会话卸载时，在 Blender Python 控制台执行 `from plugins.blender import ui; ui.unregister()`。
+
+独立宿主交互逻辑验证（不会操作当前打开的 Blender 场景）：
+
+```powershell
+& "本机blender.exe路径" --background --factory-startup --disable-autoexec --python-exit-code 1 --python _scripts/verify_blender_gui.py
+```
+
+该检查覆盖入口重复运行、输入反馈、未写文件与材质保护、注册卸载和导入兼容；真实面板绘制与文件浏览器还需在 Blender 前台检查。本阶段没有接入真实 `.mtlx` 导出。
+
+2026-11-06 在 Blender 5.2.3 LTS 中通过 13 组宿主检查，并在独立前台实例验证文本编辑器直接运行、面板、活动材质选择、文件浏览器和演示反馈。原 MaterialX 两条链路的保存重开验证通过；本轮未修改转换规则，也没有新增渲染外观证据。
+
 ## 统一接口
 
 所有插件依赖 `RelayService.handle(request) -> response`。进程内使用 `RelayAPI`；跨进程使用同一 JSON 协议，Python 侧可使用 `JsonCommandService`。插件只读写宿主材质，转换和校正规则集中在核心。
@@ -45,9 +63,10 @@ API 提供能力查询、通用功能定义查询（`semantics`）、原生模�
 ```text
 iris_relay/            核心、公开 API、插件辅助接口与命令行
 dictionaries/          真实转换字典；catalogs/ 保存原生节点探测目录
-plugins/               宿主脚本适配器，目前提供 Blender 实验模块
+plugins/               宿主接入层，按实际宿主分目录
+  blender/             GUI（ui.py）与材质读写（adapter.py）
 _scripts/              节点探测、字典生成和独立宿主验证
-_examples/             可执行参考插件、请求和示例字典
+_examples/             可执行参考插件、GUI 测试入口、请求和示例字典
 _tests/                图转换、接口、失败回退和跨进程测试
 _docs/                 API 文档和架构决策
 ```

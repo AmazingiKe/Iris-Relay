@@ -1,4 +1,4 @@
-"""Blender Cycles 薄适配器：节点标识及端口绑定均来自核心 describe API。"""
+"""Blender Cycles 材质读写适配器：节点和端口绑定均来自核心 describe API。"""
 
 from pathlib import Path
 
