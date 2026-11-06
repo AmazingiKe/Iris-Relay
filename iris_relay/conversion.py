@@ -28,7 +28,13 @@ def remap_endpoint(value: dict, maps: dict) -> dict:
 
 
 def transcode(
-    material: dict, dictionary: Dictionary, *, encode: bool, renderer: dict, issues: list
+    material: dict,
+    dictionary: Dictionary,
+    *,
+    encode: bool,
+    renderer: dict,
+    issues: list,
+    explicit_casts=frozenset(),
 ) -> dict:
     result = deepcopy(material)
     result["renderer"] = deepcopy(renderer)
@@ -125,6 +131,27 @@ def transcode(
                             "warning",
                         )
                     )
+            condition = port_rule.get("inactive_when")
+            if (
+                not encode
+                and condition
+                and (node_id, source_name) not in linked
+                and (node_id, condition["input"]) not in linked
+                and source_inputs.get(
+                    condition["input"], rule["inputs"][condition["input"]]["default"]
+                )
+                == condition["equals"]
+            ):
+                issues.append(
+                    issue(
+                        "INACTIVE_INPUT_OMITTED",
+                        "按字典条件判定该未连接原生参数未启用，原值保留在源快照中",
+                        node_id,
+                        source_name,
+                        "info",
+                    )
+                )
+                continue
             node["inputs"][target_name] = value
             if (node_id, source_name) in linked and port_rule.get(
                 "transform", "identity"
@@ -169,7 +196,12 @@ def transcode(
     for original, link in zip(material["links"], result["links"], strict=True):
         source_type = port_types.get((original["from"]["node"], "out", original["from"]["socket"]))
         target_type = port_types.get((original["to"]["node"], "in", original["to"]["socket"]))
-        if source_type and target_type and source_type != target_type:
+        if (
+            source_type
+            and target_type
+            and source_type != target_type
+            and (original["to"]["node"], original["to"]["socket"]) not in explicit_casts
+        ):
             issues.append(
                 issue(
                     "LINK_TYPE_MISMATCH",

@@ -82,6 +82,29 @@ def test_host_read_error_is_reported_without_file(setup_export, tmp_path):
     assert list(tmp_path.iterdir()) == []
 
 
+def test_host_snapshot_and_diagnostics_survive_read_failure(setup_export):
+    adapter, service, _ = setup_export
+    adapter.source_snapshot = {"nodes": [{"type": "ShaderNodeDisplacement"}]}
+    adapter.read_issues = [
+        {
+            "severity": "warning",
+            "code": "DISPLACEMENT_EXCLUDED",
+            "message": "排除位移",
+            "node": "output",
+            "port": "Displacement",
+        }
+    ]
+
+    def fail():
+        raise ValidationError("坐标链尚不支持", "UV_UNSUPPORTED")
+
+    adapter.read_material = fail
+    result = check_material(adapter, service)
+    assert result.status == "error"
+    assert result.source_snapshot == adapter.source_snapshot
+    assert [i["code"] for i in result.issues] == ["DISPLACEMENT_EXCLUDED", "UV_UNSUPPORTED"]
+
+
 def test_unsupported_material_preserves_core_report(setup_export, tmp_path):
     adapter, service, source = setup_export
     source["nodes"][0]["type"] = "UnsupportedNode"

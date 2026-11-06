@@ -20,6 +20,7 @@ class ExportResult:
     export_response: dict | None = None
     validation_response: dict | None = None
     saved_path: str | None = None
+    source_snapshot: dict | None = None
 
 
 def request(service, operation, **payload):
@@ -84,7 +85,11 @@ def check_material(adapter, service):
     """读取当前源图，导出并再次校验文档；任何诊断和源快照均留在结果中。"""
     result = ExportResult()
     try:
-        source = adapter.read_material()
+        try:
+            source = adapter.read_material()
+        finally:
+            result.source_snapshot = getattr(adapter, "source_snapshot", None)
+            result.issues.extend(getattr(adapter, "read_issues", []))
         result.export_response = request(service, "materialx.export", material=source)
         result.issues.extend(response_issues(result.export_response))
         if result.export_response["status"] == "error":

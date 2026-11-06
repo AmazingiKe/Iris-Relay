@@ -87,16 +87,54 @@ def report(issues):
     }
 
 
+def explicit_color_casts(source, dictionary):
+    """只接受字典声明的宿主隐式转换；系数须由宿主读取实际色彩上下文。"""
+    rule = dictionary.data.get("materialx_export", {}).get("color_to_float")
+    if rule != "scene_linear_luminance":
+        return set(), None
+    nodes = {n["id"]: dictionary.nodes.get(n["type"], {}) for n in source["nodes"]}
+    casts = set()
+    for link in source["links"]:
+        start, end = link["from"], link["to"]
+        source_port = nodes[start["node"]].get("outputs", {}).get(start["socket"], {})
+        target_port = nodes[end["node"]].get("inputs", {}).get(end["socket"], {})
+        if source_port.get("type") == "color" and target_port.get("type") == "float":
+            casts.add((end["node"], end["socket"]))
+    if not casts:
+        return casts, None
+    context = source.get("metadata", {}).get("color_to_float")
+    coefficients = context.get("coefficients") if isinstance(context, dict) else None
+    if (
+        not isinstance(context, dict)
+        or context.get("working_space") != "lin_rec709_scene"
+        or not isinstance(coefficients, list)
+        or len(coefficients) != 3
+        or any(type(v) not in (int, float) or v < 0 for v in coefficients)
+        or abs(sum(coefficients) - 1) > 0.001
+    ):
+        raise ValidationError(
+            "颜色到标量连接需要已核验的 Linear Rec.709 上下文及宿主亮度系数",
+            "MATERIALX_COLORSPACE_UNSUPPORTED",
+        )
+    return casts, coefficients
+
+
 def export_material(core, source, dictionary):
     issues = []
     result = {"source": source.to_dict(), "document": None, "report": report(issues)}
     result["report"]["source_dictionary_fingerprint"] = dictionary.fingerprint
+    try:
+        casts, coefficients = explicit_color_casts(source.data, dictionary)
+    except ValidationError as exc:
+        issues.append(issue(exc.code, str(exc)))
+        return result
     semantic = transcode(
         source.to_dict(),
         dictionary,
         encode=False,
         renderer={"id": "iris.semantic", "version": "1"},
         issues=issues,
+        explicit_casts=casts,
     )
     if status_for(issues) == "error":
         return result
@@ -157,7 +195,7 @@ def export_material(core, source, dictionary):
                 else:
                     # 缺省几何法线不写成零向量，保留 MaterialX 的几何默认语义。
                     input_ports[(record["id"], port)] = None
-        for link in semantic["links"]:
+        for original, link in zip(source.data["links"], semantic["links"], strict=True):
             target_key = (link["to"]["node"], link["to"]["socket"])
             port = input_ports[target_key]
             if port is None:
@@ -166,7 +204,30 @@ def export_material(core, source, dictionary):
                     nodes[target_key[0]], BINDINGS[record["type"]][1][target_key[1]], None
                 )
             port.removeAttribute("value")
-            port.setConnectedNode(output_ports[(link["from"]["node"], link["from"]["socket"])])
+            upstream = output_ports[(link["from"]["node"], link["from"]["socket"])]
+            if (original["to"]["node"], original["to"]["socket"]) in casts:
+                luma = doc.addNodeInstance(
+                    core.library.getNodeDef("ND_luminance_color3"),
+                    doc.createValidChildName("color_to_luminance"),
+                )
+                add_value(luma, "in", None).setConnectedNode(upstream)
+                add_value(luma, "lumacoeffs", coefficients)
+                upstream = doc.addNodeInstance(
+                    core.library.getNodeDef("ND_extract_color3"),
+                    doc.createValidChildName("luminance_to_float"),
+                )
+                add_value(upstream, "in", None).setConnectedNode(luma)
+                add_value(upstream, "index", 0)
+                issues.append(
+                    issue(
+                        "IMPLICIT_CAST_EXPLICIT",
+                        "已将宿主颜色转标量连接展开为显式亮度计算",
+                        original["to"]["node"],
+                        original["to"]["socket"],
+                        "info",
+                    )
+                )
+            port.setConnectedNode(upstream)
         material = doc.addNodeInstance(
             core.library.getNodeDef("ND_surfacematerial"), doc.createValidChildName("material")
         )

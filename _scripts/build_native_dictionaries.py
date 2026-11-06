@@ -171,6 +171,12 @@ def build(catalog):
     }
     if "color_context" in catalog:
         profile["evidence"]["color_context"] = catalog["color_context"]
+    if engine == "cycles":
+        profile["version"] = "0.3.1"
+        profile["materialx_export"] = {"color_to_float": "scene_linear_luminance"}
+        profile["evidence"]["implicit_color_to_float"] = (
+            "https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/convert.h"
+        )
     shader_key = {
         "cycles": "ShaderNodeBsdfPrincipled",
         "redshift": RS + "standardmaterial",
@@ -369,6 +375,24 @@ def build(catalog):
             key + ".height" if engine == "redshift" and semantic == "bump.height" else key
         )
         profile["nodes"][implementation] = rule
+    if engine == "cycles":
+        # 5.2.3 目录列出的枚举，并由木地板实文件读取核验；不扩大 SSS 输入范围。
+        base = profile["nodes"][shader_key]
+        for name in (
+            "Subsurface Radius",
+            "Subsurface Scale",
+            "Subsurface IOR",
+            "Subsurface Anisotropy",
+        ):
+            base["inputs"][name]["inactive_when"] = {"input": "Subsurface Weight", "equals": 0}
+        base["target_default"] = True
+        legacy = deepcopy(base)
+        legacy.pop("target_default")
+        legacy["native"]["properties"] = {"distribution": "GGX", "subsurface_method": "BURLEY"}
+        legacy["approximation"] = (
+            "旧 Principled GGX / BURLEY 配置近似映射到标准表面；不支持非默认 SSS，外观尚未验证。"
+        )
+        profile["nodes"][shader_key + ".ggx_burley"] = legacy
     return profile
 
 

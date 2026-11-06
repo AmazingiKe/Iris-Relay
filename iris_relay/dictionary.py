@@ -102,7 +102,7 @@ class Dictionary:
         fields(
             value,
             {"schema_version", "id", "version", "renderer", "nodes"},
-            {"host", "description", "evidence", "semantic_schema_version"},
+            {"host", "description", "evidence", "semantic_schema_version", "materialx_export"},
         )
         if value["schema_version"] != "1":
             raise ValidationError("不支持的字典协议版本")
@@ -112,6 +112,10 @@ class Dictionary:
             text(value["description"], "字典说明")
         if "evidence" in value and not isinstance(value["evidence"], dict):
             raise ValidationError("字典依据必须为对象")
+        if "materialx_export" in value:
+            rules = fields(value["materialx_export"], {"color_to_float"})
+            if rules["color_to_float"] != "scene_linear_luminance":
+                raise ValidationError("未知的 MaterialX 隐式颜色连接规则")
         if "host" in value:
             host = value["host"]
             fields(host, {"id", "versions", "node_system"})
@@ -172,6 +176,7 @@ class Dictionary:
                                 "native",
                                 "omit_if_default",
                                 "nullable",
+                                "inactive_when",
                             },
                         )
                     else:
@@ -221,6 +226,20 @@ class Dictionary:
                         ):
                             raise ValidationError("无效的输入范围")
                     validate_value(rule["default"], rule)
+            for port_name, rule in node["inputs"].items():
+                if "inactive_when" not in rule:
+                    continue
+                condition = fields(rule["inactive_when"], {"input", "equals"})
+                text(condition["input"], "条件端口")
+                controlling = node["inputs"].get(condition["input"])
+                if (
+                    not rule.get("omit_if_default")
+                    or controlling is None
+                    or condition["input"] == port_name
+                    or controlling["type"] != "float"
+                ):
+                    raise ValidationError("无效的未启用原生参数条件")
+                validate_value(condition["equals"], controlling)
             if value.get("semantic_schema_version"):
                 validate_contract(node)
         encoded = json.dumps(value, sort_keys=True, ensure_ascii=False, allow_nan=False).encode(

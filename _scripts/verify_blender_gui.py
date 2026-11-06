@@ -20,6 +20,7 @@ def main():
     # 直接运行入口两次，模拟在文本编辑器反复点击“运行脚本”。
     entry = runpy.run_path(str(ENTRY), run_name="__main__")
     bpy.context.window_manager.iris_relay_demo.filepath = "上次输入.mtlx"
+    bpy.context.window_manager.iris_relay_demo.surface_only = True
     runpy.run_path(str(ENTRY), run_name="__main__")
     from plugins.blender import ui
 
@@ -27,6 +28,7 @@ def main():
     assert hasattr(bpy.types, "IRISRELAY_PT_demo_text")
     assert hasattr(bpy.types, "IRISRELAY_PT_demo_view")
     assert bpy.context.window_manager.iris_relay_demo.filepath == ""
+    assert bpy.context.window_manager.iris_relay_demo.surface_only is False
     checks.append("入口重复运行及 GUI 独立加载")
 
     area = next(area for area in bpy.context.window.screen.areas if area.type == "VIEW_3D")
@@ -113,6 +115,10 @@ def main():
         checks.append("文件选择确认只更新路径")
 
         unsupported = material.node_tree.nodes.new("ShaderNodeTexNoise")
+        material.node_tree.links.new(
+            unsupported.outputs["Color"],
+            material.node_tree.nodes["Principled BSDF"].inputs["Base Color"],
+        )
         export("error")
         assert not selected.exists()
         assert settings.issues

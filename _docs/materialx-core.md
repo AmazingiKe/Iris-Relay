@@ -26,7 +26,7 @@ if response["status"] != "error":
 
 完整示例：
 
-Blender 中可直接运行 [GUI demo](../_examples/blender_demo_gui.py)，经宿主适配器读取所选材质并调用本页的导出／校验 API。操作步骤、警告接受策略和核心环境要求见 [README](../README.md#blender-gui-demo)。这一入口不扩展下述节点支持范围。
+Blender 中可直接运行 [GUI demo](../_examples/blender_demo_gui.py)，经宿主适配器读取所选材质并调用本页的导出／校验 API。操作步骤、警告接受策略和核心环境要求见 [README](../README.md#blender-gui-demo)。下文分别说明导出和目标转换范围。
 
 ```powershell
 uv run python _examples/materialx_demo.py --out .local/materialx-demo-新编号
@@ -59,6 +59,12 @@ uv run python _examples/materialx_demo.py --out .local/materialx-demo-新编号
 自定义库须内联，不能重定义标准库同名元素或未加命名空间的标准类别。输入中的 DTD、实体声明、XInclude 被拒绝；不从文档指定路径加载代码或库。图片路径仅保存为数据，其存在性由宿主适配器检查。
 
 ## 当前目标转换边界
+
+Blender 导出新增一项受限规则：字典明确声明颜色到标量连接使用场景线性亮度时，宿主提供实际系数，核心通过官方 `ND_luminance_color3` 与 `ND_extract_color3(index=0)` 显式表达。它不把 RGB 直接当 R，也不使用 MaterialX 的默认亮度系数替代 Blender 上下文。目前只核验 Linear Rec.709；其他上下文拒绝。`materialx.convert` 尚不支持新增的 `luminance` 链，转换时会保留源文档并明确阻断。
+
+依据为 Blender 5.2.3 的 [隐式转换实现](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/convert.h)、[工作空间 XYZ 矩阵](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/util/colorspace.cpp)及 [RGB → Y 初始化](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/scene/shader.cpp)。适配器通过当前 OCIO 配置读取 ACES AP0 → 工作空间的矩阵，并按该版本 Cycles 的 XYZ D65 常量求出系数，不更改色彩设置。
+
+GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶层节点、属性、输入、图片引用和连接保留于完整报告的 `source_snapshot`。该快照用于诊断，不是递归节点组备份，也不会嵌入 `.mtlx`；原 `.blend` 始终保留。未连接活动表面的节点有信息提示；非恒等 Mapping、体积、活动图中的未知节点和节点组仍阻断。
 
 文档可保存的范围大于当前目标可转换的范围。桥接支持既有三套字典的五类功能：
 

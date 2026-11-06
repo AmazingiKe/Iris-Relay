@@ -2,6 +2,8 @@
 
 from copy import deepcopy
 
+from iris_relay.dictionary import Dictionary
+
 
 def renderer(profile):
     return {
@@ -20,8 +22,10 @@ def fixture(profile, texture="fixture.png", *, normal_semantic="normal.tangent")
     included = {"surface.standard", "texture.image", normal_semantic}
     if normal_semantic == "bump.height":
         included.add("channel.red")
+    dictionary = Dictionary.parse(profile)
+    selected = {semantic: dictionary.target_node(semantic)[0] for semantic in included}
     for key, rule in profile["nodes"].items():
-        if rule["semantic"] not in included:
+        if selected.get(rule["semantic"]) != key:
             continue
         node = {
             "id": rule["semantic"].replace(".", "_"),

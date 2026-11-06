@@ -99,7 +99,7 @@ response = api.handle({
 | `links` | 每项为 `{"from": {"node": "...", "socket": "..."}, "to": {"node": "...", "socket": "..."}}` |
 | `output` | 材质输出的 `node` 和 `socket` |
 | `textures` | 可省略，默认 `{}`；按资源 ID 索引的贴图描述 |
-| `metadata` | 可省略，默认 `{}`；只透传，不参与场景操作 |
+| `metadata` | 可省略，默认 `{}`；一般透传。`color_to_float` 是下述 MaterialX 导出的显式色彩上下文；不触发场景操作 |
 
 `inputs` 是端口名到值的对象，`outputs` 是输出端口名列表。节点 ID 必须唯一，连接必须指向存在的端口，每个输入最多一条连接，图必须无环。连接输入仍应在 `inputs` 中提供默认值；核心保留默认值和连接的区别。
 
@@ -117,18 +117,22 @@ API 接受有限数值；JSON 文件拒绝重复键、NaN 和 Infinity，单次 
 
 完整格式见 [参考光泽度字典](../_examples/dictionaries/reference.gloss.json) 和 [参考粗糙度字典](../_examples/dictionaries/reference.rough.json)。字典目录由核心启动方指定，API 请求不能指定加载路径或可执行代码。
 
-- 顶层包含 `schema_version`、`id`、`version`、`renderer`、`nodes`；可选 `host`、`description`、`evidence`。`host` 含 `id`、`versions` 和 `node_system`。
+- 顶层包含 `schema_version`、`id`、`version`、`renderer`、`nodes`；可选 `host`、`description`、`evidence`、`materialx_export`。`host` 含 `id`、`versions` 和 `node_system`。
 - `renderer` 包含 `id` 及明确列出的 `versions`；同一渲染器版本、宿主版本和节点系统组合不能由多份字典覆盖。
 - 节点键表示一种确定的原生实现配置，映射到唯一 `semantic`。多个键可以共用原生 ID，通过 `native.properties` 区分模式；多个原生实现也可以归入同一通用功能。
 - 同一功能仅一个目标实现时直接选择；多个实现须声明唯一布尔值 `target_default: true`，否则转换返回 `AMBIGUOUS_TARGET_NODE` 并保留源图。多个默认值在加载字典时拒绝。默认选择不免除参数、连接和支持边界检查。
 - 新真实字典声明 `semantic_schema_version: "1"`，加载时按核心集中契约校验功能名、端口名、类型、可空性和必要端口。`native.*` 专用输入只允许显式声明 `omit_if_default`；未声明语义版本的旧协议示例保留兼容，不作为标准定义。
-- 输入规则包含 `semantic`、`type`、`default`，可指定 `range`、`transform`、`adjustable`、`nullable`、`omit_if_default`；输出规则包含 `semantic`、`type`。节点和端口可包含 `native`；节点可通过 `approximation` 声明近似。
+- 输入规则包含 `semantic`、`type`、`default`，可指定 `range`、`transform`、`adjustable`、`nullable`、`omit_if_default`、`inactive_when`；输出规则包含 `semantic`、`type`。节点和端口可包含 `native`；节点可通过 `approximation` 声明近似。
 - `transform` 白名单包含 `identity`、用于浮点值的 `one_minus`、`{"op":"scale","factor":非零有限数值}` 及 `scalar_to_color`。后者将标量展开为三个相等的颜色分量，逆变换只接受灰度颜色。默认值和范围描述原生参数域，解码后进入语义域，编码时逆变换回目标原生域。
 - 非恒等变换遇到连接时返回阻断报告，不将单个数值操作误当作整张贴图变换。
 
 `native` 含实际 `id`（字符串或整数 code），可选 `label`、`properties`、`kind`、`codec`、`colorspace_id`、`uv_id`。`kind` 为 `socket`／`property`／`resource`；`codec` 白名单为 `identity`／`rgb`／`srgb`／`bool`／`normal`／`texture`／`gray`。`gray` 仅将标量读写为相等的三个分量，读取非灰度三通道时拒绝，不做亮度或通道猜测。这些是声明式宿主读写信息，不可携带执行代码。数值编码由宿主适配层的公开辅助函数处理，语义变换只由核心处理。
 
 `omit_if_default` 仅允许省略未连接、等于默认值的源原生控制项，并在源快照保留其值；目标使用自己的默认值。已知输出未连接且不是最终出口时允许省略。信息码为 `NATIVE_DEFAULT_OMITTED`、`UNUSED_OUTPUT_OMITTED`；不同 BSDF 的近似使用 `SHADING_MODEL_APPROXIMATION` 警告。信息记录不影响状态，错误阻断，警告需要插件明确接受。
+
+原生辅助参数可额外声明 `inactive_when: {"input": "Subsurface Weight", "equals": 0}`：条件输入及当前输入都未连接、条件值精确相等时，报告 `INACTIVE_INPUT_OMITTED`，原值保留在源快照。条件输入须为同一节点的浮点输入，不能引用自身；当前规则仍须声明 `omit_if_default`。Blender 字典将它用于 SSS 关闭时的半径、尺度、IOR 和各向异性。开启 SSS 或连接辅助参数仍受原有支持边界限制。
+
+`materialx_export: {"color_to_float": "scene_linear_luminance"}` 声明原生颜色到标量的隐式连接语义，仅用于 `materialx.export`。此类连接要求源 `metadata.color_to_float` 含 `working_space: "lin_rec709_scene"` 及三项非负有限 `coefficients`，总和须接近 1。适配器必须读取真实宿主上下文；不能填目标默认系数冒充源观测值。核心生成官方 `luminance` 和 `extract(index=0)` 节点并报告 `IMPLICIT_CAST_EXPLICIT`；未声明规则的字典、其他类型转换及旧 `convert` 仍按原有类型规则阻断。详细范围见 [MaterialX 核心](materialx-core.md)。
 
 字典对语义、单位、默认值和范围的陈述必须有具体渲染器依据。核心只能验证声明的一致性，不能自动证明物理含义或视觉等价性。
 

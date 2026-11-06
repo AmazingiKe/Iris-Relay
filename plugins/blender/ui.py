@@ -33,6 +33,13 @@ class IRISRELAY_PG_demo(bpy.types.PropertyGroup):
         name="材质", type=bpy.types.Material, update=reset_result, options={"SKIP_SAVE"}
     )
     filepath: StringProperty(name="输出文件", update=reset_result, options={"SKIP_SAVE"})
+    surface_only: BoolProperty(
+        name="仅导出表面（排除位移）",
+        default=False,
+        update=reset_result,
+        options={"SKIP_SAVE"},
+        description="明确排除位移输出并保留警告和源快照；不会修改源材质",
+    )
     status: StringProperty(default="idle", options={"SKIP_SAVE"})
     message: StringProperty(default="请选择材质和输出路径", options={"SKIP_SAVE"})
     accept_warnings: BoolProperty(
@@ -100,7 +107,7 @@ def run_export(operator, context, *, check_only=False):
             _service = controller.create_service()
         from .adapter import BlenderAdapter
 
-        adapter = BlenderAdapter(settings.material, _service)
+        adapter = BlenderAdapter(settings.material, _service, surface_only=settings.surface_only)
         if check_only:
             result = controller.check_material(adapter, _service)
         else:
@@ -190,6 +197,7 @@ def draw_demo(layout, context):
     destination.operator("iris_relay.demo_choose_path", icon="FILE_FOLDER")
 
     layout.separator()
+    layout.prop(settings, "surface_only")
     layout.operator("iris_relay.check_material", icon="VIEWZOOM")
     layout.prop(settings, "accept_warnings")
     action = layout.row()
@@ -260,6 +268,7 @@ def unregister():
             for name in (
                 "material",
                 "filepath",
+                "surface_only",
                 "status",
                 "message",
                 "accept_warnings",
