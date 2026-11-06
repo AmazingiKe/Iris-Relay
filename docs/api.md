@@ -2,7 +2,7 @@
 
 所有插件调用同一抽象服务：`RelayService.handle(request) -> response`。业务协议与传输方式分离；Python 插件可直接使用 `RelayAPI`，其他宿主可发送 UTF-8 JSON 给命令行核心。插件只读取和创建宿主材质，不实现字典转换或联合校正。
 
-真实宿主配置与参考配置共用此协议。真实绑定范围见[原生字典文档](native-dictionaries.md)；结构验证不代表视觉等价。
+真实宿主配置与参考配置共用此协议。真实绑定范围见[原生字典文档](native-dictionaries.md)；结构验证不代表视觉等价。0.4.0 新增的 `materialx.*` 操作见 [MaterialX 核心](materialx-core.md)，沿用同一请求与响应外层。
 
 ## 快速调用
 
@@ -35,7 +35,7 @@ uv run iris-relay --dictionaries examples/dictionaries --request examples/conver
 | --- | --- |
 | `api_version` | 字符串 `"1"` |
 | `request_id` | 非空字符串，由插件生成，用于对应响应 |
-| `operation` | `capabilities`、`semantics`、`identify`、`describe`、`validate` 或 `convert` |
+| `operation` | `capabilities`、`semantics`、`identify`、`describe`、`validate`、`convert` 或文档中定义的 `materialx.*` 操作 |
 | `payload` | 对应操作的数据对象 |
 
 | 操作 | payload | 结果 |

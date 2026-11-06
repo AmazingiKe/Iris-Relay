@@ -4,7 +4,9 @@ Iris Relay 探索跨渲染器的材质转换：以字典建立材质语义对应
 
 系统只修改材质，不通过改变灯光、相机、曝光或色彩管理来补偿差异。“整体校正”指材质内部多种因素的关联调整，不是一个统一系数，也不是整幅图像的后期处理。
 
-当前已完成初步核心：统一 API、材质图协议、声明式字典、转换与诊断报告、联合校正扩展接口，以及通过同一 API 运行的参考插件。Python 运行时不依赖 DCC 或第三方库。
+当前已完成初步核心：统一 API、材质图协议、声明式字典、转换与诊断报告、联合校正扩展接口，以及通过同一 API 运行的参考插件。Python 核心不依赖 DCC 运行时；0.4.0 引入官方 MaterialX 1.39.5 SDK。
+
+新的 [MaterialX 核心](docs/materialx-core.md) 支持官方节点定义查询、`.mtlx` 校验与保存、自定义 NodeDef／子图，以及与现有五类功能的受限原生桥接。文档保存范围大于目标转换范围；专有节点没有目标规则时保留源信息并阻断。Maya Arnold → Blender Cycles 是下一条宿主接入方向，Maya 读取尚未实现。
 
 现已提供 Blender Cycles、C4D Redshift 和 C4DtoA 的真实节点目录与基础字典，包含节点名称、资产 ID、整数 code 和端口绑定。本轮 6 组源材质完成保存重开和原生识别，随后 18 组转换完成目标创建、保存重开及参数／连接核对。详见[原生字典与验证范围](docs/native-dictionaries.md)。
 
@@ -19,6 +21,7 @@ uv sync --extra dev
 uv run iris-relay --dictionaries examples/dictionaries --request examples/convert-request.json
 uv run python examples/plugin_demo.py --transport python
 uv run python examples/plugin_demo.py --transport process
+uv run python examples/materialx_demo.py --out .local/materialx-demo-新编号
 ```
 
 第一条转换命令输出完整 JSON 报告；两种参考插件调用都会新建内存中的目标材质，并验证源材质保持不变。示例将光泽度 `0.8` 转成粗糙度约 `0.2`，保留底色贴图连接、色彩空间和 UV 描述；这是参考规则验证，不是神经校正或视觉等价性证明。
@@ -70,9 +73,11 @@ uv build
 - [ADR-0001：材质转换与神经校正架构](docs/adr/0001-材质转换与神经校正架构.md)
 - [ADR-0002：统一插件接口与初步核心实现](docs/adr/0002-统一插件接口与初步核心实现.md)
 - [统一插件 API v1](docs/api.md)
+- [MaterialX 核心与调用示例](docs/materialx-core.md)
 - [原生字典与实机验证](docs/native-dictionaries.md)
 - [ADR-0003：原生节点绑定与宿主验证](docs/adr/0003-原生节点绑定与宿主验证.md)
 - [ADR-0004：统一节点功能定义与原生实现选择](docs/adr/0004-统一节点功能定义与原生实现选择.md)
+- [ADR-0005：MaterialX 材质图核心与自定义节点扩展](docs/adr/0005-MaterialX材质图核心与自定义节点扩展.md)
 - [协作与开发约定](AGENTS.md)
 
 下一步扩展真实材质导出与节点覆盖，建立固定场景的渲染对照基线，再训练和验证联合校正。当前核心支持字典声明的图连接，但非恒等变换遇到贴图连接时仍会阻断，尚不自动插入变换节点。

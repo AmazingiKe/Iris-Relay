@@ -51,7 +51,7 @@ Arnold `rgb_to_float` 没有对应独立参数头文件；Input code `1582091381
 
 例如 Redshift 图片类型保持 `texture.image`，其 `bumpmap` 模式 0 对应 `bump.height`、模式 1 对应 `normal.tangent`。高度实现键为 `com.redshift3d.redshift4c4d.nodes.core.bumpmap.height`，但真正创建的资产 ID 仍为不带 `.height` 的 `bumpmap`。添加宿主只需补充本宿主与这些通用功能的绑定，无需编写每对宿主之间的转换表。
 
-USD/UsdShade 与 MaterialX 已完成本轮职责评估，见 [ADR-0004](adr/0004-统一节点功能定义与原生实现选择.md)。当前参考标准功能划分，尚未提供 USD／MaterialX 文件导入导出，也不宣称执行语义完全相同。
+USD/UsdShade 与 MaterialX 的早期职责评估见 [ADR-0004](adr/0004-统一节点功能定义与原生实现选择.md)。0.4.0 按 [ADR-0005](adr/0005-MaterialX材质图核心与自定义节点扩展.md) 新增 MaterialX 文档核心和受限原生桥接，见[调用与边界](materialx-core.md)；尚无 USD 文件导入导出，不宣称各渲染器执行语义相同。
 
 显示名称不作为可靠键：Blender 使用 socket identifier；Redshift 使用资产／端口 ID；C4DtoA 还需要节点整数 code 和参数整数 code。`native.id` 保存实际读写标识，字典键保留可读名称。Redshift 图片路径和色彩空间是 `tex0` 下的子端口，不能当成平级端口查找。
 
