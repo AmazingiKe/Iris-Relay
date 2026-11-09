@@ -172,7 +172,7 @@ def build(catalog):
     if "color_context" in catalog:
         profile["evidence"]["color_context"] = catalog["color_context"]
     if engine == "cycles":
-        profile["version"] = "0.3.1"
+        profile["version"] = "0.3.2"
         profile["materialx_export"] = {"color_to_float": "scene_linear_luminance"}
         profile["evidence"]["implicit_color_to_float"] = (
             "https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/convert.h"
@@ -393,7 +393,51 @@ def build(catalog):
             "旧 Principled GGX / BURLEY 配置近似映射到标准表面；不支持非默认 SSS，外观尚未验证。"
         )
         profile["nodes"][shader_key + ".ggx_burley"] = legacy
+        add_blender_weighted_sum(profile, catalog)
     return profile
+
+
+def add_blender_weighted_sum(profile, catalog):
+    """用已探测的 Vector Math 端口声明 RGB 加权求和；仅开放 DOT_PRODUCT 模式。"""
+    # 1. 验证类型和运算枚举来自宿主目录，避免将未核验名称写入运行时字典。
+    observed = catalog["nodes"]["ShaderNodeVectorMath"]
+    if (
+        observed["status"] != "instantiated"
+        or "DOT_PRODUCT" not in observed["properties"]["operation"]["items"]
+    ):
+        raise ValueError("Vector Math DOT_PRODUCT 缺少宿主证据")
+    ports = {p["id"]: p for p in observed["inputs"]}
+    rule = {
+        "semantic": "color.weighted_sum",
+        "native": {
+            "id": observed["id"],
+            "label": observed["label"],
+            "properties": {"operation": "DOT_PRODUCT"},
+        },
+        "inputs": {},
+        "outputs": {
+            "Value": {
+                "semantic": "value",
+                "type": "float",
+                "native": {"id": "Value", "kind": "socket", "codec": "identity"},
+            }
+        },
+    }
+    # 2. RGB 和向量按三个分量原样传递；系数是文档数据，不设为校正器可调整项。
+    for identifier, semantic, kind in (
+        ("Vector", "color", "color"),
+        ("Vector_001", "weights", "vector"),
+    ):
+        port = infer_rule(ports[identifier], "cycles", semantic)
+        port["type"] = kind
+        port.pop("adjustable", None)
+        rule["inputs"][identifier] = port
+    profile["nodes"]["ShaderNodeVectorMath.dot_product"] = rule
+    profile["evidence"]["weighted_sum"] = (
+        "Blender 5.2.3 DOT_PRODUCT 实机端口核验；"
+        "https://github.com/blender/blender/blob/v5.2.3/"
+        "source/blender/nodes/shader/nodes/node_shader_vector_math.cc"
+    )
 
 
 def main():

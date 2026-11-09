@@ -54,6 +54,7 @@ BINDINGS = {
         "normal",
     ),
     "channel.red": ("ND_extract_color3", {"color": "in"}, "value"),
+    "color.weighted_sum": ("ND_dotproduct_vector3", {"color": "in1", "weights": "in2"}, "value"),
 }
 COLOR_TO_MX = {"Raw": "raw", "sRGB": "srgb_texture"}
 COLOR_FROM_MX = {v: k for k, v in COLOR_TO_MX.items()}
@@ -237,14 +238,17 @@ def _create_export_input(core, doc, node, semantic_type, port, mx_port, value, t
         target.setColorSpace(color)
         return target
 
-    # 法线颜色：加上 color3 → vector3，后续连线应接到这个辅助节点的输入。
-    if semantic_type == "normal.tangent" and port == "normal.color":
+    # 法线或加权求和的颜色：加上 color3 → vector3，后续连线接到辅助节点输入。
+    if (semantic_type, port) in {
+        ("normal.tangent", "normal.color"),
+        ("color.weighted_sum", "color"),
+    }:
         helper = doc.addNodeInstance(
             core.library.getNodeDef("ND_convert_color3_vector3"),
             doc.createValidChildName(node.getName() + "_color_to_vector"),
         )
         target = add_value(helper, "in", value)
-        add_value(node, "in", None).setConnectedNode(helper)
+        add_value(node, mx_port, None).setConnectedNode(helper)
         return target
 
     # 普通值直接写入；空的几何法线保留 MaterialX 默认含义，不写成零向量。
@@ -328,6 +332,50 @@ def require_defaults(node, supported):
             )
 
 
+def _luminance_source(node):
+    """识别 extract(luminance) 结构，返回亮度节点；数值和额外端口在访问时校验。"""
+    definition = node.getNodeDef()
+    if definition is None or definition.getName() != "ND_extract_color3":
+        return None
+    upstream = connected_node(node.getInput("in"))
+    upstream_definition = upstream.getNodeDef() if upstream is not None else None
+    if upstream_definition and upstream_definition.getName() == "ND_luminance_color3":
+        return upstream
+    return None
+
+
+def _read_binding(node, reverse):
+    """查询单节点绑定，或将亮度加 R 分量提取解释为一个显式加权求和。"""
+    if _luminance_source(node) is not None:
+        return "color.weighted_sum", {"color": "in", "weights": "lumacoeffs"}, "value"
+    definition = node.getNodeDef()
+    return reverse.get(definition.getName()) if definition else None
+
+
+def _read_input(node, name):
+    """读取输入常量及上游节点；省略常量时使用官方 NodeDef 默认值。"""
+    actual = node.getInput(name)
+    declared = node.getNodeDef().getActiveInput(name)
+    value = (
+        python_value(actual)
+        if actual is not None and actual.hasValueString()
+        else python_value(declared)
+    )
+    return value, connected_node(actual)
+
+
+def _unwrap_color_vector(upstream, visited):
+    """还原显式 color3 → vector3 辅助节点，返回原始颜色值和连接来源。"""
+    helper = upstream.getNodeDef()
+    if helper is None or helper.getName() != "ND_convert_color3_vector3":
+        raise ValidationError(
+            "颜色输入需要显式 color3 → vector3 转换", "MATERIALX_NODE_UNSUPPORTED"
+        )
+    require_defaults(upstream, {"in"})
+    visited.add(upstream.getNamePath())
+    return _read_input(upstream, "in")
+
+
 def to_semantic(core, doc, material_name, issues):
     """反向读取 MaterialX 可达图，返回既有字典能处理的语义数据；未知含义阻断。"""
     # 1. 拒绝尚不能解释的单位、前缀和色彩上下文。
@@ -376,35 +424,37 @@ def to_semantic(core, doc, material_name, issues):
 
     def visit(node):
         """读取一个标准节点，将上游依赖加入 pending 队列供后续遍历。"""
+        # 1. 识别受支持的节点或亮度链；共享上游只读取一次。
         name = node.getNamePath()
         if name in visited:
             return
         visited.add(name)
-        definition = node.getNodeDef()
-        binding = reverse.get(definition.getName()) if definition else None
+        binding = _read_binding(node, reverse)
         if binding is None:
             raise ValidationError(
                 f"目标桥接尚不支持节点：{name} ({node.getCategory()})", "MATERIALX_NODE_UNSUPPORTED"
             )
         semantic, ports, output = binding
-        require_defaults(node, set(ports.values()))
+        # 2. 亮度链从 luminance 读系数，ID 沿用标量出口；只接受 index=0。
+        input_node = _luminance_source(node)
+        if input_node is not None:
+            require_defaults(node, {"in"})
+            visited.add(input_node.getNamePath())
+        else:
+            input_node = node
+        require_defaults(input_node, set(ports.values()))
         record = {"id": name, "type": semantic, "inputs": {}, "outputs": [output], "metadata": {}}
         data["nodes"].append(record)
+        # 3. 逐项读取常量、图片与连接，显式还原颜色转向量的辅助节点。
         for port_name, mx_name in ports.items():
-            declared = definition.getActiveInput(mx_name)
-            actual = node.getInput(mx_name)
-            value = (
-                python_value(actual)
-                if actual is not None and actual.hasValueString()
-                else python_value(declared)
-            )
-            upstream = connected_node(actual)
+            value, upstream = _read_input(input_node, mx_name)
             if semantic == "texture.image":
                 if upstream is not None or not value:
                     raise ValidationError(
                         "图片文件名必须为非空常量", "MATERIALX_RESOURCE_UNSUPPORTED"
                     )
                 # 使用有效属性，包含继承的色彩解释；不猜测缺失的色彩空间。
+                actual = input_node.getInput(mx_name)
                 color = actual.getActiveColorSpace() if actual is not None else ""
                 if color not in COLOR_FROM_MX:
                     raise ValidationError(
@@ -418,35 +468,19 @@ def to_semantic(core, doc, material_name, issues):
                     "metadata": {},
                 }
                 value = {"texture": resource_id}
-            if (
-                semantic == "normal.tangent"
-                and port_name == "normal.color"
-                and upstream is not None
-            ):
-                helper = upstream.getNodeDef()
-                if helper is None or helper.getName() != "ND_convert_color3_vector3":
-                    raise ValidationError(
-                        "法线颜色需要显式 color3 → vector3 转换", "MATERIALX_NODE_UNSUPPORTED"
-                    )
-                visited.add(upstream.getNamePath())
-                require_defaults(upstream, {"in"})
-                actual = upstream.getInput("in")
-                declared = helper.getActiveInput("in")
-                value = (
-                    python_value(actual)
-                    if actual is not None and actual.hasValueString()
-                    else python_value(declared)
-                )
-                upstream = connected_node(actual)
+            needs_color_vector = (semantic, port_name) == ("normal.tangent", "normal.color") or (
+                (semantic, port_name) == ("color.weighted_sum", "color") and input_node == node
+            )
+            if needs_color_vector and upstream is not None:
+                value, upstream = _unwrap_color_vector(upstream, visited)
+            if semantic == "color.weighted_sum" and port_name == "weights" and upstream is not None:
+                raise ValidationError("加权求和暂只支持常量系数", "MATERIALX_INPUT_UNSUPPORTED")
             if value is None and upstream is None:
                 continue
             record["inputs"][port_name] = value
             if upstream is not None:
                 pending.append(upstream)
-                upstream_definition = upstream.getNodeDef()
-                upstream_binding = (
-                    reverse.get(upstream_definition.getName()) if upstream_definition else None
-                )
+                upstream_binding = _read_binding(upstream, reverse)
                 if upstream_binding is None:
                     raise ValidationError(
                         f"目标桥接尚不支持节点：{upstream.getNamePath()}",
@@ -458,6 +492,7 @@ def to_semantic(core, doc, material_name, issues):
                         "to": {"node": name, "socket": port_name},
                     }
                 )
+        # 4. 结构可以转换仍不代表着色外观一致，保留近似诊断。
         if semantic in {"surface.standard", "normal.tangent", "bump.height"}:
             issues.append(
                 issue(

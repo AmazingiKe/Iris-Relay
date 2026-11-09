@@ -94,7 +94,7 @@ def test_no_dictionary_rule_still_rejects_implicit_cast():
     assert any(i["code"] == "LINK_TYPE_MISMATCH" for i in response["result"]["report"]["issues"])
 
 
-def test_exported_luminance_does_not_claim_target_conversion_support():
+def test_exported_luminance_converts_to_explicit_weighted_sum():
     profile, source = setup()
     api = RelayAPI([profile])
     document = export(profile, source)["result"]["document"]
@@ -106,8 +106,17 @@ def test_exported_luminance_does_not_claim_target_conversion_support():
             "payload": {"document": document, "target": source["renderer"]},
         }
     )
-    assert response["status"] == "error"
-    assert response["result"]["material"] is None
+    assert response["status"] == "warning", response
+    material = response["result"]["material"]
+    weighted = next(n for n in material["nodes"] if n["type"] == "ShaderNodeVectorMath.dot_product")
+    assert weighted["inputs"]["Vector_001"] == pytest.approx(
+        source["metadata"]["color_to_float"]["coefficients"]
+    )
+    assert any(
+        link["from"] == {"node": weighted["id"], "socket": "Value"}
+        and link["to"]["socket"] == "Roughness"
+        for link in material["links"]
+    )
     assert response["result"]["source"] == document
     old = api.handle(
         {

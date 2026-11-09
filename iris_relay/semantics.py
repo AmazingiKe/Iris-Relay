@@ -10,6 +10,16 @@ def port(kind, description, *, required=False, nullable=False):
 
 
 _NODES = {
+    "color.weighted_sum": {
+        "description": "按显式系数对 RGB 三个分量加权求和，不使用宿主默认亮度系数。",
+        "inputs": {
+            "color": port("color", "参与计算的 RGB 分量。", required=True),
+            "weights": port("vector", "与 RGB 对应的三个系数。", required=True),
+        },
+        "outputs": {"value": port("float", "R*w0 + G*w1 + B*w2。", required=True)},
+        "limitations": ["当前反向桥接仅接受常量系数；不包含色彩空间转换或自动归一化。"],
+        "standard_references": ["MaterialX dotproduct(vector3)，颜色输入通过 convert 显式转换"],
+    },
     "channel.red": {
         "description": "显式提取 RGB 的 R 分量，供标量高度输入使用。",
         "inputs": {"color": port("color", "待提取的 RGB 数据。", required=True)},
