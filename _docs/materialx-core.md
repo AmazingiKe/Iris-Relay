@@ -60,13 +60,17 @@ uv run python _examples/materialx_demo.py --out .local/materialx-demo-新编号
 
 ## 当前目标转换边界
 
-Blender 导出新增一项受限规则：字典明确声明颜色到标量连接使用场景线性亮度时，宿主提供实际系数，核心通过官方 `ND_luminance_color3` 与 `ND_extract_color3(index=0)` 显式表达。它不把 RGB 直接当 R，也不使用 MaterialX 的默认亮度系数替代 Blender 上下文。目前只核验 Linear Rec.709；其他上下文拒绝。`materialx.convert` 尚不支持新增的 `luminance` 链，转换时会保留源文档并明确阻断。
+Blender 导出新增一项受限规则：字典明确声明颜色到标量连接使用场景线性亮度时，宿主提供实际系数，核心通过官方 `ND_luminance_color3` 与 `ND_extract_color3(index=0)` 显式表达。它不把 RGB 直接当 R，也不使用 MaterialX 的默认亮度系数替代 Blender 上下文。目前只核验 Linear Rec.709；其他上下文拒绝。
+
+该亮度链现可转入 Blender 5.2.3：保留文档的常量 `lumacoeffs`，用 `ShaderNodeVectorMath / DOT_PRODUCT` 计算 `R*w0 + G*w1 + B*w2`。不读取目标场景的默认亮度系数，也不自动归一化；输入省略系数时使用官方 NodeDef 默认值。再次导出时表示为 `convert(color3→vector3) → dotproduct(vector3)`。这是对受限字典桥接的一项补充，标准节点定义仍来自 SDK。
+
+当前只接受上述 `extract(index=0)` 组合和规范点积形式；动态系数、亮度颜色输出参与其他计算或未支持的向量来源会阻断。Redshift／Arnold 尚无此功能绑定，转到这些目标会保留源文档并报告缺失能力。公式依据为 MaterialX 1.39.5 的 [luminance 实现](https://github.com/AcademySoftwareFoundation/MaterialX/blob/v1.39.5/libraries/stdlib/genglsl/mx_luminance_color3.glsl)，原生端口依据为 [Blender Vector Math 实现](https://github.com/blender/blender/blob/v5.2.3/source/blender/nodes/shader/nodes/node_shader_vector_math.cc)及本机保存重开验证。
 
 依据为 Blender 5.2.3 的 [隐式转换实现](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/convert.h)、[工作空间 XYZ 矩阵](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/util/colorspace.cpp)及 [RGB → Y 初始化](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/scene/shader.cpp)。适配器通过当前 OCIO 配置读取 ACES AP0 → 工作空间的矩阵，并按该版本 Cycles 的 XYZ D65 常量求出系数，不更改色彩设置。
 
 GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶层节点、属性、输入、图片引用和连接保留于完整报告的 `source_snapshot`。该快照用于诊断，不是递归节点组备份，也不会嵌入 `.mtlx`；原 `.blend` 始终保留。未连接活动表面的节点有信息提示；非恒等 Mapping、体积、活动图中的未知节点和节点组仍阻断。
 
-文档可保存的范围大于当前目标可转换的范围。桥接支持既有三套字典的五类功能：
+文档可保存的范围大于当前目标可转换的范围。桥接支持三套字典共有的五类功能，以及 Blender 的显式加权求和：
 
 | MaterialX | 既有字典语义 | 限制 |
 | --- | --- | --- |
@@ -75,6 +79,7 @@ GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶�
 | `normalmap`，float scale | `normal.tangent` | 颜色连接须显式 `convert(color3→vector3)`；几何法线／切线使用默认值 |
 | `bump`，vector3 | `bump.height` | 标量高度；高度幅度和空间导数只作近似对应 |
 | `extract`，color3→float | `channel.red` | 仅 index=0 |
+| `luminance → extract(index=0)`；或 `dotproduct(vector3)` | `color.weighted_sum` | 仅 Blender；常量系数；点积的颜色连接须先经 `convert(color3→vector3)` |
 
 自定义子图展开后全部相关节点落在以上范围内才可转换；否则保留原文并报告不支持。标准库中的其他节点可查询、校验和保存，但没有自动获得目标转换能力。未知原生节点导出失败时保留原始 JSON，不自动猜测并编造自定义 NodeDef。
 
@@ -87,9 +92,14 @@ GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶�
 ```powershell
 uv run pytest _tests/test_materialx_core.py _tests/test_materialx_bridge.py -q
 uv run python _scripts/verify_materialx.py --blender "本机blender.exe路径" --out .local/materialx-check-新编号
+uv run python _scripts/verify_materialx.py --blender "本机blender.exe路径" --input "已有材质.mtlx" --out .local/materialx-import-新编号
 ```
 
 独立验证脚本自行生成小型纹理，以字典夹具导出两条标准 MaterialX 链路，再转入 Blender，创建、保存、重开并检查参数、连接、资源及失败清理。最后将真实读回结果再次导出 `.mtlx`。脚本只创建独立文件，不打开用户场景。通过条件同时检查宿主退出码、此次 run_id 和报告状态。
+
+指定 `--input` 时直接验证已有文档，图片需使用存在的本机绝对路径。验证器接受并保存近似警告，创建新材质而不替换用户场景绑定；记录输入 `.mtlx` 和引用图片的前后 SHA-256。输出含 `host.blend`、`summary.json`、转换报告和读回再导出的文档；GUI 尚无导入操作。
+
+2026-11-09 木地板回读验证：Blender 5.2.3 LTS，`run_id=3a7c9646-bad4-4b57-ae01-a8acdc59e615`。用户样本先前导出的表面文档生成 6 个功能节点，保存重开后核对 42 个输入、6 条含材质出口的连接；底色、粗糙度、法线图片及亮度系数保留。输入文档与引用图片哈希未变，重新导出的点积文档通过 SDK 校验。报告位于忽略目录 `.local/wood-roundtrip-01/summary.json`；未导入位移，也没有新增渲染证据。
 
 2026-11-06 本机验证：Blender 5.2.3 LTS，`run_id=805f2ecd-60aa-48cd-8b3a-da61de23764a`，两条链路通过。忽略目录 `.local/materialx-verify-03/summary.json` 保存报告。没有新增 Maya 验证或渲染图像，所有结果 `appearance_verified=false`。
 
