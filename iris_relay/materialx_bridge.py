@@ -1,6 +1,12 @@
-"""既有原生字典与 MaterialX 的受限桥接；节点定义来自官方库。"""
+"""既有原生字典与 MaterialX 的受限桥接；节点定义来自官方库。
+
+导出入口 export_material：原生图转语义图 → 创建节点 → 连接节点 → 校验并返回 XML。
+反向入口 convert_document：解析 MaterialX → 提取受支持语义 → 生成目标原生数据。
+本模块只生成文档内容，文件路径检查和保存由插件 controller 负责。
+"""
 
 from copy import deepcopy
+from dataclasses import dataclass, field
 
 import MaterialX as mx
 
@@ -54,6 +60,7 @@ COLOR_FROM_MX = {v: k for k, v in COLOR_TO_MX.items()}
 
 
 def value_string(value):
+    """将 Python 标量、布尔值或向量编码为 MaterialX 属性文本。"""
     if isinstance(value, list):
         return ", ".join(str(v) for v in value)
     if isinstance(value, bool):
@@ -62,6 +69,7 @@ def value_string(value):
 
 
 def python_value(port):
+    """读取 MaterialX 端口常量；未声明值时返回 None。"""
     if not port.hasValueString():
         return None
     value = port.getValue()
@@ -71,6 +79,7 @@ def python_value(port):
 
 
 def add_value(node, name, value):
+    """按官方 NodeDef 的类型创建输入；值为空时只创建端口，供随后接线。"""
     definition = node.getNodeDef().getActiveInput(name)
     port = node.addInput(name, definition.getType())
     if value is not None:
@@ -79,6 +88,7 @@ def add_value(node, name, value):
 
 
 def report(issues):
+    """建立默认阻断的桥接报告，只有完整操作成功后才修改状态。"""
     return {
         "status": "blocked",
         "issues": issues,
@@ -89,6 +99,7 @@ def report(issues):
 
 def explicit_color_casts(source, dictionary):
     """只接受字典声明的宿主隐式转换；系数须由宿主读取实际色彩上下文。"""
+    # 1. 必须先有字典授权，再查找确实存在的颜色 → 标量连接。
     rule = dictionary.data.get("materialx_export", {}).get("color_to_float")
     if rule != "scene_linear_luminance":
         return set(), None
@@ -102,6 +113,7 @@ def explicit_color_casts(source, dictionary):
             casts.add((end["node"], end["socket"]))
     if not casts:
         return casts, None
+    # 2. 校验宿主提供的亮度上下文，不使用 MaterialX 默认系数替代。
     context = source.get("metadata", {}).get("color_to_float")
     coefficients = context.get("coefficients") if isinstance(context, dict) else None
     if (
@@ -119,7 +131,18 @@ def explicit_color_casts(source, dictionary):
     return casts, coefficients
 
 
+@dataclass
+class _ExportNodes:
+    """语义 ID/端口到 MaterialX 对象的索引，供节点创建和连接两个阶段共用。"""
+
+    nodes: dict = field(default_factory=dict)
+    inputs: dict = field(default_factory=dict)
+    outputs: dict = field(default_factory=dict)
+
+
 def export_material(core, source, dictionary):
+    """将原生材质转为 MaterialX 文本；失败返回源图和诊断，不写磁盘。"""
+    # 1. 保留来源与字典指纹，确定哪些隐式连接需要显式转换节点。
     issues = []
     result = {"source": source.to_dict(), "document": None, "report": report(issues)}
     result["report"]["source_dictionary_fingerprint"] = dictionary.fingerprint
@@ -128,6 +151,7 @@ def export_material(core, source, dictionary):
     except ValidationError as exc:
         issues.append(issue(exc.code, str(exc)))
         return result
+    # 2. 由统一字典转换为语义图；已有错误时停止，不生成部分成功文档。
     semantic = transcode(
         source.to_dict(),
         dictionary,
@@ -139,101 +163,22 @@ def export_material(core, source, dictionary):
     if status_for(issues) == "error":
         return result
     try:
+        # 3. 建立空文档，创建标准节点及输入，再恢复连接和隐式转换。
         doc = mx.createDocument()
         doc.setDataLibrary(core.library)
         doc.setAttribute("iris_material_name", source.data["name"])
-        nodes, input_ports, output_ports = {}, {}, {}
-        used = {(link["from"]["node"], link["from"]["socket"]) for link in semantic["links"]}
-        used.add((semantic["output"]["node"], semantic["output"]["socket"]))
-        for record in semantic["nodes"]:
-            binding = BINDINGS.get(record["type"])
-            if binding is None:
-                raise ValidationError(
-                    f"尚无 MaterialX 对应：{record['type']}", "MATERIALX_NODE_UNSUPPORTED"
-                )
-            definition, inputs, output = binding
-            name = doc.createValidChildName(mx.createValidName(record["id"]))
-            node = doc.addNodeInstance(core.library.getNodeDef(definition), name)
-            node.setAttribute("iris_source_name", record["id"])
-            nodes[record["id"]] = node
-            output_ports[(record["id"], output)] = node
-            for port in record["outputs"]:
-                if port != output and (record["id"], port) in used:
-                    raise ValidationError(
-                        f"尚不支持输出：{record['id']}.{port}", "MATERIALX_OUTPUT_UNSUPPORTED"
-                    )
-            for port, value in record["inputs"].items():
-                if port not in inputs:
-                    raise ValidationError(
-                        f"尚不支持输入：{record['id']}.{port}", "MATERIALX_INPUT_UNSUPPORTED"
-                    )
-                if record["type"] == "texture.image":
-                    if value is None:
-                        raise ValidationError("图片节点缺少资源", "MATERIALX_RESOURCE_UNSUPPORTED")
-                    resource = semantic["textures"][value["texture"]]
-                    if resource["coordinates"] != {"kind": "uv", "set": ""}:
-                        raise ValidationError(
-                            "首版桥接仅支持默认 UV", "MATERIALX_RESOURCE_UNSUPPORTED"
-                        )
-                    color = COLOR_TO_MX.get(resource["color_space"])
-                    if color is None:
-                        raise ValidationError(
-                            "尚未核验该贴图色彩空间", "MATERIALX_COLORSPACE_UNSUPPORTED"
-                        )
-                    target = add_value(node, "file", resource["uri"])
-                    target.setColorSpace(color)
-                    input_ports[(record["id"], port)] = target
-                elif record["type"] == "normal.tangent" and port == "normal.color":
-                    helper = doc.addNodeInstance(
-                        core.library.getNodeDef("ND_convert_color3_vector3"),
-                        doc.createValidChildName(name + "_color_to_vector"),
-                    )
-                    input_ports[(record["id"], port)] = add_value(helper, "in", value)
-                    add_value(node, "in", None).setConnectedNode(helper)
-                elif value is not None:
-                    input_ports[(record["id"], port)] = add_value(node, inputs[port], value)
-                else:
-                    # 缺省几何法线不写成零向量，保留 MaterialX 的几何默认语义。
-                    input_ports[(record["id"], port)] = None
-        for original, link in zip(source.data["links"], semantic["links"], strict=True):
-            target_key = (link["to"]["node"], link["to"]["socket"])
-            port = input_ports[target_key]
-            if port is None:
-                record = next(n for n in semantic["nodes"] if n["id"] == target_key[0])
-                port = add_value(
-                    nodes[target_key[0]], BINDINGS[record["type"]][1][target_key[1]], None
-                )
-            port.removeAttribute("value")
-            upstream = output_ports[(link["from"]["node"], link["from"]["socket"])]
-            if (original["to"]["node"], original["to"]["socket"]) in casts:
-                luma = doc.addNodeInstance(
-                    core.library.getNodeDef("ND_luminance_color3"),
-                    doc.createValidChildName("color_to_luminance"),
-                )
-                add_value(luma, "in", None).setConnectedNode(upstream)
-                add_value(luma, "lumacoeffs", coefficients)
-                upstream = doc.addNodeInstance(
-                    core.library.getNodeDef("ND_extract_color3"),
-                    doc.createValidChildName("luminance_to_float"),
-                )
-                add_value(upstream, "in", None).setConnectedNode(luma)
-                add_value(upstream, "index", 0)
-                issues.append(
-                    issue(
-                        "IMPLICIT_CAST_EXPLICIT",
-                        "已将宿主颜色转标量连接展开为显式亮度计算",
-                        original["to"]["node"],
-                        original["to"]["socket"],
-                        "info",
-                    )
-                )
-            port.setConnectedNode(upstream)
+        index = _create_export_nodes(core, doc, semantic)
+        _connect_export_links(core, doc, source.data, semantic, index, casts, coefficients, issues)
+
+        # 4. 增加材质根节点，把选定的表面连接到 surfaceshader。
         material = doc.addNodeInstance(
             core.library.getNodeDef("ND_surfacematerial"), doc.createValidChildName("material")
         )
         add_value(material, "surfaceshader", None).setConnectedNode(
-            output_ports[(semantic["output"]["node"], semantic["output"]["socket"])]
+            index.outputs[(semantic["output"]["node"], semantic["output"]["socket"])]
         )
+
+        # 5. 整图通过校验后才序列化；这里返回 XML 字符串，尚未保存文件。
         issues.extend(core.inspect(doc))
         if status_for(issues) != "error":
             result["document"] = mx.writeToXmlString(doc)
@@ -243,7 +188,116 @@ def export_material(core, source, dictionary):
     return result
 
 
+def _create_export_nodes(core, doc, semantic):
+    """创建所有标准节点及输入，返回端口索引；未知节点或被使用的未知输出阻断。"""
+    index = _ExportNodes()
+    used = {(link["from"]["node"], link["from"]["socket"]) for link in semantic["links"]}
+    used.add((semantic["output"]["node"], semantic["output"]["socket"]))
+    for record in semantic["nodes"]:
+        binding = BINDINGS.get(record["type"])
+        if binding is None:
+            raise ValidationError(
+                f"尚无 MaterialX 对应：{record['type']}", "MATERIALX_NODE_UNSUPPORTED"
+            )
+        definition, inputs, output = binding
+        name = doc.createValidChildName(mx.createValidName(record["id"]))
+        node = doc.addNodeInstance(core.library.getNodeDef(definition), name)
+        node.setAttribute("iris_source_name", record["id"])
+        index.nodes[record["id"]] = node
+        index.outputs[(record["id"], output)] = node
+        for port in record["outputs"]:
+            if port != output and (record["id"], port) in used:
+                raise ValidationError(
+                    f"尚不支持输出：{record['id']}.{port}", "MATERIALX_OUTPUT_UNSUPPORTED"
+                )
+        for port, value in record["inputs"].items():
+            if port not in inputs:
+                raise ValidationError(
+                    f"尚不支持输入：{record['id']}.{port}", "MATERIALX_INPUT_UNSUPPORTED"
+                )
+            index.inputs[(record["id"], port)] = _create_export_input(
+                core, doc, node, record["type"], port, inputs[port], value, semantic["textures"]
+            )
+    return index
+
+
+def _create_export_input(core, doc, node, semantic_type, port, mx_port, value, textures):
+    """写入单个输入，返回实际接线端口；图片和法线颜色需要额外处理。"""
+    # 图片：验证资源解释，保留路径和色彩空间；不加载或修改图片文件。
+    if semantic_type == "texture.image":
+        if value is None:
+            raise ValidationError("图片节点缺少资源", "MATERIALX_RESOURCE_UNSUPPORTED")
+        resource = textures[value["texture"]]
+        if resource["coordinates"] != {"kind": "uv", "set": ""}:
+            raise ValidationError("首版桥接仅支持默认 UV", "MATERIALX_RESOURCE_UNSUPPORTED")
+        color = COLOR_TO_MX.get(resource["color_space"])
+        if color is None:
+            raise ValidationError("尚未核验该贴图色彩空间", "MATERIALX_COLORSPACE_UNSUPPORTED")
+        target = add_value(node, "file", resource["uri"])
+        target.setColorSpace(color)
+        return target
+
+    # 法线颜色：加上 color3 → vector3，后续连线应接到这个辅助节点的输入。
+    if semantic_type == "normal.tangent" and port == "normal.color":
+        helper = doc.addNodeInstance(
+            core.library.getNodeDef("ND_convert_color3_vector3"),
+            doc.createValidChildName(node.getName() + "_color_to_vector"),
+        )
+        target = add_value(helper, "in", value)
+        add_value(node, "in", None).setConnectedNode(helper)
+        return target
+
+    # 普通值直接写入；空的几何法线保留 MaterialX 默认含义，不写成零向量。
+    return add_value(node, mx_port, value) if value is not None else None
+
+
+def _connect_export_links(core, doc, source, semantic, index, casts, coefficients, issues):
+    """按语义图恢复连接；仅对已核验的连接插入显式颜色转标量节点。"""
+    for original, link in zip(source["links"], semantic["links"], strict=True):
+        target_key = (link["to"]["node"], link["to"]["socket"])
+        port = index.inputs[target_key]
+        if port is None:
+            # 原来省略的几何默认输入现在有连接，需要先创建空端口。
+            record = next(n for n in semantic["nodes"] if n["id"] == target_key[0])
+            port = add_value(
+                index.nodes[target_key[0]], BINDINGS[record["type"]][1][target_key[1]], None
+            )
+        port.removeAttribute("value")
+        upstream = index.outputs[(link["from"]["node"], link["from"]["socket"])]
+        if (original["to"]["node"], original["to"]["socket"]) in casts:
+            upstream = _add_luminance_cast(core, doc, upstream, coefficients)
+            issues.append(
+                issue(
+                    "IMPLICIT_CAST_EXPLICIT",
+                    "已将宿主颜色转标量连接展开为显式亮度计算",
+                    original["to"]["node"],
+                    original["to"]["socket"],
+                    "info",
+                )
+            )
+        port.setConnectedNode(upstream)
+
+
+def _add_luminance_cast(core, doc, upstream, coefficients):
+    """创建颜色 → 亮度 → 标量链，返回可连接到标量输入的 extract 节点。"""
+    # 先用源宿主的系数计算灰度颜色，再取其相同的任一分量得到标量。
+    luma = doc.addNodeInstance(
+        core.library.getNodeDef("ND_luminance_color3"),
+        doc.createValidChildName("color_to_luminance"),
+    )
+    add_value(luma, "in", None).setConnectedNode(upstream)
+    add_value(luma, "lumacoeffs", coefficients)
+    scalar = doc.addNodeInstance(
+        core.library.getNodeDef("ND_extract_color3"),
+        doc.createValidChildName("luminance_to_float"),
+    )
+    add_value(scalar, "in", None).setConnectedNode(luma)
+    add_value(scalar, "index", 0)
+    return scalar
+
+
 def connected_node(port):
+    """沿 MaterialX 输出引用找到真正上游节点；输出引用循环时阻断。"""
     seen = set()
     while port is not None:
         if port.getNamePath() in seen:
@@ -275,6 +329,8 @@ def require_defaults(node, supported):
 
 
 def to_semantic(core, doc, material_name, issues):
+    """反向读取 MaterialX 可达图，返回既有字典能处理的语义数据；未知含义阻断。"""
+    # 1. 拒绝尚不能解释的单位、前缀和色彩上下文。
     for element in doc.traverseTree():
         for attribute in ("fileprefix", "geomprefix", "unit", "unittype", "channels"):
             if element.getAttribute(attribute):
@@ -288,6 +344,7 @@ def to_semantic(core, doc, material_name, issues):
             raise ValidationError(
                 "首版桥接仅接受图片文件输入上的色彩空间", "MATERIALX_CONTEXT_UNSUPPORTED"
             )
+    # 2. 展开自定义子图并重新校验，然后选定唯一表面材质。
     core.flatten(doc)
     expanded_issues = core.inspect(doc)
     if status_for(expanded_issues) == "error":
@@ -318,6 +375,7 @@ def to_semantic(core, doc, material_name, issues):
     }
 
     def visit(node):
+        """读取一个标准节点，将上游依赖加入 pending 队列供后续遍历。"""
         name = node.getNamePath()
         if name in visited:
             return
@@ -410,6 +468,7 @@ def to_semantic(core, doc, material_name, issues):
                 )
             )
 
+    # 3. 只遍历选中表面的上游节点；其余节点保留源文档并报告未使用。
     while pending:
         visit(pending.pop())
     unused = [
@@ -427,18 +486,22 @@ def to_semantic(core, doc, material_name, issues):
 
 
 def convert_document(core, source, dictionary, target, material_name=None):
+    """反向转换入口：解析和校验文档 → 提取语义图 → 编码目标原生材质。"""
     issues = []
     result = {"source": source, "material": None, "report": report(issues)}
     result["report"]["target_dictionary_fingerprint"] = dictionary.fingerprint
     try:
+        # 1. 保存完整来源，检查文档结构，拒绝带阻断问题的输入。
         doc = core.read(source)
         issues.extend(core.inspect(doc))
         if status_for(issues) == "error":
             return result
+        # 2. 提取可转换部分，再按目标字典生成原生参数与连接。
         semantic = to_semantic(core, doc, material_name, issues)
         candidate = transcode(
             semantic, dictionary, encode=True, renderer=deepcopy(target), issues=issues
         )
+        # 3. 最终协议通过校验后才标记为 converted；并不自动写入 DCC。
         if status_for(issues) != "error":
             result["material"] = Material.parse(candidate).to_dict()
             result["report"]["status"] = "converted"

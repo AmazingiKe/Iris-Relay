@@ -13,6 +13,7 @@ _service = None
 
 
 def reset_result(self, context):
+    """输入选择改变时清除旧报告，让界面不会显示过期的成功状态。"""
     self.status = "idle"
     self.message = "请选择材质和输出路径"
     self.issues.clear()
@@ -54,6 +55,7 @@ class IRISRELAY_PG_demo(bpy.types.PropertyGroup):
 
 
 def feedback(operator, settings, status, message):
+    """在尚未进入控制层时显示输入错误，并结束当前按钮操作。"""
     settings.status = status
     settings.message = message
     operator.report({"WARNING" if status == "error" else "INFO"}, message)
@@ -93,7 +95,9 @@ class IRISRELAY_OT_demo_choose_path(bpy.types.Operator):
 
 
 def run_export(operator, context, *, check_only=False):
+    """检查/导出按钮的共用入口：读取选择 → 准备服务 → 调用控制层 → 显示结果。"""
     global _service
+    # 1. 读取 GUI 选择并清除上次结果，先处理未选择材质的情况。
     settings = context.window_manager.iris_relay_demo
     reset_result(settings, context)
     if settings.material is None:
@@ -101,6 +105,7 @@ def run_export(operator, context, *, check_only=False):
     from . import controller
 
     try:
+        # 2. 保存时先检查路径；首次操作才创建核心服务和宿主适配器。
         if not check_only:
             controller.output_path(settings.filepath)
         if _service is None:
@@ -108,6 +113,7 @@ def run_export(operator, context, *, check_only=False):
         from .adapter import BlenderAdapter
 
         adapter = BlenderAdapter(settings.material, _service, surface_only=settings.surface_only)
+        # 3. 将检查或保存交给 controller；UI 不解释节点或执行转换规则。
         if check_only:
             result = controller.check_material(adapter, _service)
         else:
@@ -121,6 +127,18 @@ def run_export(operator, context, *, check_only=False):
         result = controller.failure(
             controller.ExportResult(), getattr(exc, "code", "EXPORT_FAILED"), str(exc)
         )
+
+    # 4. 展示统一结果，并返回 Blender 操作状态。
+    _show_export_result(operator, settings, result)
+    return {
+        "FINISHED"
+        if result.saved_path or (check_only and result.status != "error")
+        else "CANCELLED"
+    }
+
+
+def _show_export_result(operator, settings, result):
+    """将结果写入状态区、完整 JSON 报告和按严重程度排序的诊断列表。"""
     settings.status = result.status
     settings.message = result.message
     settings.report_json = json.dumps(asdict(result), ensure_ascii=False, indent=2)
@@ -130,11 +148,6 @@ def run_export(operator, context, *, check_only=False):
         for name in ("severity", "code", "message", "node", "port"):
             setattr(item, name, issue.get(name) or "")
     operator.report({"INFO" if result.status == "ok" else "WARNING"}, result.message)
-    return {
-        "FINISHED"
-        if result.saved_path or (check_only and result.status != "error")
-        else "CANCELLED"
-    }
 
 
 class IRISRELAY_OT_check_material(bpy.types.Operator):
@@ -178,6 +191,7 @@ def wrapped_label(layout, context, text):
 
 
 def draw_demo(layout, context):
+    """按选择材质、选择路径、检查/保存、查看诊断的顺序绘制面板。"""
     settings = context.window_manager.iris_relay_demo
     layout.use_property_split = False
     layout.use_property_decorate = False
@@ -259,6 +273,7 @@ CLASSES = (
 
 
 def unregister():
+    """清理会话属性、服务引用和已注册类，支持脚本重复运行。"""
     global _service
     _service = None
     if hasattr(bpy.types.WindowManager, "iris_relay_demo"):
@@ -285,6 +300,7 @@ def unregister():
 
 
 def register():
+    """先清理旧注册，再注册界面类和会话属性；中途失败时撤销本次注册。"""
     unregister()
     try:
         for cls in CLASSES:

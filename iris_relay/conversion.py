@@ -23,8 +23,19 @@ def issue(
 
 
 def remap_endpoint(value: dict, maps: dict) -> dict:
+    """保持节点 ID，将一个连接端口名称替换为字典指定的目标名称。"""
     node, socket = value["node"], value["socket"]
     return {"node": node, "socket": maps.get(node, {}).get(socket, socket)}
+
+
+def _inactive_source_input(node_id, port, rule, source_inputs, linked):
+    """仅在当前输入和控制输入都未连接、控制值匹配字典条件时判定未启用。"""
+    condition = rule["inputs"][port].get("inactive_when")
+    if not condition or (node_id, port) in linked or (node_id, condition["input"]) in linked:
+        return False
+    controlling = condition["input"]
+    value = source_inputs.get(controlling, rule["inputs"][controlling]["default"])
+    return value == condition["equals"]
 
 
 def transcode(
@@ -36,12 +47,15 @@ def transcode(
     issues: list,
     explicit_casts=frozenset(),
 ) -> dict:
+    """按字典转换一遍图；encode=False 解码原生图，True 编码目标原生图。"""
+    # 1. 复制输入并统计连接；任何转换都不直接修改调用方的源图。
     result = deepcopy(material)
     result["renderer"] = deepcopy(renderer)
     input_maps, output_maps, port_types = {}, {}, {}
     linked = {(link["to"]["node"], link["to"]["socket"]) for link in material["links"]}
     used_outputs = {(link["from"]["node"], link["from"]["socket"]) for link in material["links"]}
     used_outputs.add((material["output"]["node"], material["output"]["socket"]))
+    # 2. 逐节点选择实现，处理输入值与输出端口，并建立后续接线使用的端口映射。
     for node in result["nodes"]:
         node_id = node["id"]
         if encode:
@@ -131,16 +145,9 @@ def transcode(
                             "warning",
                         )
                     )
-            condition = port_rule.get("inactive_when")
-            if (
-                not encode
-                and condition
-                and (node_id, source_name) not in linked
-                and (node_id, condition["input"]) not in linked
-                and source_inputs.get(
-                    condition["input"], rule["inputs"][condition["input"]]["default"]
-                )
-                == condition["equals"]
+            # 只按明确字典条件省略未启用的源参数，保留诊断与原始值。
+            if not encode and _inactive_source_input(
+                node_id, source_name, rule, source_inputs, linked
             ):
                 issues.append(
                     issue(
@@ -193,6 +200,7 @@ def transcode(
             for name in node["outputs"]
             if not encode or name in output_maps[node_id] or (node_id, name) in used_outputs
         ]
+    # 3. 校验连接两端类型，再统一替换端口名；不能隐式跳过类型错误。
     for original, link in zip(material["links"], result["links"], strict=True):
         source_type = port_types.get((original["from"]["node"], "out", original["from"]["socket"]))
         target_type = port_types.get((original["to"]["node"], "in", original["to"]["socket"]))
@@ -212,6 +220,7 @@ def transcode(
             )
         link["from"] = remap_endpoint(original["from"], output_maps)
         link["to"] = remap_endpoint(original["to"], input_maps)
+    # 4. 同步最终材质出口，返回转换数据；调用者根据 issues 决定是否可用。
     result["output"] = remap_endpoint(material["output"], output_maps)
     return result
 

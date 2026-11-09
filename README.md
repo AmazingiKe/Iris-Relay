@@ -70,6 +70,17 @@ GUI 按需加载核心；重复运行入口会重新加载宿主模块、清空�
 
 ## 统一接口
 
+阅读 GUI 导出代码时，可按下面顺序定位；主入口内已有步骤注释，具体处理拆到对应的小函数：
+
+| 顺序 | 入口 | 负责什么 |
+| --- | --- | --- |
+| 1 | [`ui.run_export`](plugins/blender/ui.py) | 读取界面选择，调用控制层并显示结果 |
+| 2 | [`controller.export_material / check_material`](plugins/blender/controller.py) | 组织读取、核心请求、校验、警告确认与保存 |
+| 3 | [`BlenderAdapter.read_material`](plugins/blender/adapter.py) | 从 Blender 读取表面图、节点参数、贴图与源快照 |
+| 4 | [`materialx_bridge.export_material`](iris_relay/materialx_bridge.py) | 按字典生成标准节点和连接，返回通过校验的 XML 内容 |
+
+核心返回 XML 后，控制层才把内容保存到所选 `.mtlx` 路径；“构建 MaterialX 节点图”与“写文件”是两个步骤。
+
 所有插件依赖 `RelayService.handle(request) -> response`。进程内使用 `RelayAPI`；跨进程使用同一 JSON 协议，Python 侧可使用 `JsonCommandService`。插件只读写宿主材质，转换和校正规则集中在核心。
 
 API 提供能力查询、通用功能定义查询（`semantics`）、原生模式识别（`identify`）、原生绑定查询、材质校验和转换。真实配置同时匹配宿主、渲染器与节点系统的版本。版本不匹配、未知节点、无法表达的连接和非法数值均有明确错误；缺少模型时可返回基础转换结果及警告。插件辅助接口默认不应用带警告的方案，也不会自动替换场景中的材质绑定。
