@@ -44,8 +44,12 @@ def run_blender(job, api):
     for case, name in cases:
         actual = BlenderAdapter(bpy.data.materials[name], api).read_material()
         expected = case["material"]
-        assert actual["links"] == expected["links"], (actual["links"], expected["links"])
+        # 读取遍历顺序可以不同，比较完整连接集合而非列表位置；仍保留重复项检查。
+        assert sorted(map(json.dumps, actual["links"])) == sorted(
+            map(json.dumps, expected["links"])
+        ), (actual["links"], expected["links"])
         assert actual["output"] == expected["output"]
+        assert {n["id"] for n in actual["nodes"]} == {n["id"] for n in expected["nodes"]}
         checks = 0
         for node in expected["nodes"]:
             found = next(n for n in actual["nodes"] if n["id"] == node["id"])
