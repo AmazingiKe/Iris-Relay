@@ -154,6 +154,10 @@ def infer_rule(port, engine, semantic=None):
 
 
 def build(catalog):
+    if catalog["host"]["id"] == "maya":
+        from _scripts.build_maya_dictionary import build as build_maya
+
+        return build_maya(catalog)
     engine = catalog["renderer"]["id"]
     host = catalog["host"]
     profile = {

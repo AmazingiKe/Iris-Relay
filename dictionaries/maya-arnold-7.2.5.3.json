@@ -1,0 +1,1388 @@
+{
+  "schema_version": "1",
+  "semantic_schema_version": "1",
+  "id": "maya.arnold.native",
+  "version": "0.1.0",
+  "description": "Maya 2022 可编辑 Arnold 材质导入；结构核验，不代表外观等价。",
+  "renderer": {
+    "id": "arnold",
+    "versions": [
+      "7.2.5.3"
+    ]
+  },
+  "host": {
+    "id": "maya",
+    "versions": [
+      "2022"
+    ],
+    "node_system": "mtoa"
+  },
+  "evidence": {
+    "kind": "Maya 2022 standalone 创建节点并读取实际端口、类型、默认值和枚举；不代表渲染验证",
+    "plugin_version": "5.3.5.3",
+    "appearance_verified": false
+  },
+  "texture_coordinates": {
+    "named_uv": true,
+    "transforms": "none"
+  },
+  "texture_alpha_modes": [
+    "STRAIGHT",
+    "PREMUL",
+    "CHANNEL_PACKED",
+    "NONE"
+  ],
+  "nodes": {
+    "standard_surface": {
+      "semantic": "surface.standard",
+      "native": {
+        "id": "aiStandardSurface",
+        "properties": {}
+      },
+      "inputs": {
+        "baseColor": {
+          "semantic": "base.color",
+          "type": "color",
+          "native": {
+            "id": "baseColor",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.800000011920929,
+            0.800000011920929,
+            0.800000011920929
+          ]
+        },
+        "metalness": {
+          "semantic": "metalness",
+          "type": "float",
+          "native": {
+            "id": "metalness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "specularRoughness": {
+          "semantic": "reflection.roughness",
+          "type": "float",
+          "native": {
+            "id": "specularRoughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.20000000298023224
+        },
+        "specularIOR": {
+          "semantic": "reflection.ior",
+          "type": "float",
+          "native": {
+            "id": "specularIOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 1.5
+        },
+        "specular": {
+          "semantic": "reflection.weight",
+          "type": "float",
+          "native": {
+            "id": "specular",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 1.0,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "specularColor": {
+          "semantic": "reflection.tint",
+          "type": "color",
+          "native": {
+            "id": "specularColor",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "specularAnisotropy": {
+          "semantic": "reflection.anisotropy",
+          "type": "float",
+          "native": {
+            "id": "specularAnisotropy",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "specularRotation": {
+          "semantic": "reflection.rotation",
+          "type": "float",
+          "native": {
+            "id": "specularRotation",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "diffuseRoughness": {
+          "semantic": "diffuse.roughness",
+          "type": "float",
+          "native": {
+            "id": "diffuseRoughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "coat": {
+          "semantic": "coat.weight",
+          "type": "float",
+          "native": {
+            "id": "coat",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "coatColor": {
+          "semantic": "coat.tint",
+          "type": "color",
+          "native": {
+            "id": "coatColor",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "coatRoughness": {
+          "semantic": "coat.roughness",
+          "type": "float",
+          "native": {
+            "id": "coatRoughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.10000000149011612
+        },
+        "coatIOR": {
+          "semantic": "coat.ior",
+          "type": "float",
+          "native": {
+            "id": "coatIOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 1.5
+        },
+        "coatNormal": {
+          "semantic": "coat.normal",
+          "type": "vector",
+          "native": {
+            "id": "coatNormal",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": null,
+          "nullable": true
+        },
+        "normalCamera": {
+          "semantic": "normal",
+          "type": "vector",
+          "native": {
+            "id": "normalCamera",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": null,
+          "nullable": true
+        },
+        "emission": {
+          "semantic": "emission.weight",
+          "type": "float",
+          "native": {
+            "id": "emission",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "emissionColor": {
+          "semantic": "emission.color",
+          "type": "color",
+          "native": {
+            "id": "emissionColor",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "sheen": {
+          "semantic": "sheen.weight",
+          "type": "float",
+          "native": {
+            "id": "sheen",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "sheenColor": {
+          "semantic": "sheen.tint",
+          "type": "color",
+          "native": {
+            "id": "sheenColor",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "sheenRoughness": {
+          "semantic": "sheen.roughness",
+          "type": "float",
+          "native": {
+            "id": "sheenRoughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.30000001192092896
+        },
+        "opacity": {
+          "semantic": "opacity",
+          "type": "color",
+          "native": {
+            "id": "opacity",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      "outputs": {
+        "surface": {
+          "semantic": "surface",
+          "type": "shader",
+          "native": {
+            "id": "outColor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "approximation": "已核验原生端口；BSDF、切线与高度响应尚无渲染等价证据"
+    },
+    "image": {
+      "semantic": "texture.image",
+      "native": {
+        "id": "aiImage",
+        "properties": {
+          "autoTx": false,
+          "ignoreColorSpaceFileRules": true,
+          "singleChannel": false
+        }
+      },
+      "inputs": {
+        "image": {
+          "semantic": "image",
+          "type": "texture",
+          "native": {
+            "id": "filename",
+            "kind": "resource",
+            "codec": "identity",
+            "colorspace_id": "colorSpace",
+            "uv_id": "uvset"
+          },
+          "default": null
+        }
+      },
+      "outputs": {
+        "color": {
+          "semantic": "color",
+          "type": "color",
+          "native": {
+            "id": "outColor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        },
+        "alpha": {
+          "semantic": "alpha",
+          "type": "float",
+          "native": {
+            "id": "outAlpha",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "normalmap": {
+      "semantic": "normal.tangent",
+      "native": {
+        "id": "aiNormalMap",
+        "properties": {
+          "tangentSpace": true,
+          "colorToSigned": true
+        }
+      },
+      "inputs": {
+        "input": {
+          "semantic": "normal.color",
+          "type": "color",
+          "native": {
+            "id": "input",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.5,
+            0.5,
+            1
+          ]
+        },
+        "strength": {
+          "semantic": "normal.strength",
+          "type": "float",
+          "native": {
+            "id": "strength",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 1
+        }
+      },
+      "outputs": {
+        "normal": {
+          "semantic": "normal",
+          "type": "vector",
+          "native": {
+            "id": "outValue",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "approximation": "已核验原生端口；BSDF、切线与高度响应尚无渲染等价证据"
+    },
+    "bump": {
+      "semantic": "bump.height",
+      "native": {
+        "id": "aiBump2d",
+        "properties": {}
+      },
+      "inputs": {
+        "height": {
+          "semantic": "height",
+          "type": "float",
+          "native": {
+            "id": "bumpMap",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0
+        },
+        "scale": {
+          "semantic": "height.scale",
+          "type": "float",
+          "native": {
+            "id": "bumpHeight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 1
+        }
+      },
+      "outputs": {
+        "normal": {
+          "semantic": "normal",
+          "type": "vector",
+          "native": {
+            "id": "outValue",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "approximation": "已核验原生端口；BSDF、切线与高度响应尚无渲染等价证据"
+    },
+    "red": {
+      "semantic": "channel.red",
+      "native": {
+        "id": "aiColorToFloat",
+        "properties": {
+          "mode": 5
+        }
+      },
+      "inputs": {
+        "color": {
+          "semantic": "color",
+          "type": "color",
+          "native": {
+            "id": "input",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "outputs": {
+        "value": {
+          "semantic": "value",
+          "type": "float",
+          "native": {
+            "id": "outValue",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "weighted_sum": {
+      "semantic": "color.weighted_sum",
+      "native": {
+        "id": "aiDot",
+        "properties": {}
+      },
+      "inputs": {
+        "color": {
+          "semantic": "color",
+          "type": "color",
+          "native": {
+            "id": "input1",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0,
+            0,
+            0
+          ]
+        },
+        "weights": {
+          "semantic": "weights",
+          "type": "vector",
+          "native": {
+            "id": "input2",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.2126,
+            0.7152,
+            0.0722
+          ]
+        }
+      },
+      "outputs": {
+        "value": {
+          "semantic": "value",
+          "type": "float",
+          "native": {
+            "id": "outValue",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "add_float": {
+      "semantic": "materialx.ND_add_float",
+      "native": {
+        "id": "aiAdd",
+        "properties": {}
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "float",
+          "native": {
+            "id": "input1R",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "float",
+          "native": {
+            "id": "input2R",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "outColorR",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "subtract_float": {
+      "semantic": "materialx.ND_subtract_float",
+      "native": {
+        "id": "aiSubtract",
+        "properties": {}
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "float",
+          "native": {
+            "id": "input1R",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "float",
+          "native": {
+            "id": "input2R",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "outColorR",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "multiply_float": {
+      "semantic": "materialx.ND_multiply_float",
+      "native": {
+        "id": "aiMultiply",
+        "properties": {}
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "float",
+          "native": {
+            "id": "input1R",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "float",
+          "native": {
+            "id": "input2R",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 1.0
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "outColorR",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "divide_float": {
+      "semantic": "materialx.ND_divide_float",
+      "native": {
+        "id": "aiDivide",
+        "properties": {}
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "float",
+          "native": {
+            "id": "input1R",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "float",
+          "native": {
+            "id": "input2R",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 1.0
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "outColorR",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "min_float": {
+      "semantic": "materialx.ND_min_float",
+      "native": {
+        "id": "aiMin",
+        "properties": {}
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "float",
+          "native": {
+            "id": "input1R",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "float",
+          "native": {
+            "id": "input2R",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "outColorR",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "max_float": {
+      "semantic": "materialx.ND_max_float",
+      "native": {
+        "id": "aiMax",
+        "properties": {}
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "float",
+          "native": {
+            "id": "input1R",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "float",
+          "native": {
+            "id": "input2R",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "outColorR",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "floor_float": {
+      "semantic": "materialx.ND_floor_float",
+      "native": {
+        "id": "aiFloatToInt",
+        "properties": {
+          "mode": 2
+        }
+      },
+      "inputs": {
+        "in": {
+          "semantic": "in",
+          "type": "float",
+          "native": {
+            "id": "input",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "outValue",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "approximation": "Arnold floor 使用 32 位整数输出，超出整数范围的计算尚未验证"
+    },
+    "clamp_float": {
+      "semantic": "materialx.ND_clamp_float",
+      "native": {
+        "id": "aiClamp",
+        "properties": {
+          "mode": 0
+        }
+      },
+      "inputs": {
+        "in": {
+          "semantic": "in",
+          "type": "float",
+          "native": {
+            "id": "inputR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "low": {
+          "semantic": "low",
+          "type": "float",
+          "native": {
+            "id": "min",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "high": {
+          "semantic": "high",
+          "type": "float",
+          "native": {
+            "id": "max",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 1.0
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "outColorR",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ifequal_float": {
+      "semantic": "materialx.ND_ifequal_float",
+      "native": {
+        "id": "condition",
+        "properties": {
+          "operation": 0
+        }
+      },
+      "inputs": {
+        "value1": {
+          "semantic": "value1",
+          "type": "float",
+          "native": {
+            "id": "firstTerm",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "value2": {
+          "semantic": "value2",
+          "type": "float",
+          "native": {
+            "id": "secondTerm",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "in1": {
+          "semantic": "in1",
+          "type": "float",
+          "native": {
+            "id": "colorIfTrueR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "float",
+          "native": {
+            "id": "colorIfFalseR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "outColorR",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ifequal_color3": {
+      "semantic": "materialx.ND_ifequal_color3",
+      "native": {
+        "id": "condition",
+        "properties": {
+          "operation": 0
+        }
+      },
+      "inputs": {
+        "value1": {
+          "semantic": "value1",
+          "type": "float",
+          "native": {
+            "id": "firstTerm",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "value2": {
+          "semantic": "value2",
+          "type": "float",
+          "native": {
+            "id": "secondTerm",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "in1": {
+          "semantic": "in1",
+          "type": "color",
+          "native": {
+            "id": "colorIfTrue",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "color",
+          "native": {
+            "id": "colorIfFalse",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "outColor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ifgreater_float": {
+      "semantic": "materialx.ND_ifgreater_float",
+      "native": {
+        "id": "condition",
+        "properties": {
+          "operation": 2
+        }
+      },
+      "inputs": {
+        "value1": {
+          "semantic": "value1",
+          "type": "float",
+          "native": {
+            "id": "firstTerm",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 1.0
+        },
+        "value2": {
+          "semantic": "value2",
+          "type": "float",
+          "native": {
+            "id": "secondTerm",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "in1": {
+          "semantic": "in1",
+          "type": "float",
+          "native": {
+            "id": "colorIfTrueR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "float",
+          "native": {
+            "id": "colorIfFalseR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "outColorR",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ifgreater_color3": {
+      "semantic": "materialx.ND_ifgreater_color3",
+      "native": {
+        "id": "condition",
+        "properties": {
+          "operation": 2
+        }
+      },
+      "inputs": {
+        "value1": {
+          "semantic": "value1",
+          "type": "float",
+          "native": {
+            "id": "firstTerm",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 1.0
+        },
+        "value2": {
+          "semantic": "value2",
+          "type": "float",
+          "native": {
+            "id": "secondTerm",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "in1": {
+          "semantic": "in1",
+          "type": "color",
+          "native": {
+            "id": "colorIfTrue",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "color",
+          "native": {
+            "id": "colorIfFalse",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "outColor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "combine3": {
+      "semantic": "materialx.ND_combine3_color3",
+      "native": {
+        "id": "aiFloatToRgba",
+        "properties": {}
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "float",
+          "native": {
+            "id": "r",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "float",
+          "native": {
+            "id": "g",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        },
+        "in3": {
+          "semantic": "in3",
+          "type": "float",
+          "native": {
+            "id": "b",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "outColor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "mix_color3": {
+      "semantic": "materialx.ND_mix_color3",
+      "native": {
+        "id": "blendColors",
+        "properties": {}
+      },
+      "inputs": {
+        "fg": {
+          "semantic": "fg",
+          "type": "color",
+          "native": {
+            "id": "color1",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "bg": {
+          "semantic": "bg",
+          "type": "color",
+          "native": {
+            "id": "color2",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "mix": {
+          "semantic": "mix",
+          "type": "float",
+          "native": {
+            "id": "blender",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "output",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "max_color3FA": {
+      "semantic": "materialx.ND_max_color3FA",
+      "native": {
+        "id": "aiMax",
+        "properties": {}
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "color",
+          "native": {
+            "id": "input1",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "float",
+          "native": {
+            "id": "input2",
+            "kind": "socket",
+            "codec": "gray"
+          },
+          "default": 0.0
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "outColor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "extract_color3": {
+      "semantic": "materialx.ND_extract_color3",
+      "native": {
+        "id": "aiColorToFloat",
+        "properties": {}
+      },
+      "inputs": {
+        "in": {
+          "semantic": "in",
+          "type": "color",
+          "native": {
+            "id": "input",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "index": {
+          "semantic": "index",
+          "type": "float",
+          "native": {
+            "id": "mode",
+            "kind": "socket",
+            "codec": "identity",
+            "properties": {
+              "enum_values": [
+                5,
+                6,
+                7
+              ]
+            }
+          },
+          "default": 0,
+          "range": [
+            0,
+            2
+          ]
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "outValue",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "constant_color3": {
+      "semantic": "materialx.ND_constant_color3",
+      "native": {
+        "id": "aiAdd",
+        "properties": {
+          "input2": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "inputs": {
+        "value": {
+          "semantic": "value",
+          "type": "color",
+          "native": {
+            "id": "input1",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "outColor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "float_color3": {
+      "semantic": "materialx.ND_convert_float_color3",
+      "native": {
+        "id": "aiAdd",
+        "properties": {
+          "input2": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "inputs": {
+        "in": {
+          "semantic": "in",
+          "type": "float",
+          "native": {
+            "id": "input1",
+            "kind": "socket",
+            "codec": "gray"
+          },
+          "default": 0.0
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "outColor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    }
+  }
+}

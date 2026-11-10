@@ -75,6 +75,7 @@ def bindings_for(core, dictionary, extensions=None):
     bindings = dict(BINDINGS)
     types = {
         "float": "float",
+        "integer": "float",
         "color3": "color",
         "color4": "color4",
         "vector3": "vector",
@@ -159,6 +160,10 @@ def add_value(node, name, value):
     definition = node.getNodeDef().getActiveInput(name)
     port = node.addInput(name, definition.getType())
     if value is not None:
+        if definition.getType() == "integer":
+            if type(value) not in (int, float) or int(value) != value:
+                raise ValidationError("MaterialX 整数输入必须为整数值", "MATERIALX_BINDING_INVALID")
+            value = int(value)
         port.setValueString(value_string(value))
     return port
 

@@ -1,0 +1,3127 @@
+{
+  "host": {
+    "id": "maya",
+    "version": "2022",
+    "api": 20220500
+  },
+  "renderer": {
+    "id": "arnold",
+    "version": "7.2.5.3",
+    "plugin_version": "5.3.5.3"
+  },
+  "node_system": "mtoa",
+  "evidence": "Maya 2022 standalone 创建节点并读取实际端口、类型、默认值和枚举；不代表渲染验证",
+  "nodes": {
+    "aiStandardSurface": {
+      "actual_type": "aiStandardSurface",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "outColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.800000011920929,
+              0.800000011920929,
+              0.800000011920929
+            ]
+          ],
+          "enum": null
+        },
+        "outColorR": {
+          "type": "float",
+          "value": 0.800000011920929,
+          "enum": null
+        },
+        "outColorG": {
+          "type": "float",
+          "value": 0.800000011920929,
+          "enum": null
+        },
+        "outColorB": {
+          "type": "float",
+          "value": 0.800000011920929,
+          "enum": null
+        },
+        "outAlpha": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "normalCamera": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "normalCameraX": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "normalCameraY": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "normalCameraZ": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "aiEnableMatte": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "aiMatteColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "aiMatteColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "aiMatteColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "aiMatteColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "aiMatteColorA": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "base": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "baseColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.800000011920929,
+              0.800000011920929,
+              0.800000011920929
+            ]
+          ],
+          "enum": null
+        },
+        "baseColorR": {
+          "type": "float",
+          "value": 0.800000011920929,
+          "enum": null
+        },
+        "baseColorG": {
+          "type": "float",
+          "value": 0.800000011920929,
+          "enum": null
+        },
+        "baseColorB": {
+          "type": "float",
+          "value": 0.800000011920929,
+          "enum": null
+        },
+        "diffuseRoughness": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "specular": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "specularColor": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "specularColorR": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "specularColorG": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "specularColorB": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "specularRoughness": {
+          "type": "float",
+          "value": 0.20000000298023224,
+          "enum": null
+        },
+        "specularIOR": {
+          "type": "float",
+          "value": 1.5,
+          "enum": null
+        },
+        "specularAnisotropy": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "specularRotation": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "metalness": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "transmission": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "transmissionColor": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "transmissionColorR": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "transmissionColorG": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "transmissionColorB": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "transmissionDepth": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "transmissionScatter": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "transmissionScatterR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "transmissionScatterG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "transmissionScatterB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "transmissionScatterAnisotropy": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "transmissionDispersion": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "transmissionExtraRoughness": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "transmitAovs": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "subsurface": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "subsurfaceColor": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "subsurfaceColorR": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "subsurfaceColorG": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "subsurfaceColorB": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "subsurfaceRadius": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "subsurfaceRadiusR": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "subsurfaceRadiusG": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "subsurfaceRadiusB": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "subsurfaceScale": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "subsurfaceAnisotropy": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "subsurfaceType": {
+          "type": "enum",
+          "value": 1,
+          "enum": [
+            "diffusion:randomwalk:randomwalk_v2"
+          ]
+        },
+        "sheen": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "sheenColor": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "sheenColorR": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "sheenColorG": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "sheenColorB": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "sheenRoughness": {
+          "type": "float",
+          "value": 0.30000001192092896,
+          "enum": null
+        },
+        "thinWalled": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "tangent": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "tangentX": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "tangentY": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "tangentZ": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "coat": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "coatColor": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "coatColorR": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "coatColorG": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "coatColorB": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "coatRoughness": {
+          "type": "float",
+          "value": 0.10000000149011612,
+          "enum": null
+        },
+        "coatIOR": {
+          "type": "float",
+          "value": 1.5,
+          "enum": null
+        },
+        "coatAnisotropy": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "coatRotation": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "coatNormal": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "coatNormalX": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "coatNormalY": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "coatNormalZ": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "coatAffectColor": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "coatAffectRoughness": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "thinFilmThickness": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "thinFilmIOR": {
+          "type": "float",
+          "value": 1.5,
+          "enum": null
+        },
+        "emission": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "emissionColor": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "emissionColorR": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "emissionColorG": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "emissionColorB": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "opacity": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "opacityR": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "opacityG": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "opacityB": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "caustics": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "internalReflections": {
+          "type": "bool",
+          "value": true,
+          "enum": null
+        },
+        "exitToBackground": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "indirectDiffuse": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "indirectSpecular": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "dielectricPriority": {
+          "type": "long",
+          "value": 0,
+          "enum": null
+        },
+        "aovId1": {
+          "type": "string",
+          "value": "",
+          "enum": null
+        },
+        "id1": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "id1R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "id1G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "id1B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "aovId2": {
+          "type": "string",
+          "value": "",
+          "enum": null
+        },
+        "id2": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "id2R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "id2G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "id2B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "aovId3": {
+          "type": "string",
+          "value": "",
+          "enum": null
+        },
+        "id3": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "id3R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "id3G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "id3B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "aovId4": {
+          "type": "string",
+          "value": "",
+          "enum": null
+        },
+        "id4": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "id4R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "id4G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "id4B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "aovId5": {
+          "type": "string",
+          "value": "",
+          "enum": null
+        },
+        "id5": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "id5R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "id5G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "id5B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "aovId6": {
+          "type": "string",
+          "value": "",
+          "enum": null
+        },
+        "id6": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "id6R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "id6G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "id6B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "aovId7": {
+          "type": "string",
+          "value": "",
+          "enum": null
+        },
+        "id7": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "id7R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "id7G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "id7B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "aovId8": {
+          "type": "string",
+          "value": "",
+          "enum": null
+        },
+        "id8": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "id8R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "id8G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "id8B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        }
+      },
+      "status": "instantiated"
+    },
+    "aiImage": {
+      "actual_type": "aiImage",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "outColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outAlpha": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "filename": {
+          "type": "string",
+          "value": "",
+          "enum": null
+        },
+        "colorSpace": {
+          "type": "string",
+          "value": "sRGB",
+          "enum": null
+        },
+        "filter": {
+          "type": "enum",
+          "value": 3,
+          "enum": [
+            "closest:bilinear:bicubic:smart_bicubic"
+          ]
+        },
+        "mipmapBias": {
+          "type": "long",
+          "value": 0,
+          "enum": null
+        },
+        "singleChannel": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "startChannel": {
+          "type": "byte",
+          "value": 0,
+          "enum": null
+        },
+        "swrap": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "periodic:black:clamp:mirror:file:missing"
+          ]
+        },
+        "twrap": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "periodic:black:clamp:mirror:file:missing"
+          ]
+        },
+        "sscale": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "tscale": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "sflip": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "tflip": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "soffset": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "toffset": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "swapSt": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "uvcoords": {
+          "type": "float2",
+          "value": [
+            [
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "uvcoordsX": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "uvcoordsY": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "uvset": {
+          "type": "string",
+          "value": "",
+          "enum": null
+        },
+        "multiply": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "multiplyR": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "multiplyG": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "multiplyB": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "offset": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "offsetR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "offsetG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "offsetB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "ignoreMissingTextures": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "missingTextureColorA": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "missingTextureColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "missingTextureColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "missingTextureColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "missingTextureColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "aiUserOptions": {
+          "type": "string",
+          "value": "",
+          "enum": null
+        },
+        "autoTx": {
+          "type": "bool",
+          "value": true,
+          "enum": null
+        },
+        "colorManagementConfigFileEnabled": {
+          "type": "bool",
+          "value": true,
+          "enum": null
+        },
+        "colorManagementEnabled": {
+          "type": "bool",
+          "value": true,
+          "enum": null
+        },
+        "colorProfile": {
+          "type": "long",
+          "value": 0,
+          "enum": null
+        },
+        "useFrameExtension": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frame": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "ignoreColorSpaceFileRules": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        }
+      },
+      "status": "instantiated"
+    },
+    "aiNormalMap": {
+      "actual_type": "aiNormalMap",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "outValue": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outValueX": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outValueY": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outValueZ": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "inputX": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "inputY": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "inputZ": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "tangent": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "tangentX": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "tangentY": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "tangentZ": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "normal": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "normalX": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "normalY": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "normalZ": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "order": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "XYZ:XZY:YXZ:YZX:ZXY:ZYX"
+          ]
+        },
+        "invertX": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "invertY": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "invertZ": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "colorToSigned": {
+          "type": "bool",
+          "value": true,
+          "enum": null
+        },
+        "tangentSpace": {
+          "type": "bool",
+          "value": true,
+          "enum": null
+        },
+        "strength": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        }
+      },
+      "status": "instantiated"
+    },
+    "aiBump2d": {
+      "actual_type": "aiBump2d",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "outValue": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outValueX": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outValueY": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outValueZ": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "bumpMap": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "bumpHeight": {
+          "type": "float",
+          "value": 0.009999999776482582,
+          "enum": null
+        },
+        "normal": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "normalX": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "normalY": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "normalZ": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        }
+      },
+      "status": "instantiated"
+    },
+    "aiAdd": {
+      "actual_type": "aiAdd",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "outColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input1": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "input1R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input1G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input1B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input2": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "input2R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input2G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input2B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        }
+      },
+      "status": "instantiated"
+    },
+    "aiSubtract": {
+      "actual_type": "aiSubtract",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "outColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input1": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "input1R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input1G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input1B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input2": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "input2R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input2G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input2B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        }
+      },
+      "status": "instantiated"
+    },
+    "aiMultiply": {
+      "actual_type": "aiMultiply",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "outColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input1": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "input1R": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "input1G": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "input1B": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "input2": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "input2R": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "input2G": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "input2B": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        }
+      },
+      "status": "instantiated"
+    },
+    "aiDivide": {
+      "actual_type": "aiDivide",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "outColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input1": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "input1R": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "input1G": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "input1B": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "input2": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "input2R": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "input2G": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "input2B": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        }
+      },
+      "status": "instantiated"
+    },
+    "aiMin": {
+      "actual_type": "aiMin",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "outColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input1": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "input1R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input1G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input1B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input2": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "input2R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input2G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input2B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        }
+      },
+      "status": "instantiated"
+    },
+    "aiMax": {
+      "actual_type": "aiMax",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "outColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input1": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "input1R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input1G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input1B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input2": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "input2R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input2G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input2B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        }
+      },
+      "status": "instantiated"
+    },
+    "aiClamp": {
+      "actual_type": "aiClamp",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "outColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "inputR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "inputG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "inputB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "mode": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "scalar:color"
+          ]
+        },
+        "min": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "max": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "minColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "minColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "minColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "minColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "maxColor": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "maxColorR": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "maxColorG": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "maxColorB": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        }
+      },
+      "status": "instantiated"
+    },
+    "aiDot": {
+      "actual_type": "aiDot",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "outValue": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input1": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "input1X": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "input1Y": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "input1Z": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "input2": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "input2X": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "input2Y": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "input2Z": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        }
+      },
+      "status": "instantiated"
+    },
+    "aiFloatToRgba": {
+      "actual_type": "aiFloatToRgba",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "outColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outAlpha": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "r": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "g": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "b": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "a": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        }
+      },
+      "status": "instantiated"
+    },
+    "aiFloatToInt": {
+      "actual_type": "aiFloatToInt",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "outValue": {
+          "type": "long",
+          "value": 0,
+          "enum": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "mode": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "round:trunc:floor:ceil"
+          ]
+        }
+      },
+      "status": "instantiated"
+    },
+    "aiColorToFloat": {
+      "actual_type": "aiColorToFloat",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "outValue": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "input": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "inputR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "inputG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "inputB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "mode": {
+          "type": "enum",
+          "value": 2,
+          "enum": [
+            "min:max:average:sum:luminance:r:g:b"
+          ]
+        }
+      },
+      "status": "instantiated"
+    },
+    "condition": {
+      "actual_type": "condition",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "operation": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Equal:Not Equal:Greater Than:Greater or Equal:Less Than:Less or Equal"
+          ]
+        },
+        "firstTerm": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "secondTerm": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "colorIfTrue": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "colorIfTrueR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "colorIfTrueG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "colorIfTrueB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "colorIfFalse": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "colorIfFalseR": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "colorIfFalseG": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "colorIfFalseB": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "outColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "outColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        }
+      },
+      "status": "instantiated"
+    },
+    "blendColors": {
+      "actual_type": "blendColors",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ]
+        },
+        "blender": {
+          "type": "float",
+          "value": 0.5,
+          "enum": null
+        },
+        "color1": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null
+        },
+        "color1R": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "color1G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "color1B": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "color2": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "enum": null
+        },
+        "color2R": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "color2G": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "color2B": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null
+        },
+        "renderPassMode": {
+          "type": "enum",
+          "value": 1,
+          "enum": [
+            "Pass through:Apply to Render Passes:No Contribution:Write Shader Result to Beauty Passes"
+          ]
+        },
+        "output": {
+          "type": "float3",
+          "value": [
+            [
+              0.5,
+              0.0,
+              0.5
+            ]
+          ],
+          "enum": null
+        },
+        "outputR": {
+          "type": "float",
+          "value": 0.5,
+          "enum": null
+        },
+        "outputG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null
+        },
+        "outputB": {
+          "type": "float",
+          "value": 0.5,
+          "enum": null
+        }
+      },
+      "status": "instantiated"
+    }
+  }
+}
