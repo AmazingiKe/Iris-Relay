@@ -105,6 +105,16 @@ Blender 的 RGB 运算为 `mix(color, 1-color, Fac)`，MaterialX 则为 `amount-
 
 旧 `convert` 继续使用旧语义链路；新路径显式使用 `materialx.export`／`materialx.convert`。Maya Arnold 的原生读取和字典尚未实现，不应把 C4DtoA 字典套用到 Maya。当前不会生成 USD、自动训练网络或证明外观一致。
 
+### 完整 HSV 与内联标准子图
+
+Cycles 字典 `0.3.8` 增加 `ShaderNodeHueSaturation` 的五个输入（Hue、Saturation、Value、Fac、Color）及共享输出绑定。文档内联 `ND_iris_blender_hsv_color3` 和对应 NodeGraph，计算由官方数学、比较、组合与混合 NodeDef 构成；没有依赖 Blender 私有着色代码。目标绑定通过完整实现比对后，回导为一个可编辑的原生 HSV 节点，保留有效参数及连接；节点组仍按实例展开。
+
+直接映射 `hsvadjust` 会漏掉 Fac 与饱和度钳制，直接使用标准 RGB／HSV 转换也存在近灰阈值和负值分支差异。因此按 [Cycles HSV 运算](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/hsv.h)和 [Cycles 颜色函数](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/util/color.h)构造标准子图，包含 Hue 中点／循环、饱和度 `[0,1]` 钳制、Value 乘法、不钳制的 Fac 混合及最终 RGB 下限 0。分支除法使用安全分母，避免后端提前求值造成零除。对照依据包括 [MaterialX 1.39.5 HSV 实现](https://github.com/AcademySoftwareFoundation/MaterialX/blob/v1.39.5/libraries/stdlib/genglsl/lib/mx_hsv.glsl)；当前声明专用于 Cycles，不据此扩大到 EEVEE。
+
+独立公式与实际 XML 标准节点解释器核对 524 组边界和随机输入；五组真实 Blender 夹具覆盖常量、近灰、图片、四个标量输入连接及组内 HSV，独立导入、保存重开核对 209 个输入、27 条连接。修改子图计算的文档被拒绝。测试覆盖有效参数和计算关系，不承诺保存已连接端口的闲置默认值、布局、组层级或渲染外观。
+
+没有原生包装绑定的目标可以展开标准子图，但还需要支持展开后的每个功能。当前 C4D Arnold／Redshift 尚未补齐这些绑定，五组夹具均阻断；内联标准图可校验不等于任意 DCC 导入器已兼容。显式规范化展开后也不保证能恢复 Blender 的单个 HSV 节点。扩展库协议与实现比对见 [API 文档](api.md#字典)。
+
 ## 验证与复现
 
 ### Blender 节点组

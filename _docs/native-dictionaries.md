@@ -129,6 +129,8 @@ C4D 两套字典尚未声明命名 UV 或矩阵能力，相关文档在调用宿
 这项扩展没有给 C4D 声明新增坐标能力，也没有把常量求值器中的 Math 模式全部登记为通用着色节点支持；函数节点绑定与静态坐标读取须分别判断。
 回导重建可编辑 Mapping，源常量计算子图、组结构及共享坐标节点身份未重建；动画和跨材质分支的共享依赖不能冻结，见[坐标边界](materialx-core.md#uv-与静态-mapping)。
 
+2026-11-10 Cycles 字典内容版本升为 `0.3.8`，增加完整 `ShaderNodeHueSaturation`。五个端口及默认值来自本版本探测目录；`materialx_extensions` 内联官方标准数学节点构成的子图，回导前核验实际实现，再创建一个原生 HSV 节点。近灰、负值、饱和度钳制和 Fac 混合均有边界测试；五组独立宿主夹具核对 209 个输入、27 条连接。C4D 字典未增加 HSV 支持，详见 [完整 HSV](materialx-core.md#完整-hsv-与内联标准子图)。
+
 2026-11-10 Cycles 字典内容版本升为 `0.3.6`，新增 `texture_alpha_modes` 四种原生模式声明。Blender 读取 `Image.alpha_mode` 和文件解码通道，创建目标图片时核对实际通道并恢复模式；Color、Alpha 仍来自同一 `ShaderNodeTexImage`。探测使用临时 Image，随即释放，缓存按文件路径、大小和修改时间区分。原生模式和端口由 48 组独立夹具核验；C4D 两套字典尚无该声明，不将新图片资源解释静默丢弃。标准组合、近似警告及限制见 [Alpha 说明](materialx-core.md#图片-alpha-与透明度连接)。
 
 2026-11-10 Cycles 字典内容版本升为 `0.3.3`，根据 `A1.blend` 实机读取补充五种 Principled 历史配置。宿主版本仍为 5.2.3，目标默认实现保持不变；识别历史 SSS 模式不代表支持活动 SSS。全量盘点与分项证据见 [A1 材质批量往返验证](a1-materialx-roundtrip.md)。

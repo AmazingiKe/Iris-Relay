@@ -145,6 +145,10 @@ API 接受有限数值；JSON 文件拒绝重复键、NaN 和 Infinity，单次 
 字典加载检查原生数据和引用格式，MaterialX 操作再按固定 SDK 校验定义、端口和类型；不要求只负责宿主读写的进程安装 SDK。
 声明不匹配时报告 `MATERIALX_BINDING_INVALID`。目前实际绑定及单输出限制见 [MaterialX 核心](materialx-core.md#官方-nodedef-直接绑定)。
 
+字典可选 `materialx_extensions` 为内联 MaterialX XML 字符串，只接受本地 `NodeDef` 和 `NodeGraph`，每个定义必须有唯一实现；不接受外部实现、标准定义覆盖、递归和超限展开。绑定仍使用 `materialx.<NodeDef名称>`，端口由 SDK 校验。材质实际使用扩展时才把库写入输出文档，未使用扩展的文档保持原有输出。
+
+导入时，核心对文档内的定义、完整子图及其自定义依赖与目标字典逐项比对，只有实现一致才能恢复为原生功能节点；修改计算、默认值、删除实现或增加替代实现均明确阻断。没有原生绑定的目标按标准子图展开后逐节点检查支持范围。`materialx.normalize` 的显式展开不保留原生包装节点；展开后的图不保证能再次折叠为原生节点。这不改变 API v1，也不读取源快照恢复材质。
+
 ## 插件接入
 
 插件实现 `MaterialAdapter` 的两个方法：
