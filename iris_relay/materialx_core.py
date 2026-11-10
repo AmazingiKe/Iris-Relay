@@ -211,8 +211,8 @@ class MaterialXCore:
                         )
         return issues
 
-    def flatten(self, doc):
-        """只展开用户自定义实现；标准着色模型保留为标准节点。"""
+    def flatten(self, doc, *, preserve=frozenset()):
+        """展开自定义实现；标准节点及调用方已核验的原生绑定子图保持完整。"""
         own_graphs = [g for g in doc.getNodeGraphs() if g.getDocument() == doc]
         graphs = {g.getNodeDefString(): g for g in own_graphs if g.getNodeDefString()}
         visiting, sizes = set(), {}
@@ -250,9 +250,15 @@ class MaterialXCore:
 
         def custom(node):
             definition = node.getNodeDef()
-            return definition is not None and definition.getName() not in self.standard_names
+            return (
+                definition is not None
+                and definition.getName() not in self.standard_names
+                and definition.getName() not in preserve
+            )
 
         for graph in [doc, *own_graphs]:
+            if isinstance(graph, mx.NodeGraph) and graph.getNodeDefString() in preserve:
+                continue
             graph.flattenSubgraphs("", custom)
             if sum(1 for _ in doc.traverseTree()) > MAX_ELEMENTS:
                 raise ValidationError("展开后的 MaterialX 图超限", "MATERIALX_LIMIT")

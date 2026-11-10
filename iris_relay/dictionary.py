@@ -108,6 +108,7 @@ class Dictionary:
                 "evidence",
                 "semantic_schema_version",
                 "materialx_export",
+                "materialx_extensions",
                 "texture_coordinates",
                 "texture_alpha_modes",
             },
@@ -124,6 +125,8 @@ class Dictionary:
             rules = fields(value["materialx_export"], {"color_to_float"})
             if rules["color_to_float"] != "scene_linear_luminance":
                 raise ValidationError("未知的 MaterialX 隐式颜色连接规则")
+        if "materialx_extensions" in value:
+            text(value["materialx_extensions"], "内联 MaterialX 扩展库")
         if "texture_coordinates" in value:
             coordinates = fields(value["texture_coordinates"], {"named_uv", "transforms"})
             if type(coordinates["named_uv"]) is not bool or coordinates["transforms"] not in (

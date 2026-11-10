@@ -12,6 +12,7 @@ import MaterialX as mx
 
 from .conversion import issue, status_for, transcode
 from .materialx_coordinates import check_target_coordinates, export_coordinates, import_coordinates
+from .materialx_extensions import install_extensions, load_extensions, preserved_extensions
 from .materialx_images import (
     IMAGE_TYPES,
     ImageGraphReader,
@@ -69,8 +70,8 @@ COLOR_TO_MX = {"Raw": "raw", "sRGB": "srgb_texture"}
 COLOR_FROM_MX = {v: k for k, v in COLOR_TO_MX.items()}
 
 
-def bindings_for(core, dictionary):
-    """合并旧桥接与官方 NodeDef 直接绑定；名称、端口及类型以当前 SDK 为准。"""
+def bindings_for(core, dictionary, extensions=None):
+    """合并旧桥接、官方定义和内联扩展绑定；端口及类型均由 SDK 校验。"""
     bindings = dict(BINDINGS)
     types = {
         "float": "float",
@@ -85,9 +86,13 @@ def bindings_for(core, dictionary):
         if not semantic.startswith("materialx."):
             continue
         name = semantic.removeprefix("materialx.")
-        definition = core.library.getNodeDef(name)
+        definition = core.library.getNodeDef(name) or (
+            extensions.getNodeDef(name) if extensions is not None else None
+        )
         if definition is None:
-            raise ValidationError(f"官方库没有 NodeDef：{name}", "MATERIALX_BINDING_INVALID")
+            raise ValidationError(
+                f"标准库与字典扩展均没有 NodeDef：{name}", "MATERIALX_BINDING_INVALID"
+            )
         outputs = definition.getActiveOutputs()
         if len(outputs) != 1 or types.get(outputs[0].getType()) is None:
             raise ValidationError(
@@ -219,7 +224,8 @@ def export_material(core, source, dictionary):
     result = {"source": source.to_dict(), "document": None, "report": report(issues)}
     result["report"]["source_dictionary_fingerprint"] = dictionary.fingerprint
     try:
-        bindings = bindings_for(core, dictionary)
+        extensions = load_extensions(core, dictionary)
+        bindings = bindings_for(core, dictionary, extensions)
         casts, coefficients = explicit_color_casts(source.data, dictionary)
         transforms = {
             (node["id"], port)
@@ -246,6 +252,7 @@ def export_material(core, source, dictionary):
         # 3. 建立空文档，创建标准节点及输入，再恢复连接和隐式转换。
         doc = mx.createDocument()
         doc.setDataLibrary(core.library)
+        install_extensions(doc, extensions, bindings, semantic)
         doc.setAttribute("iris_material_name", source.data["name"])
         index = _create_export_nodes(core, doc, semantic, bindings, issues)
         _connect_export_links(
@@ -295,7 +302,9 @@ def _create_export_nodes(core, doc, semantic, bindings, issues):
             if description is not None:
                 definition = "ND_image_" + IMAGE_TYPES[description["channels"]]
         name = doc.createValidChildName(mx.createValidName(record["id"]))
-        node = doc.addNodeInstance(core.library.getNodeDef(definition), name)
+        node = doc.addNodeInstance(
+            doc.getNodeDef(definition) or core.library.getNodeDef(definition), name
+        )
         node.setAttribute("iris_source_name", record["id"])
         index.nodes[record["id"]] = node
         index.outputs[(record["id"], output)] = node
@@ -483,7 +492,7 @@ def _unwrap_color_vector(upstream, visited):
     return _read_input(upstream, "in")
 
 
-def to_semantic(core, doc, material_name, issues, bindings, scalar_inputs, transforms):
+def to_semantic(core, doc, material_name, issues, bindings, scalar_inputs, transforms, preserve=()):
     """反向读取 MaterialX 可达图，返回既有字典能处理的语义数据；未知含义阻断。"""
     # 1. 拒绝尚不能解释的单位、前缀和色彩上下文。
     for element in doc.traverseTree():
@@ -500,7 +509,7 @@ def to_semantic(core, doc, material_name, issues, bindings, scalar_inputs, trans
                 "首版桥接仅接受图片文件输入上的色彩空间", "MATERIALX_CONTEXT_UNSUPPORTED"
             )
     # 2. 展开自定义子图并重新校验，然后选定唯一表面材质。
-    core.flatten(doc)
+    core.flatten(doc, preserve=preserve)
     images = ImageGraphReader(core, doc, _read_input, require_defaults, add_value)
     expanded_issues = core.inspect(doc)
     if status_for(expanded_issues) == "error":
@@ -674,7 +683,9 @@ def convert_document(core, source, dictionary, target, material_name=None):
         if status_for(issues) == "error":
             return result
         # 2. 提取可转换部分，再按目标字典生成原生参数与连接。
-        bindings = bindings_for(core, dictionary)
+        extensions = load_extensions(core, dictionary)
+        bindings = bindings_for(core, dictionary, extensions)
+        preserve = preserved_extensions(doc, extensions, bindings)
         scalar_inputs = set()
         for semantic_type in {rule["semantic"] for rule in dictionary.nodes.values()}:
             try:
@@ -689,7 +700,7 @@ def convert_document(core, source, dictionary, target, material_name=None):
             )
         transforms = set()
         semantic = to_semantic(
-            core, doc, material_name, issues, bindings, scalar_inputs, transforms
+            core, doc, material_name, issues, bindings, scalar_inputs, transforms, preserve
         )
         check_target_coordinates(semantic, dictionary)
         check_target_alpha(semantic, dictionary)
