@@ -36,26 +36,34 @@ python -m venv .venv
 
 ## Blender GUI demo
 
-脚本入口为 [`_examples/blender_demo_gui.py`](_examples/blender_demo_gui.py)，现已接入真实 MaterialX 导出。在 Blender 文本编辑器打开它，按需填写顶部 `REPO_ROOT` 为仓库根目录的绝对路径，然后点击“运行脚本”。从仓库原位置打开时可以留空自动定位；复制到未保存文本块或移到别处时需要填写路径。本机路径只在 Blender 中修改，不提交；不需要安装 Blender 插件。
+脚本入口为 [`_examples/blender_demo_gui.py`](_examples/blender_demo_gui.py)，现已接入真实 MaterialX 导出与导入。在 Blender 文本编辑器打开它，按需填写顶部 `REPO_ROOT` 为仓库根目录的绝对路径，然后点击“运行脚本”。从仓库原位置打开时可以留空自动定位；复制到未保存文本块或移到别处时需要填写路径。本机路径只在 Blender 中修改，不提交；不需要安装 Blender 插件。
 
 运行后在文本编辑器或 3D 视图的 `N` 侧栏选择 **Iris Relay** 标签，侧栏过窄时可拖动左边界加宽：
 
-1. 选择材质，或点击“使用活动材质”。
+1. 在“导出”页选择材质，或点击“使用活动材质”。
 2. 点击“检查材质”，读取当前节点图，调用 `materialx.export` 和 `materialx.validate`，查看下方诊断。此操作不写文件。
    若提示包含位移，而本次只想测试表面，可勾选“仅导出表面（排除位移）”后重新检查。该选项默认关闭；位移排除会留下警告及源节点快照。
 3. 选择尚不存在的 `.mtlx` 文件绝对路径，父目录须已存在。
 4. 若有近似转换警告，查看诊断后按需勾选“允许带警告导出”；默认不保存有警告的结果，阻断错误不能通过勾选绕过。
 5. 点击“导出 .mtlx”。每次导出重新读取并校验当前材质，成功后明确显示“已导出”。可通过“复制完整报告”取得核心响应、源图快照和诊断。
 
+导出后可直接切换到“导入”页试验往返，输入路径会自动填入刚保存的文件：
+
+1. 点击“检查导入”，校验文档、当前 Blender 版本的转换支持及贴图文件；此时不创建材质。也可以通过“选择输入文件”选取已有 `.mtlx`。
+2. 查看诊断，按需勾选“允许带警告导入”，再点击“导入为新材质”。操作会重新读取文档和检查图片，不复用旧检查结果；错误不能通过勾选绕过。
+3. 成功后报告显示实际新材质名（带 `_IrisRelay` 后缀，同名时由 Blender 分配编号）。可在对象的材质下拉框中手动选择它。导入不要求活动对象，不自动更换已有绑定。
+
+新材质启用保留标记（Fake User），未绑定对象也能随 `.blend` 保存。导入操作加入 Blender 全局撤销，可通过顶部“编辑 → 撤销”恢复；撤销、重做或打开文件后清除过期报告。源文件与贴图只读，导入失败由适配器清理本次新增数据。图片相对路径以 `.mtlx` 所在目录解析，缺图时明确阻断；不自动下载或打包资源。
+
 导出采用排他创建，不覆盖现有文件；写入失败会尝试清理本次创建的残留。源材质、绑定和贴图保持不变，不改变场景渲染条件。贴图保留原文件路径引用，不复制或打包资源，因此输出不是独立资源包。文件可保存、目标可转换和外观一致是不同结论。
 
-界面位于 `plugins/blender/ui.py`，`controller.py` 负责核心连接、检查和保存流程，`adapter.py` 负责 Blender 材质读写；`from plugins.blender import BlenderAdapter` 保持兼容。首次操作时优先使用仓库已有 `.venv` 通过公开 `JsonCommandService` 调用核心，不向 Blender 安装依赖。不存在 `.venv` 时尝试进程内服务，两种方式都要求 MaterialX 1.39.5；依赖缺失或版本不同会明确报错。本机 Blender 5.2.3 自带 SDK 为 1.39.4，因此本轮使用仓库环境的 1.39.5。
+界面位于 `plugins/blender/ui.py`，`controller.py` 负责核心连接、导入导出检查和文件流程，`adapter.py` 负责 Blender 材质读写；`from plugins.blender import BlenderAdapter` 保持兼容。首次操作时优先使用仓库已有 `.venv` 通过公开 `JsonCommandService` 调用核心，不向 Blender 安装依赖。不存在 `.venv` 时尝试进程内服务，两种方式都要求 MaterialX 1.39.5；依赖缺失或版本不同会明确报错。本机 Blender 5.2.3 自带 SDK 为 1.39.4，因此本轮使用仓库环境的 1.39.5。
 
 GUI 按需加载核心；重复运行入口会重新加载宿主模块、清空输入和诊断。关闭 Blender 后不会自动启用。需要在当前会话移除界面时，在 Blender Python 控制台执行 `from plugins.blender import ui; ui.unregister()`。
 
 当前受已实现功能及精确版本字典限制。读取所选表面的上游图，解析转接点、整理框及 `UV → POINT 恒等 Mapping → 图片`；未参与表面的节点有信息提示并保留顶层源快照。参与表面的未知节点、节点组、非恒等坐标变换、未支持的参数或连接仍会阻断。Blender 旧 Principled `GGX + BURLEY` 配置已加入识别；关闭 SSS 时未连接的 SSS 辅助值按字典条件报告为未启用。具体范围见[原生字典文档](_docs/native-dictionaries.md)。
 
-颜色接粗糙度等标量输入时，由宿主读取当前工作空间的亮度系数，核心按字典规则生成显式 MaterialX `luminance → extract`，不猜测 R 通道。目前只核验 Linear Rec.709；缺失或不支持的色彩上下文会阻断。此链现可通过 `materialx.convert` 转回 Blender 的 `Vector Math / DOT_PRODUCT`，保留文档中的三个常量系数。回读验证通过独立脚本执行，GUI 尚无导入按钮；位移和渲染外观仍未验证。
+颜色接粗糙度等标量输入时，由宿主读取当前工作空间的亮度系数，核心按字典规则生成显式 MaterialX `luminance → extract`，不猜测 R 通道。目前只核验 Linear Rec.709；缺失或不支持的色彩上下文会阻断。此链可通过 `materialx.convert` 转回 Blender 的 `Vector Math / DOT_PRODUCT`，保留文档中的三个常量系数；GUI 和独立脚本共用该 API。位移和渲染外观仍未验证。
 
 独立宿主交互逻辑验证（不会操作当前打开的 Blender 场景）：
 
@@ -64,11 +72,15 @@ GUI 按需加载核心；重复运行入口会重新加载宿主模块、清空�
 & "本机blender.exe路径" --background --factory-startup --disable-autoexec --python-exit-code 1 --python _scripts/verify_blender_read.py
 ```
 
-检查覆盖入口重复运行、真实导出及文档校验、警告策略、已有文件保护、活动图未知节点阻断、源材质保护、图片法线／高度链路、位移排除、恒等 UV 与非恒等拒绝、注册卸载和导入兼容；真实面板绘制与文件浏览器还需在 Blender 前台检查。
+检查覆盖入口重复运行、真实导出及文档校验、导入警告策略、新材质保存重开、缺图与坏文档阻断、已有文件保护、活动图未知节点阻断、源材质保护、图片法线／高度链路、位移排除、恒等 UV 与非恒等拒绝、注册卸载和 Python 导入兼容。
 
 2026-11-06 木地板样本验证：196 项自动测试通过，核心及导出控制层合计覆盖率 92%（控制层 95%）。原有 15 组 Blender 5.2.3 LTS GUI 操作检查及新增读取回归通过。用户提供的 `raw_wooden_floor_01_4k.blend` 在独立进程完成“默认阻断位移 → 选择表面 → 确认警告 → 保存”的 GUI 操作流程，文件读回通过 MaterialX 1.39.5 校验。源 `.blend` 与四张贴图的 SHA-256 前后相同。底色、粗糙度、法线链路已导出；位移排除并报告，未进行渲染外观对照。样本保留原位置，输出与报告位于本地忽略目录，均不提交仓库。此前的独立前台界面验证记录保留在 Git 历史中。
 
 2026-11-09 木地板回读验证：先前导出的 `.mtlx` 已在独立 Blender 5.2.3 LTS 场景中生成新材质，保存重开后核对 42 个输入、6 条含材质出口的连接，并再次导出通过校验的 `.mtlx`。亮度系数、底色／粗糙度／法线图片引用保留；原 `.blend` 与四张贴图哈希仍与导出前一致。208 项自动测试通过，核心及导出控制层合计覆盖率 92%（MaterialX 桥接 94%）；原 GUI、读取回归及两条既有 MaterialX 宿主夹具通过。复现命令及边界见 [MaterialX 文档](_docs/materialx-core.md#验证与复现)，位移及渲染外观仍未验证。
+
+2026-11-10 GUI 导入验证：228 项自动测试通过，核心及导入导出控制层合计覆盖率 92%（控制层 96%）；18 组后台 GUI 操作检查及读取回归通过。木地板样本重新通过 GUI 操作完成“导出表面 → 检查导入 → 确认警告 → 新建材质 → 保存重开 → 再导出”，核对 42 个输入和 6 条连接，原 `.blend` 与四张贴图哈希不变，对象绑定及记录的场景条件不变。本地结果为 `.local/wood-gui-roundtrip-01/`，位移未导入，未做渲染对照。
+
+同日在独立前台测试副本检查面板、输入文件选择器、检查与导入按钮；导入后材质数从 2 增至 3、图片数从 8 增至 11，通过顶部编辑菜单撤销后恢复为 2 和 8，旧成功报告随之清空。未操作用户原先打开的 Blender 场景。
 
 ## 统一接口
 
@@ -85,6 +97,8 @@ GUI 按需加载核心；重复运行入口会重新加载宿主模块、清空�
 
 回读验证可从 [`verify_materialx.main`](_scripts/verify_materialx.py) 按步骤阅读：`input_documents` 读取文档，`prepare_cases` 调用公开 API 转换，`run_host` 启动独立 Blender 创建并检查材质。核心反向入口为 [`materialx_bridge.convert_document`](iris_relay/materialx_bridge.py)，宿主创建仍由 `BlenderAdapter.create_material` 完成。
 
+GUI 导入入口为 `ui.run_import` → `controller.check_import / import_material` → `BlenderAdapter.create_material`，依次负责界面选择、公开 API 校验与转换、目标节点创建。控制层不读取核心桥接实现。
+
 所有插件依赖 `RelayService.handle(request) -> response`。进程内使用 `RelayAPI`；跨进程使用同一 JSON 协议，Python 侧可使用 `JsonCommandService`。插件只读写宿主材质，转换和校正规则集中在核心。
 
 API 提供能力查询、通用功能定义查询（`semantics`）、原生模式识别（`identify`）、原生绑定查询、材质校验和转换。真实配置同时匹配宿主、渲染器与节点系统的版本。版本不匹配、未知节点、无法表达的连接和非法数值均有明确错误；缺少模型时可返回基础转换结果及警告。插件辅助接口默认不应用带警告的方案，也不会自动替换场景中的材质绑定。
@@ -95,7 +109,7 @@ API 提供能力查询、通用功能定义查询（`semantics`）、原生模�
 iris_relay/            核心、公开 API、插件辅助接口与命令行
 dictionaries/          真实转换字典；catalogs/ 保存原生节点探测目录
 plugins/               宿主接入层，按实际宿主分目录
-  blender/             GUI（ui.py）、导出控制（controller.py）、材质读写（adapter.py）
+  blender/             GUI（ui.py）、导入导出控制（controller.py）、材质读写（adapter.py）
 _scripts/              节点探测、字典生成和独立宿主验证
 _examples/             可执行参考插件、GUI 测试入口、请求和示例字典
 _tests/                图转换、接口、失败回退和跨进程测试
