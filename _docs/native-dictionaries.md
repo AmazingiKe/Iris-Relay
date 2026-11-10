@@ -14,7 +14,7 @@
 
 目录记录类型名称、字符串 ID 或整数 code、端口、默认值及探测状态。Blender 的 `ShaderNodeCustomGroup` 不能直接实例化，保留失败原因。动态节点组、用户资产、第三方程序生成节点和不同模式下新增的端口不属于此次完整性范围。个别 Arnold 类型的头文件没有可提取的参数表，个别 Redshift 端口的 Python 值不可读；目录明确保留空列表或 `unreadable`，不猜测数值。
 
-**收录 385 个类型不等于支持 385 个节点互换。** 每套可转换字典包含标准表面、图片、切线空间法线、高度凹凸、显式 R 通道提取及 RGB 显式加权求和六类共有功能；Blender 另含六种历史 Principled 配置，三套字典共 24 个实现配置。Redshift 的高度凹凸与切线法线共用节点资产，模式不同，因此实现配置数不等于原生节点类型数。目录用于查 code、补充映射和发现缺口；核心只加载 `dictionaries/` 顶层字典，不把 `catalogs/` 当成转换规则。
+**收录 385 个类型不等于支持 385 个节点互换。** 每套可转换字典包含标准表面、图片、切线空间法线、高度凹凸、显式 R 通道提取及 RGB 显式加权求和六类共有功能；Blender 另含六种历史 Principled 配置，Blender 和 Redshift 另各有三个直接引用官方 MaterialX NodeDef 的标量数学模式，三套字典共 30 个实现配置。Redshift 的高度凹凸与切线法线共用节点资产，模式不同，因此实现配置数不等于原生节点类型数。目录用于查 code、补充映射和发现缺口；核心只加载 `dictionaries/` 顶层字典，不把 `catalogs/` 当成转换规则。
 
 ## 真实名称与 code 示例
 
@@ -109,6 +109,8 @@ fingerprint = response["result"]["fingerprint"]
 2026-11-09 字典内容版本升为 `0.3.2`，新增 `ShaderNodeVectorMath.dot_product` 实现配置：原生 ID 为 `ShaderNodeVectorMath`，属性 `operation=DOT_PRODUCT`；输入 identifier 为 `Vector`、`Vector_001`，标量输出为 `Value`。实机核验该模式的有效端口，并用木地板 `.mtlx` 创建新材质、保存重开及读回。此绑定保留文档亮度系数，详见 [MaterialX 边界及复现](materialx-core.md#当前目标转换边界)；不支持其他 Vector Math 模式，当时尚无 C4D 目标绑定，外观仍未验证。
 
 2026-11-10 C4D 两套字典升为 `0.3.1`，加入 Redshift `rsmathdotvector`（`math_op=24`）及 Arnold `dot`（code `193489676`）的加权求和绑定。Arnold 向量输入 Input1、Input2 的 code 分别为 `729976059`、`729976060`，由 `GetDescription` 取得；数值按向量原样写入。A1 文档合计 748 个 C4D 目标通过保存重开与读回，详见 [A1 记录](a1-materialx-roundtrip.md)。
+
+2026-11-10 Cycles 字典升为 `0.3.4`、Redshift 升为 `0.3.2`，增加标量加减乘。Blender 使用 Math 的 `ADD`、`SUBTRACT`、`MULTIPLY` 且 `use_clamp=false`；Redshift 使用 `rsmathadd`、`rsmathsub`、`rsmathmul`，实机运算码分别为 3、4、5。字典直接引用 `materialx.ND_add_float` 等官方定义，不扩充手工通用节点清单。三组独立夹具在两端保存重开通过；Arnold 这三种标量映射仍未实现。
 
 ## 复现实机验证
 

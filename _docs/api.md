@@ -136,6 +136,11 @@ API 接受有限数值；JSON 文件拒绝重复键、NaN 和 Infinity，单次 
 
 字典对语义、单位、默认值和范围的陈述必须有具体渲染器依据。核心只能验证声明的一致性，不能自动证明物理含义或视觉等价性。
 
+官方标准节点可直接引用 `semantic: "materialx.ND_add_float"` 等 NodeDef 名称，输入／输出语义使用官方端口名。
+此命名空间不加入手工 `semantics` 节点清单：使用 `materialx.definitions` 查询官方契约。
+字典加载检查原生数据和引用格式，MaterialX 操作再按固定 SDK 校验定义、端口和类型；不要求只负责宿主读写的进程安装 SDK。
+声明不匹配时报告 `MATERIALX_BINDING_INVALID`。目前实际绑定及单输出限制见 [MaterialX 核心](materialx-core.md#官方-nodedef-直接绑定)。
+
 ## 插件接入
 
 插件实现 `MaterialAdapter` 的两个方法：

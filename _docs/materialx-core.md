@@ -83,6 +83,19 @@ GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶�
 
 自定义子图展开后全部相关节点落在以上范围内才可转换；否则保留原文并报告不支持。标准库中的其他节点可查询、校验和保存，但没有自动获得目标转换能力。未知原生节点导出失败时保留原始 JSON，不自动猜测并编造自定义 NodeDef。
 
+### 官方 NodeDef 直接绑定
+
+新增原生数学节点使用 `materialx.ND_add_float`、`materialx.ND_subtract_float`、`materialx.ND_multiply_float` 作为字典引用，端口语义直接使用官方 `in1`、`in2`、`out`。不再为每种标准运算建立另一套通用功能名称。
+`materialx.export` 和 `materialx.convert` 按 MaterialX 1.39.5 SDK 核对定义是否存在、端口名和类型是否一致，错误返回 `MATERIALX_BINDING_INVALID` 并保留源信息。
+宿主中的 `describe`／`identify` 只需读取原生声明，无需在宿主进程加载 SDK；官方契约校验在统一服务的 MaterialX 操作中执行。
+
+目前直接映射覆盖 Blender 未钳制的 Math / ADD、SUBTRACT、MULTIPLY，以及 Redshift 对应标量数学资产。
+这些节点可与既有表面、图片和亮度链连接，也可承接自定义子图展开后的同类标准节点。没有目标绑定的标准节点仍阻断；Arnold 尚无这三个标量绑定。
+直接绑定首版只接受单个、已支持数据类型的输出；不会因引用 NodeDef 就自动实现全部官方库、任意多输出节点或专有节点。
+
+独立宿主夹具由 `_scripts/verify_blender_math.py -- --out "新目录"` 导出，再分别交给 `verify_blender_batch.py --documents` 和 `verify_materialx_targets.py --documents` 回读。
+三组夹具含负数、非对称输入、共享输出，Blender 和 Redshift 均完成保存重开核对；钳制模式及未支持运算继续阻断。未做渲染对照。
+
 当前桥接拒绝尚未处理的单位、文件前缀、通道重排和非图片输入色彩空间上下文。只转换选定材质可达的图；未选用的顶层节点有信息报告，完整内容保留在源文档。资源、节点 metadata 等原生专用信息也保留在响应源快照中，不保证仅凭标准 `.mtlx` 重建所有原生信息。
 
 旧 `convert` 继续使用旧语义链路；新路径显式使用 `materialx.export`／`materialx.convert`。Maya Arnold 的原生读取和字典尚未实现，不应把 C4DtoA 字典套用到 Maya。当前不会生成 USD、自动训练网络或证明外观一致。
