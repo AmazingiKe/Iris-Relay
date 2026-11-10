@@ -1,4 +1,4 @@
-"""在 Maya 2022 的 Python 脚本编辑器运行；只定位仓库并打开导入窗口。"""
+"""在 Maya 2022 的 Python 脚本编辑器运行；定位仓库并打开材质交换窗口。"""
 
 import importlib
 import sys
@@ -17,7 +17,21 @@ def main():
         raise RuntimeError("请将 REPO_ROOT 指向 Iris Relay 仓库")
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
-    for name in ("plugins.maya.controller", "plugins.maya.adapter", "plugins.maya.ui"):
+    previous = sys.modules.get("plugins.maya.ui")
+    panel = getattr(previous, "_panel", None)
+    if panel is not None and getattr(panel, "service", None) is not None:
+        if hasattr(panel.service, "close"):
+            panel.service.close()
+    for name in (
+        "iris_relay.transport",
+        "iris_relay.model",
+        "iris_relay.native",
+        "plugins.resources",
+        "plugins.core",
+        "plugins.maya.controller",
+        "plugins.maya.adapter",
+        "plugins.maya.ui",
+    ):
         if name in sys.modules:
             importlib.reload(sys.modules[name])
     from plugins.maya import show

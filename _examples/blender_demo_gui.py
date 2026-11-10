@@ -46,6 +46,10 @@ def main(repo_root=REPO_ROOT):
         raise ValueError("导入路径与指定仓库不一致，请检查 Blender 中已有的 plugins 模块")
     ui.unregister()
     for name in (
+        "iris_relay.transport",
+        "iris_relay.model",
+        "iris_relay.native",
+        "plugins.resources",
         "plugins.blender.controller",
         "plugins.blender.groups",
         "plugins.blender.coordinates",

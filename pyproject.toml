@@ -36,6 +36,10 @@ select = ["E", "F", "I", "UP", "B"]
 # 宿主侧薄接口保持 Maya 2022 自带 Python 3.7 可解析。
 [tool.ruff.per-file-target-version]
 "plugins/maya/*.py" = "py37"
+"plugins/core.py" = "py37"
+"plugins/resources.py" = "py37"
 "_examples/maya_demo_gui.py" = "py37"
-"iris_relay/{__init__,protocol,transport,native}.py" = "py37"
+"iris_relay/{__init__,protocol,transport,native,model}.py" = "py37"
 "_scripts/verify_maya_import.py" = "py37"
+"_scripts/probe_maya.py" = "py37"
+"_scripts/verify_host_transactions.py" = "py37"

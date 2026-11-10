@@ -13,6 +13,7 @@ import bpy
 
 from iris_relay.model import Material, ValidationError
 from iris_relay.native import decode_value, describe, encode_value, identify
+from plugins.resources import image_header_channels
 
 from .coordinates import read_uv_coordinates
 from .groups import ExpandedGraph
@@ -224,9 +225,13 @@ class _SurfaceGraph:
 def image_file_channels(filepath, size, modified):
     """在临时 Image 中探测文件色彩通道，随即释放；缓存键包含文件大小和修改时间。
 
-    Image.channels 是像素缓存通道，RGB 文件也可能返回 4；depth 才反映解码色彩模式。
+    PNG／EXR 优先读取文件头；Image.channels 和 depth 都可能反映缓存展开格式。
+    其他已接受格式使用临时 Image 探测解码色彩模式。
     PNG 灰度加 Alpha 的两通道文件尚未实现标准采样对应，明确拒绝。
     """
+    probed = image_header_channels(filepath)
+    if probed is not None:
+        return probed
     with Path(filepath).open("rb") as stream:
         header = stream.read(26)
     if header.startswith(b"\x89PNG\r\n\x1a\n") and len(header) == 26 and header[25] == 4:
@@ -402,9 +407,21 @@ class BlenderAdapter:
         }
         if graph.needs_color_cast:
             result["metadata"]["color_to_float"] = color_to_float_context()
+        failures = []
         for node in graph.nodes.values():
-            result["nodes"].append(
-                self._read_node(node, schema, result["textures"], graph.uv_images.get(node.name))
+            try:
+                result["nodes"].append(
+                    self._read_node(
+                        node, schema, result["textures"], graph.uv_images.get(node.name)
+                    )
+                )
+            except ValidationError as exc:
+                failures.append(exc)
+                self.note(exc.code, str(exc), node.name, severity="error")
+        if failures:
+            raise ValidationError(
+                f"当前活动图有 {len(failures)} 个节点读取问题；" + str(failures[0]),
+                failures[0].code,
             )
         return result
 

@@ -124,12 +124,63 @@ def verify_transactions(adapter, material, existing):
     return {"undo": True, "redo": True, "partial_failure_cleanup": True, "binding_preserved": True}
 
 
+def verify_live_read(adapter, expected, created):
+    """将真实读回的节点 ID 对齐目标图，逐条核对拓扑和未连接的有效输入。"""
+    from plugins.maya.adapter import equal
+
+    actual = adapter.read_material(created["material"])
+    names = created["nodes"]
+    reverse = {name: key for key, name in names.items()}
+    nodes = {reverse[n["id"]]: n for n in actual["nodes"]}
+    assert {key: n["type"] for key, n in nodes.items()} == {
+        n["id"]: n["type"] for n in expected["nodes"]
+    }
+    edges = [
+        {
+            side: {"node": reverse[e[side]["node"]], "socket": e[side]["socket"]}
+            for side in ("from", "to")
+        }
+        for e in actual["links"]
+    ]
+    assert sorted(edges, key=str) == sorted(expected["links"], key=str)
+    assert {
+        "node": reverse[actual["output"]["node"]],
+        "socket": actual["output"]["socket"],
+    } == expected["output"]
+    connected = {(e["to"]["node"], e["to"]["socket"]) for e in expected["links"]}
+    count = 0
+    for record in expected["nodes"]:
+        for key, value in record["inputs"].items():
+            if (record["id"], key) in connected:
+                continue
+            found = nodes[record["id"]]["inputs"][key]
+            if isinstance(value, dict) and "texture" in value:
+                before, after = (
+                    expected["textures"][value["texture"]],
+                    actual["textures"][found["texture"]],
+                )
+                assert all(
+                    before[field] == after[field] for field in ("uri", "color_space", "coordinates")
+                )
+            else:
+                assert equal(value, found), (record["id"], key, value, found)
+            count += 1
+    return {
+        "native_read_nodes": len(nodes),
+        "native_read_inputs": count,
+        "native_read_links": len(edges) + 1,
+        "native_read_verified": True,
+    }
+
+
 def main():
     """在独立场景批处理；失败条目保留，任何校验失败都使进程非零退出。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--documents", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--transactions", action="store_true")
+    parser.add_argument("--export-documents", action="store_true", help="从重开后的真实节点再导出")
+    parser.add_argument("--require-success", type=int, default=0)
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=False)
     import maya.standalone
@@ -190,6 +241,23 @@ def main():
     cmds.file(str(args.out / "restored.ma"), open=True, force=True, prompt=False)
     for case, result in successful:
         case.update(verify(adapter, result["material"], result["created"]), reopened=True)
+    if args.export_documents:
+        export_directory = args.out / "export"
+        export_directory.mkdir(exist_ok=False)
+        for case, result in successful:
+            case.update(verify_live_read(adapter, result["material"], result["created"]))
+            exported = controller.export_material(
+                adapter,
+                service,
+                result["created"]["material"],
+                export_directory / (case["id"] + ".mtlx"),
+                accept_warnings=True,
+            )
+            save(case["id"] + "-export.json", exported)
+            assert exported["saved_path"], exported
+            case["native_reexported"] = True
+    if len(successful) < args.require_success:
+        raise RuntimeError("成功材质数量未达到要求：" + str(len(successful)))
     summary.update(
         scene_conditions_unchanged=True, successful=len(successful), completed=len(summary["cases"])
     )
@@ -197,6 +265,8 @@ def main():
     print(
         json.dumps({"completed": len(summary["cases"]), "successful": len(successful)}), flush=True
     )
+    if hasattr(service, "close"):
+        service.close()
     maya.standalone.uninitialize()
 
 

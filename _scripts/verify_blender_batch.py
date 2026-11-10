@@ -32,6 +32,11 @@ class CachedService:
         response["request_id"] = request["request_id"]
         return response
 
+    def close(self):
+        """释放本批处理拥有的服务，不依赖宿主退出时机。"""
+        if hasattr(self.service, "close"):
+            self.service.close()
+
 
 def write_json(path, data):
     """保存本次任务自身的进度文件，中文问题保持可读。"""
@@ -58,6 +63,12 @@ def export_all(args, service):
     with bpy.data.libraries.load(str(args.source), link=False) as (source, target):
         target.materials = list(source.materials)
     materials = [material for material in target.materials if material is not None]
+    if getattr(args, "id_manifest", None):
+        manifest = json.loads(args.id_manifest.read_text("utf-8"))["cases"]
+        by_name = {m.name_full: m for m in materials}
+        if set(by_name) != {c["name"] for c in manifest} or len(by_name) != len(manifest):
+            raise RuntimeError("材质缓存与指定清单不一致，不能沿用旧编号")
+        materials = [by_name[c["name"]] for c in manifest]
     print(json.dumps({"loaded_materials": len(materials)}, ensure_ascii=False), flush=True)
     if args.material_cache:
         if args.material_cache.exists():
@@ -181,11 +192,17 @@ def main():
     mode.add_argument("--documents", type=Path)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--material-cache", type=Path, help="另存仅含材质依赖的测试缓存")
+    parser.add_argument(
+        "--id-manifest", type=Path, help="按旧全量清单保持材质编号；须与缓存名称完全一致"
+    )
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1 :])
     args.out.mkdir(parents=True, exist_ok=False)
     bpy.ops.wm.read_factory_settings(use_empty=True)
     service = CachedService(controller.create_service())
-    summary = export_all(args, service) if args.source else import_all(args, service)
+    try:
+        summary = export_all(args, service) if args.source else import_all(args, service)
+    finally:
+        service.close()
     print(json.dumps({"completed": len(summary["cases"])}, ensure_ascii=False), flush=True)
 
 

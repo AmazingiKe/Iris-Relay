@@ -414,6 +414,8 @@ CLASSES = (
 def unregister():
     """清理会话属性、服务引用和已注册类，支持脚本重复运行。"""
     global _service
+    if _service is not None and hasattr(_service, "close"):
+        _service.close()
     _service = None
     for handlers in (
         bpy.app.handlers.undo_post,

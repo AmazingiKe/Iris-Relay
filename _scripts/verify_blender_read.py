@@ -69,6 +69,12 @@ def main():
         assert any(i["code"] == "UNUSED_NODES" for i in result.issues)
         tree.links.new(noise.outputs["Color"], shader.inputs["Base Color"])
         assert check_material(adapter, service).status == "error"
+        second_unknown = tree.nodes.new("ShaderNodeTexNoise")
+        tree.links.new(second_unknown.outputs["Color"], shader.inputs["Emission Color"])
+        blocked = check_material(adapter, service)
+        reported = {i["node"] for i in blocked.issues if i["severity"] == "error"}
+        assert {noise.name, second_unknown.name} <= reported
+        tree.nodes.remove(second_unknown)
         tree.nodes.remove(noise)
 
         # 非恒等 POINT 须保留显式矩阵，错误坐标来源与静音节点仍阻断。

@@ -50,7 +50,9 @@ def test_import_warning_policy_and_relative_texture(tmp_path, accept):
     json.dumps(result, ensure_ascii=False)
 
 
-@pytest.mark.parametrize("failure", ["missing_texture", "preflight", "creation"])
+@pytest.mark.parametrize(
+    "failure", ["missing_texture", "preflight", "creation", "native_exception"]
+)
 def test_import_failure_is_reported_without_success(tmp_path, failure):
     from iris_relay.protocol import ValidationError
     from plugins.maya.controller import import_material
@@ -62,6 +64,8 @@ def test_import_failure_is_reported_without_success(tmp_path, failure):
             return []
 
         def create_material(self, material):
+            if failure == "native_exception":
+                raise SystemError("原生 API 抛出的非 RuntimeError 异常")
             raise RuntimeError("原生创建失败，宿主负责回滚")
 
     document = hsv_document()
@@ -81,6 +85,7 @@ def test_import_failure_is_reported_without_success(tmp_path, failure):
         "missing_texture": "TEXTURE_MISSING",
         "preflight": "MAYA_IMAGE_CHANNELS_UNSUPPORTED",
         "creation": "HOST_CREATE_FAILED",
+        "native_exception": "HOST_CREATE_FAILED",
     }
     assert result["status"] == "error" and result["created"] is None
     assert result["issues"][-1]["code"] == expected[failure]
@@ -122,3 +127,24 @@ def test_bad_response_cannot_be_applied():
 
     with pytest.raises(ValueError, match="请求 ID"):
         request(Broken(), "capabilities")
+
+
+def test_malformed_target_material_is_rejected_before_host_creation(tmp_path):
+    from plugins.core import import_material
+
+    target = maya_profile()
+    real = RelayAPI([target])
+
+    class Broken:
+        def handle(self, request):
+            response = real.handle(request)
+            if request["operation"] == "materialx.convert":
+                response["result"]["material"]["nodes"] = "invalid graph"
+            return response
+
+    path = tmp_path / "test.mtlx"
+    path.write_text(hsv_document(), encoding="utf-8")
+    adapter = Adapter()
+    result = import_material(adapter, Broken(), path, renderer(target), accept_warnings=True)
+    assert result["status"] == "error" and not adapter.created
+    assert result["issues"][-1]["code"] == "INVALID_RESPONSE"

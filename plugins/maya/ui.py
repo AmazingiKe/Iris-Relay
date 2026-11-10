@@ -33,7 +33,7 @@ class ImportPanel:
         self.files = cmds.textScrollList(
             allowMultiSelection=True, height=210, selectCommand=self.show_report
         )
-        self.warning = cmds.checkBox(label="允许带警告导入（外观尚未验证）", value=False)
+        self.warning = cmds.checkBox(label="允许带警告导入／导出（外观尚未验证）", value=False)
         cmds.rowLayout(numberOfColumns=3, adjustableColumn=1, columnWidth3=(300, 240, 200))
         cmds.button(label="检查选中", height=32, command=lambda *_: self.run(False))
         cmds.button(
@@ -45,7 +45,10 @@ class ImportPanel:
             label="选择文件后检查；可多选，单个失败不影响其他文件。", align="left"
         )
         self.details = cmds.scrollField(editable=False, wordWrap=False, height=230, text="")
-        cmds.button(label="复制选中报告", height=32, command=self.copy_report)
+        cmds.button(label="复制当前报告", height=32, command=self.copy_report)
+        cmds.button(
+            label="将场景选中的 Arnold 材质导出为 .mtlx…", height=32, command=self.export_selected
+        )
         cmds.showWindow(self.window)
         # Maya 英文安装的默认字体可能缺少中文字形，只调整本面板的字体。
         from PySide2.QtWidgets import QWidget
@@ -58,6 +61,13 @@ class ImportPanel:
         cmds.window(self.window, edit=True, widthHeight=(760, 700))
         for event in ("Undo", "Redo", "SceneOpened", "NewSceneOpened"):
             cmds.scriptJob(event=[event, self.invalidate], parent=self.window)
+        cmds.scriptJob(uiDeleted=[self.window, self.dispose], runOnce=True)
+
+    def dispose(self, *_):
+        """窗口关闭或脚本重载时回收本窗口启动的核心进程。"""
+        if self.service is not None and hasattr(self.service, "close"):
+            self.service.close()
+        self.service = self.adapter = self.target = None
 
     def invalidate(self, *_):
         """撤销、重做或换场景后清除旧报告，避免把已不存在的材质显示为成功。"""
@@ -83,6 +93,48 @@ class ImportPanel:
         )
         if paths:
             self.set_paths(paths)
+
+    def export_selected(self, *_):
+        """从当前选择读取原生图并逐材质导出；不使用列表中的导入缓存。"""
+        surfaces = [
+            node
+            for node in (cmds.ls(selection=True) or [])
+            if cmds.nodeType(node) == "aiStandardSurface"
+        ]
+        if not surfaces:
+            cmds.text(self.status, edit=True, label="请在场景中选择 aiStandardSurface 材质节点。")
+            return
+        paths = cmds.fileDialog2(fileMode=3, caption="选择新 MaterialX 文件的输出目录")
+        if not paths:
+            return
+        try:
+            if self.service is None:
+                target = ensure_environment()
+                service = controller.create_service()
+                adapter = MayaAdapter(service, target)
+                self.target, self.service, self.adapter = target, service, adapter
+            results = []
+            for index, surface in enumerate(surfaces):
+                results.append(
+                    controller.export_material(
+                        self.adapter,
+                        self.service,
+                        surface,
+                        Path(paths[0]) / f"maya_material_{index:04d}.mtlx",
+                        accept_warnings=cmds.checkBox(self.warning, query=True, value=True),
+                    )
+                )
+            cmds.scrollField(
+                self.details, edit=True, text=json.dumps(results, ensure_ascii=False, indent=2)
+            )
+            cmds.text(
+                self.status,
+                edit=True,
+                label=f"导出 {sum(bool(r['saved_path']) for r in results)} / {len(results)} 份；"
+                "已有文件不会覆盖。",
+            )
+        except (ValueError, RuntimeError) as exc:
+            cmds.text(self.status, edit=True, label="导出失败：" + str(exc))
 
     def choose_directory(self, *_):
         """读取选择目录的直属 .mtlx，不触碰其他文件。"""

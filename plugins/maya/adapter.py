@@ -3,9 +3,10 @@
 import json
 import math
 import re
+from copy import deepcopy
 from pathlib import Path
 
-from iris_relay.native import describe, encode_value
+from iris_relay.native import decode_value, describe, encode_value, identify
 from iris_relay.protocol import ValidationError
 
 
@@ -56,12 +57,12 @@ def set_value(plug, value):
     kind = cmds.getAttr(plug, type=True)
     if kind == "string":
         cmds.setAttr(plug, value, type="string")
-    elif kind in {"float3", "double3"}:
+    elif kind in {"float2", "double2", "float3", "double3"}:
         cmds.setAttr(plug, *value, type=kind)
     else:
         cmds.setAttr(plug, value)
     actual = cmds.getAttr(plug)
-    if kind in {"float3", "double3"}:
+    if kind in {"float2", "double2", "float3", "double3"}:
         actual = actual[0]
     if not equal(actual, value):
         raise ValidationError("原生参数写入后不一致：" + plug)
@@ -81,6 +82,7 @@ class MayaAdapter:
     """创建独立节点网络与 shadingEngine，默认不修改对象材质绑定。"""
 
     def __init__(self, service, target):
+        self.service = service
         self.profile = describe(service, target)
         self.target = target
         self.channels = {}
@@ -98,7 +100,9 @@ class MayaAdapter:
                 self.channels[key] = arnold.AiTextureGetNumChannels(str(path))
             actual = self.channels[key]
             expected = resource.get("metadata", {}).get("image_alpha", {}).get("channels")
-            if actual not in (1, 3) or (expected is not None and expected != actual):
+            if actual not in self.profile["texture_image_channels"] or (
+                expected is not None and expected != actual
+            ):
                 raise ValidationError(
                     "图片通道暂不支持或与文档不同"
                     f"（仅核验 1/3 通道；文件={actual}，文档={expected}）：" + str(path),
@@ -164,6 +168,8 @@ class MayaAdapter:
                 )
                 created.append(node)
                 nodes[record["id"]] = node
+                cmds.addAttr(node, longName="irisImplementation", dataType="string")
+                set_value(node + ".irisImplementation", record["type"])
                 for attr, value in rule["native"].get("properties", {}).items():
                     set_value(node + "." + attr, value)
                 for port, value in record["inputs"].items():
@@ -219,3 +225,161 @@ class MayaAdapter:
         finally:
             cmds.select(before, replace=True) if before else cmds.select(clear=True)
             cmds.undoInfo(closeChunk=True)
+
+    def read_material(self, surface):
+        """读取当前原生上游图；提示须经核心核验，未知节点或多余连接明确阻断。"""
+        from maya import cmds
+
+        if not cmds.objExists(surface) or cmds.nodeType(surface) != "aiStandardSurface":
+            raise ValidationError("请选择 aiStandardSurface 表面节点", "MAYA_SURFACE_UNSUPPORTED")
+        data = {
+            "schema_version": "1",
+            "renderer": self.target,
+            "name": surface,
+            "nodes": [],
+            "links": [],
+            "textures": {},
+            "output": {},
+            "metadata": {},
+        }
+        if cmds.attributeQuery("irisMaterialName", node=surface, exists=True):
+            data["name"] = cmds.getAttr(surface + ".irisMaterialName")
+        pending, rules, origins = [surface], {}, []
+        # 1. 按当前连线遍历，读取当前属性，不用导入时的文档或材质快照。
+        while pending:
+            node = pending.pop()
+            if node in rules:
+                continue
+            native_id = cmds.nodeType(node)
+            hint = (
+                cmds.getAttr(node + ".irisImplementation")
+                if cmds.attributeQuery("irisImplementation", node=node, exists=True)
+                else None
+            )
+            properties = {
+                key
+                for rule in self.profile["nodes"].values()
+                if rule["native"]["id"] == native_id
+                for key in rule["native"].get("properties", {})
+            }
+            values = {key: self.read_value(node + "." + key) for key in properties}
+            match = identify(self.service, self.target, native_id, values, hint)
+            rule = self.profile["nodes"][match["implementation"]]
+            rules[node] = rule
+            if cmds.getAttr(node + ".nodeState") != 0:
+                raise ValidationError(
+                    "节点处于旁路或阻断状态：" + node, "MAYA_NODE_STATE_UNSUPPORTED"
+                )
+            record = {
+                "id": node,
+                "type": match["implementation"],
+                "inputs": {},
+                "outputs": list(rule["outputs"]),
+                "metadata": {},
+            }
+            consumed = set()
+            for name, binding in rule["inputs"].items():
+                native = binding["native"]
+                if binding["type"] == "texture":
+                    resource = self.read_resource(node, native)
+                    key = "image_" + str(len(data["textures"]))
+                    data["textures"][key] = resource
+                    record["inputs"][name] = {"texture": key}
+                    continue
+                destinations = self.destination_plugs(node, binding)
+                sources = [
+                    cmds.connectionInfo(plug, sourceFromDestination=True) for plug in destinations
+                ]
+                if any(sources):
+                    if not all(sources) or len(set(sources)) != 1:
+                        raise ValidationError(
+                            "不完整或不同来源的复合输入：" + node + "." + name,
+                            "MAYA_PARTIAL_CONNECTION_UNSUPPORTED",
+                        )
+                    for plug in destinations:
+                        consumed.add(cmds.connectionInfo(plug, getExactDestination=True))
+                    origins.append((sources[0], {"node": node, "socket": name}))
+                    pending.append(sources[0].split(".", 1)[0])
+                    record["inputs"][name] = deepcopy(binding.get("default"))
+                else:
+                    value = self.read_value(node + "." + native["id"])
+                    enums = native.get("properties", {}).get("enum_values")
+                    if enums is not None:
+                        if value not in enums:
+                            raise ValidationError("原生枚举不在字典范围：" + node + "." + name)
+                        value = enums.index(value)
+                    record["inputs"][name] = decode_value(value, binding)
+            connections = (
+                cmds.listConnections(
+                    node, source=True, destination=False, plugs=True, connections=True
+                )
+                or []
+            )
+            # Maya 自动连接的色彩上下文属于宿主状态，只核对，不改动或当作材质计算分支。
+            context = {
+                "colorManagementEnabled": "defaultColorMgtGlobals.cmEnabled",
+                "colorManagementConfigFileEnabled": "defaultColorMgtGlobals.configFileEnabled",
+                "colorManagementConfigFilePath": "defaultColorMgtGlobals.configFilePath",
+                "workingSpace": "defaultColorMgtGlobals.workingSpaceName",
+            }
+            for destination, source in zip(connections[::2], connections[1::2]):
+                if context.get(destination.split(".", 1)[1]) == source:
+                    consumed.add(destination)
+            extra = set(connections[::2]) - consumed
+            if extra:
+                raise ValidationError(
+                    "存在字典未覆盖的输入连接：" + ", ".join(sorted(extra)),
+                    "MAYA_INPUT_UNSUPPORTED",
+                )
+            data["nodes"].append(record)
+        # 2. 输出端口也从实际来源核对；未知分量不替换为其他通道。
+        for plug, destination in origins:
+            node, attr = plug.split(".", 1)
+            outputs = [
+                key
+                for key, value in rules[node]["outputs"].items()
+                if value["native"]["id"] == attr
+            ]
+            if len(outputs) != 1:
+                raise ValidationError("字典未覆盖原生输出：" + plug, "MAYA_OUTPUT_UNSUPPORTED")
+            data["links"].append({"from": {"node": node, "socket": outputs[0]}, "to": destination})
+        output = next(
+            key
+            for key, value in rules[surface]["outputs"].items()
+            if value["semantic"] == "surface"
+        )
+        data["output"] = {"node": surface, "socket": output}
+        return data
+
+    @staticmethod
+    def read_value(plug):
+        """将 Maya 的复合属性转换为公开协议的列表，保留其实际数值。"""
+        from maya import cmds
+
+        value = cmds.getAttr(plug)
+        if isinstance(value, (tuple, list)):
+            if len(value) == 1 and isinstance(value[0], (tuple, list)):
+                value = value[0]
+            return list(value)
+        return value
+
+    def read_resource(self, node, native):
+        """读取当前图片文件、通道、色彩和 UV；附加审计属性不作为资源真值。"""
+        import arnold
+
+        from maya import cmds
+
+        path = Path(cmds.getAttr(node + "." + native["id"]))
+        if not path.is_file():
+            raise ValidationError("图片不存在：" + str(path), "TEXTURE_MISSING")
+        channels = arnold.AiTextureGetNumChannels(str(path))
+        if channels not in self.profile["texture_image_channels"]:
+            raise ValidationError(
+                "Maya 图片导出目前只核验 1/3 通道", "MAYA_IMAGE_CHANNELS_UNSUPPORTED"
+            )
+        return {
+            "uri": path.resolve().as_posix(),
+            "color_space": cmds.getAttr(node + "." + native["colorspace_id"]),
+            "coordinates": {"kind": "uv", "set": cmds.getAttr(node + "." + native["uv_id"])},
+            "metadata": {"image_alpha": {"mode": "STRAIGHT", "channels": channels}},
+        }

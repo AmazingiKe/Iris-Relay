@@ -54,6 +54,8 @@ def main():
         json.loads(path.read_text(encoding="utf-8"))
         for path in sorted((ROOT / "dictionaries").glob("*.json"))
     ]
+    excluded = [p["host"]["id"] for p in profiles if p["host"]["id"] not in {"blender", "cinema4d"}]
+    profiles = [p for p in profiles if p["host"]["id"] in {"blender", "cinema4d"}]
 
     def new_jobs(phase):
         return {
@@ -75,6 +77,7 @@ def main():
             )
     summary = {
         "run_id": run_id,
+        "excluded_hosts": excluded,
         "scope": (
             "原生夹具保存重开并通过统一 API 识别读回，"
             "再跨宿主转换、创建、保存重开核对；不证明外观一致"

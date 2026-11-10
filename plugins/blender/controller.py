@@ -12,7 +12,7 @@ from uuid import uuid4
 
 from iris_relay import RelayAPI
 from iris_relay.model import Material, ValidationError
-from iris_relay.plugin import JsonCommandService
+from iris_relay.transport import JsonSessionService
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -71,8 +71,15 @@ def create_service(root=ROOT):
     root = Path(root).resolve()
     python = root / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
     if python.is_file():
-        service = JsonCommandService(
-            [str(python), "-m", "iris_relay", "--dictionaries", str(root / "dictionaries")],
+        service = JsonSessionService(
+            [
+                str(python),
+                "-m",
+                "iris_relay",
+                "--dictionaries",
+                str(root / "dictionaries"),
+                "--stream",
+            ],
             cwd=root,
         )
     else:

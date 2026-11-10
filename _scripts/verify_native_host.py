@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT / "plugins"))
 
 from iris_relay import RelayAPI  # noqa: E402
 from iris_relay.model import Material  # noqa: E402
-from iris_relay.native import decode_value, encode_value, identify  # noqa: E402
+from iris_relay.native import decode_value, encode_value, identify, resource_color_space  # noqa: E402
 
 
 def equal(actual, expected):
@@ -126,6 +126,8 @@ def run_cinema4d(job, api):
     import redshift
     from probe_cinema4d import json_value
 
+    from plugins.cinema4d.adapter import implementation_hints, set_implementation_hints
+
     space = maxon.Id("com.redshift3d.redshift4c4d.class.nodespace")
     output_asset = "com.redshift3d.redshift4c4d.node.output"
 
@@ -221,7 +223,10 @@ def run_cinema4d(job, api):
                         assert Path(resource["uri"]).is_file()
                         assert resource["coordinates"] == {"kind": "uv", "set": ""}
                         assign(binding["id"], resource["uri"])
-                        assign(binding["colorspace_id"], resource["color_space"])
+                        assign(
+                            binding["colorspace_id"],
+                            resource_color_space(resource["color_space"], rule["inputs"][name]),
+                        )
                         assign(binding["uv_id"], "")
                     else:
                         assign(binding["id"], encode_value(value, rule["inputs"][name]))
@@ -271,6 +276,7 @@ def run_cinema4d(job, api):
             with graph.BeginTransaction() as transaction:
                 write()
                 transaction.Commit()
+            set_implementation_hints(material, {n["id"]: n["type"] for n in data["nodes"]})
         else:
             write()
 
@@ -303,6 +309,7 @@ def run_cinema4d(job, api):
             "output": {},
         }
         bindings = {}
+        hints = implementation_hints(material) if is_rs else {}
         # 直接读取原生类型和模式；不以预期的实现键代替识别证据。
         for name, node in nodes.items():
             native_id = (
@@ -321,7 +328,11 @@ def run_cinema4d(job, api):
                 return json_value(port(node, code).GetPortValue() if is_rs else node[int(code)])
 
             match = identify(
-                api, data["renderer"], native_id, {key: read(key) for key in properties}
+                api,
+                data["renderer"],
+                native_id,
+                {key: read(key) for key in properties},
+                hints.get(name),
             )
             rule = schema["nodes"][match["implementation"]]
             bindings[name] = rule
@@ -340,7 +351,9 @@ def run_cinema4d(job, api):
                         resource_id = "image_" + str(len(actual["textures"]))
                         actual["textures"][resource_id] = {
                             "uri": uri,
-                            "color_space": read(binding["colorspace_id"]),
+                            "color_space": resource_color_space(
+                                read(binding["colorspace_id"]), definition, encode=False
+                            ),
                             "coordinates": {"kind": "uv", "set": read(binding["uv_id"])},
                             "metadata": {},
                         }
@@ -427,7 +440,9 @@ def run_cinema4d(job, api):
                     if expected is not None:
                         resource = data["textures"][expected["texture"]]
                         assert Path(read(binding["id"])) == Path(resource["uri"])
-                        assert read(binding["colorspace_id"]) == resource["color_space"]
+                        assert read(binding["colorspace_id"]) == resource_color_space(
+                            resource["color_space"], rule["inputs"][name]
+                        )
                         assert read(binding["uv_id"]) == ""
                 else:
                     actual = decode_value(read(binding["id"]), rule["inputs"][name])
