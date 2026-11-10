@@ -16,6 +16,59 @@ PROFILES = [
 ]
 
 
+@pytest.mark.parametrize(
+    ("distribution", "subsurface_method"),
+    [
+        ("MULTI_GGX", "RANDOM_WALK_LEGACY"),
+        ("GGX", "RANDOM_WALK_SKIN"),
+        ("GGX", "BURLEY"),
+        ("MULTI_GGX", "BURLEY"),
+        ("MULTI_GGX", "RANDOM_WALK_SKIN"),
+        ("GGX", "RANDOM_WALK_LEGACY"),
+    ],
+)
+@pytest.mark.parametrize("sss_weight", [0.0, 0.2])
+def test_observed_principled_variants_export_with_explicit_sss_boundary(
+    distribution, subsurface_method, sss_weight
+):
+    """A1 实文件中的历史模式可识别；模式识别不得绕过活动 SSS 的支持边界。"""
+    profile = next(p for p in PROFILES if p["renderer"]["id"] == "cycles")
+    api = RelayAPI(PROFILES)
+    identified = api.handle(
+        {
+            "api_version": "1",
+            "request_id": "历史模式",
+            "operation": "identify",
+            "payload": {
+                "renderer": renderer(profile),
+                "native_id": "ShaderNodeBsdfPrincipled",
+                "properties": {
+                    "distribution": distribution,
+                    "subsurface_method": subsurface_method,
+                },
+            },
+        }
+    )
+    assert identified["status"] == "ok", identified
+    material = fixture(profile)
+    surface = next(n for n in material["nodes"] if n["type"] == "ShaderNodeBsdfPrincipled")
+    surface["type"] = identified["result"]["implementation"]
+    surface["inputs"]["Subsurface Weight"] = sss_weight
+    original = deepcopy(material)
+    exported = api.handle(
+        {
+            "api_version": "1",
+            "request_id": "历史模式导出",
+            "operation": "materialx.export",
+            "payload": {"material": material},
+        }
+    )
+    assert exported["result"]["source"] == original
+    assert material == original
+    assert bool(exported["result"]["document"]) == (sss_weight == 0)
+    assert exported["status"] == ("warning" if sss_weight == 0 else "error")
+
+
 @pytest.mark.parametrize("source", PROFILES, ids=lambda p: p["renderer"]["id"])
 @pytest.mark.parametrize("target", PROFILES, ids=lambda p: p["renderer"]["id"])
 @pytest.mark.parametrize("normal_semantic", ["normal.tangent", "bump.height"])

@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "id": "blender.cycles.native",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "semantic_schema_version": "1",
   "description": "真实原生绑定；标准表面、图片、切线法线、高度凹凸与显式 R 通道提取。其余节点见探测目录。",
   "renderer": {
@@ -21,6 +21,7 @@
     "kind": "runtime_instantiation",
     "appearance_verified": false,
     "implicit_color_to_float": "https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/convert.h",
+    "principled_variants": "Blender 5.2.3 对 A1.blend 全部 1803 个材质的原生读取；新增五种 distribution / subsurface_method 组合，样本中 SSS 权重均为零。",
     "weighted_sum": "Blender 5.2.3 DOT_PRODUCT 实机端口核验；https://github.com/blender/blender/blob/v5.2.3/source/blender/nodes/shader/nodes/node_shader_vector_math.cc"
   },
   "nodes": {
@@ -1258,6 +1259,2501 @@
         }
       },
       "approximation": "旧 Principled GGX / BURLEY 配置近似映射到标准表面；不支持非默认 SSS，外观尚未验证。"
+    },
+    "ShaderNodeBsdfPrincipled.multi_ggx_random_walk_legacy": {
+      "semantic": "surface.standard",
+      "native": {
+        "id": "ShaderNodeBsdfPrincipled",
+        "label": "Principled BSDF",
+        "properties": {
+          "distribution": "MULTI_GGX",
+          "subsurface_method": "RANDOM_WALK_LEGACY"
+        }
+      },
+      "inputs": {
+        "Base Color": {
+          "semantic": "base.color",
+          "type": "color",
+          "default": [
+            0.800000011920929,
+            0.800000011920929,
+            0.800000011920929
+          ],
+          "native": {
+            "id": "Base Color",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Metallic": {
+          "semantic": "metalness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Metallic",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Roughness": {
+          "semantic": "reflection.roughness",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "IOR": {
+          "semantic": "reflection.ior",
+          "type": "float",
+          "default": 1.5,
+          "native": {
+            "id": "IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            1,
+            10
+          ]
+        },
+        "Alpha": {
+          "semantic": "opacity",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "Alpha",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "transform": "scalar_to_color",
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Thin Wall": {
+          "semantic": "native.cycles.Thin Wall",
+          "type": "bool",
+          "default": false,
+          "native": {
+            "id": "Thin Wall",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Normal": {
+          "semantic": "normal",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "Normal",
+            "kind": "socket",
+            "codec": "normal"
+          },
+          "omit_if_default": false,
+          "nullable": true
+        },
+        "Weight": {
+          "semantic": "native.cycles.Weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Diffuse Roughness": {
+          "semantic": "diffuse.roughness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Diffuse Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Subsurface Weight": {
+          "semantic": "native.cycles.Subsurface Weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Subsurface Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Subsurface Radius": {
+          "semantic": "native.cycles.Subsurface Radius",
+          "type": "vector",
+          "default": [
+            1.0,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "native": {
+            "id": "Subsurface Radius",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Subsurface Scale": {
+          "semantic": "native.cycles.Subsurface Scale",
+          "type": "float",
+          "default": 0.004999999888241291,
+          "native": {
+            "id": "Subsurface Scale",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Subsurface IOR": {
+          "semantic": "native.cycles.Subsurface IOR",
+          "type": "float",
+          "default": 1.399999976158142,
+          "native": {
+            "id": "Subsurface IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Subsurface Anisotropy": {
+          "semantic": "native.cycles.Subsurface Anisotropy",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Subsurface Anisotropy",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Specular IOR Level": {
+          "semantic": "reflection.weight",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Specular IOR Level",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ],
+          "transform": {
+            "op": "scale",
+            "factor": 2
+          }
+        },
+        "Specular Tint": {
+          "semantic": "reflection.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Specular Tint",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Anisotropic": {
+          "semantic": "reflection.anisotropy",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Anisotropic",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Anisotropic Rotation": {
+          "semantic": "reflection.rotation",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Anisotropic Rotation",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Tangent": {
+          "semantic": "native.cycles.Tangent",
+          "type": "vector",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": "Tangent",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Transmission Weight": {
+          "semantic": "native.cycles.Transmission Weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Transmission Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Coat Weight": {
+          "semantic": "coat.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Coat Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Coat Roughness": {
+          "semantic": "coat.roughness",
+          "type": "float",
+          "default": 0.029999999329447746,
+          "native": {
+            "id": "Coat Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Coat IOR": {
+          "semantic": "coat.ior",
+          "type": "float",
+          "default": 1.5,
+          "native": {
+            "id": "Coat IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            1,
+            10
+          ]
+        },
+        "Coat Tint": {
+          "semantic": "coat.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Coat Tint",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Coat Normal": {
+          "semantic": "coat.normal",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "Coat Normal",
+            "kind": "socket",
+            "codec": "normal"
+          },
+          "omit_if_default": false,
+          "nullable": true
+        },
+        "Sheen Weight": {
+          "semantic": "sheen.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Sheen Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Sheen Roughness": {
+          "semantic": "sheen.roughness",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Sheen Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Sheen Tint": {
+          "semantic": "sheen.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Sheen Tint",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Emission Color": {
+          "semantic": "emission.color",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Emission Color",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Emission Strength": {
+          "semantic": "emission.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Emission Strength",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            100000
+          ]
+        },
+        "Thin Film Thickness": {
+          "semantic": "native.cycles.Thin Film Thickness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Thin Film Thickness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Thin Film IOR": {
+          "semantic": "native.cycles.Thin Film IOR",
+          "type": "float",
+          "default": 1.3300000429153442,
+          "native": {
+            "id": "Thin Film IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        }
+      },
+      "outputs": {
+        "BSDF": {
+          "semantic": "surface",
+          "type": "shader",
+          "native": {
+            "id": "BSDF",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "approximation": "Principled MULTI_GGX / RANDOM_WALK_LEGACY 近似映射到标准表面；活动 SSS 尚不支持，渲染外观未验证。"
+    },
+    "ShaderNodeBsdfPrincipled.ggx_random_walk_skin": {
+      "semantic": "surface.standard",
+      "native": {
+        "id": "ShaderNodeBsdfPrincipled",
+        "label": "Principled BSDF",
+        "properties": {
+          "distribution": "GGX",
+          "subsurface_method": "RANDOM_WALK_SKIN"
+        }
+      },
+      "inputs": {
+        "Base Color": {
+          "semantic": "base.color",
+          "type": "color",
+          "default": [
+            0.800000011920929,
+            0.800000011920929,
+            0.800000011920929
+          ],
+          "native": {
+            "id": "Base Color",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Metallic": {
+          "semantic": "metalness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Metallic",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Roughness": {
+          "semantic": "reflection.roughness",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "IOR": {
+          "semantic": "reflection.ior",
+          "type": "float",
+          "default": 1.5,
+          "native": {
+            "id": "IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            1,
+            10
+          ]
+        },
+        "Alpha": {
+          "semantic": "opacity",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "Alpha",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "transform": "scalar_to_color",
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Thin Wall": {
+          "semantic": "native.cycles.Thin Wall",
+          "type": "bool",
+          "default": false,
+          "native": {
+            "id": "Thin Wall",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Normal": {
+          "semantic": "normal",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "Normal",
+            "kind": "socket",
+            "codec": "normal"
+          },
+          "omit_if_default": false,
+          "nullable": true
+        },
+        "Weight": {
+          "semantic": "native.cycles.Weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Diffuse Roughness": {
+          "semantic": "diffuse.roughness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Diffuse Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Subsurface Weight": {
+          "semantic": "native.cycles.Subsurface Weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Subsurface Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Subsurface Radius": {
+          "semantic": "native.cycles.Subsurface Radius",
+          "type": "vector",
+          "default": [
+            1.0,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "native": {
+            "id": "Subsurface Radius",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Subsurface Scale": {
+          "semantic": "native.cycles.Subsurface Scale",
+          "type": "float",
+          "default": 0.004999999888241291,
+          "native": {
+            "id": "Subsurface Scale",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Subsurface IOR": {
+          "semantic": "native.cycles.Subsurface IOR",
+          "type": "float",
+          "default": 1.399999976158142,
+          "native": {
+            "id": "Subsurface IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Subsurface Anisotropy": {
+          "semantic": "native.cycles.Subsurface Anisotropy",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Subsurface Anisotropy",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Specular IOR Level": {
+          "semantic": "reflection.weight",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Specular IOR Level",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ],
+          "transform": {
+            "op": "scale",
+            "factor": 2
+          }
+        },
+        "Specular Tint": {
+          "semantic": "reflection.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Specular Tint",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Anisotropic": {
+          "semantic": "reflection.anisotropy",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Anisotropic",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Anisotropic Rotation": {
+          "semantic": "reflection.rotation",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Anisotropic Rotation",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Tangent": {
+          "semantic": "native.cycles.Tangent",
+          "type": "vector",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": "Tangent",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Transmission Weight": {
+          "semantic": "native.cycles.Transmission Weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Transmission Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Coat Weight": {
+          "semantic": "coat.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Coat Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Coat Roughness": {
+          "semantic": "coat.roughness",
+          "type": "float",
+          "default": 0.029999999329447746,
+          "native": {
+            "id": "Coat Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Coat IOR": {
+          "semantic": "coat.ior",
+          "type": "float",
+          "default": 1.5,
+          "native": {
+            "id": "Coat IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            1,
+            10
+          ]
+        },
+        "Coat Tint": {
+          "semantic": "coat.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Coat Tint",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Coat Normal": {
+          "semantic": "coat.normal",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "Coat Normal",
+            "kind": "socket",
+            "codec": "normal"
+          },
+          "omit_if_default": false,
+          "nullable": true
+        },
+        "Sheen Weight": {
+          "semantic": "sheen.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Sheen Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Sheen Roughness": {
+          "semantic": "sheen.roughness",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Sheen Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Sheen Tint": {
+          "semantic": "sheen.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Sheen Tint",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Emission Color": {
+          "semantic": "emission.color",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Emission Color",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Emission Strength": {
+          "semantic": "emission.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Emission Strength",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            100000
+          ]
+        },
+        "Thin Film Thickness": {
+          "semantic": "native.cycles.Thin Film Thickness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Thin Film Thickness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Thin Film IOR": {
+          "semantic": "native.cycles.Thin Film IOR",
+          "type": "float",
+          "default": 1.3300000429153442,
+          "native": {
+            "id": "Thin Film IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        }
+      },
+      "outputs": {
+        "BSDF": {
+          "semantic": "surface",
+          "type": "shader",
+          "native": {
+            "id": "BSDF",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "approximation": "Principled GGX / RANDOM_WALK_SKIN 近似映射到标准表面；活动 SSS 尚不支持，渲染外观未验证。"
+    },
+    "ShaderNodeBsdfPrincipled.multi_ggx_burley": {
+      "semantic": "surface.standard",
+      "native": {
+        "id": "ShaderNodeBsdfPrincipled",
+        "label": "Principled BSDF",
+        "properties": {
+          "distribution": "MULTI_GGX",
+          "subsurface_method": "BURLEY"
+        }
+      },
+      "inputs": {
+        "Base Color": {
+          "semantic": "base.color",
+          "type": "color",
+          "default": [
+            0.800000011920929,
+            0.800000011920929,
+            0.800000011920929
+          ],
+          "native": {
+            "id": "Base Color",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Metallic": {
+          "semantic": "metalness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Metallic",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Roughness": {
+          "semantic": "reflection.roughness",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "IOR": {
+          "semantic": "reflection.ior",
+          "type": "float",
+          "default": 1.5,
+          "native": {
+            "id": "IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            1,
+            10
+          ]
+        },
+        "Alpha": {
+          "semantic": "opacity",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "Alpha",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "transform": "scalar_to_color",
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Thin Wall": {
+          "semantic": "native.cycles.Thin Wall",
+          "type": "bool",
+          "default": false,
+          "native": {
+            "id": "Thin Wall",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Normal": {
+          "semantic": "normal",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "Normal",
+            "kind": "socket",
+            "codec": "normal"
+          },
+          "omit_if_default": false,
+          "nullable": true
+        },
+        "Weight": {
+          "semantic": "native.cycles.Weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Diffuse Roughness": {
+          "semantic": "diffuse.roughness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Diffuse Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Subsurface Weight": {
+          "semantic": "native.cycles.Subsurface Weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Subsurface Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Subsurface Radius": {
+          "semantic": "native.cycles.Subsurface Radius",
+          "type": "vector",
+          "default": [
+            1.0,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "native": {
+            "id": "Subsurface Radius",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Subsurface Scale": {
+          "semantic": "native.cycles.Subsurface Scale",
+          "type": "float",
+          "default": 0.004999999888241291,
+          "native": {
+            "id": "Subsurface Scale",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Subsurface IOR": {
+          "semantic": "native.cycles.Subsurface IOR",
+          "type": "float",
+          "default": 1.399999976158142,
+          "native": {
+            "id": "Subsurface IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Subsurface Anisotropy": {
+          "semantic": "native.cycles.Subsurface Anisotropy",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Subsurface Anisotropy",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Specular IOR Level": {
+          "semantic": "reflection.weight",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Specular IOR Level",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ],
+          "transform": {
+            "op": "scale",
+            "factor": 2
+          }
+        },
+        "Specular Tint": {
+          "semantic": "reflection.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Specular Tint",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Anisotropic": {
+          "semantic": "reflection.anisotropy",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Anisotropic",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Anisotropic Rotation": {
+          "semantic": "reflection.rotation",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Anisotropic Rotation",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Tangent": {
+          "semantic": "native.cycles.Tangent",
+          "type": "vector",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": "Tangent",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Transmission Weight": {
+          "semantic": "native.cycles.Transmission Weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Transmission Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Coat Weight": {
+          "semantic": "coat.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Coat Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Coat Roughness": {
+          "semantic": "coat.roughness",
+          "type": "float",
+          "default": 0.029999999329447746,
+          "native": {
+            "id": "Coat Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Coat IOR": {
+          "semantic": "coat.ior",
+          "type": "float",
+          "default": 1.5,
+          "native": {
+            "id": "Coat IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            1,
+            10
+          ]
+        },
+        "Coat Tint": {
+          "semantic": "coat.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Coat Tint",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Coat Normal": {
+          "semantic": "coat.normal",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "Coat Normal",
+            "kind": "socket",
+            "codec": "normal"
+          },
+          "omit_if_default": false,
+          "nullable": true
+        },
+        "Sheen Weight": {
+          "semantic": "sheen.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Sheen Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Sheen Roughness": {
+          "semantic": "sheen.roughness",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Sheen Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Sheen Tint": {
+          "semantic": "sheen.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Sheen Tint",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Emission Color": {
+          "semantic": "emission.color",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Emission Color",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Emission Strength": {
+          "semantic": "emission.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Emission Strength",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            100000
+          ]
+        },
+        "Thin Film Thickness": {
+          "semantic": "native.cycles.Thin Film Thickness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Thin Film Thickness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Thin Film IOR": {
+          "semantic": "native.cycles.Thin Film IOR",
+          "type": "float",
+          "default": 1.3300000429153442,
+          "native": {
+            "id": "Thin Film IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        }
+      },
+      "outputs": {
+        "BSDF": {
+          "semantic": "surface",
+          "type": "shader",
+          "native": {
+            "id": "BSDF",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "approximation": "Principled MULTI_GGX / BURLEY 近似映射到标准表面；活动 SSS 尚不支持，渲染外观未验证。"
+    },
+    "ShaderNodeBsdfPrincipled.multi_ggx_random_walk_skin": {
+      "semantic": "surface.standard",
+      "native": {
+        "id": "ShaderNodeBsdfPrincipled",
+        "label": "Principled BSDF",
+        "properties": {
+          "distribution": "MULTI_GGX",
+          "subsurface_method": "RANDOM_WALK_SKIN"
+        }
+      },
+      "inputs": {
+        "Base Color": {
+          "semantic": "base.color",
+          "type": "color",
+          "default": [
+            0.800000011920929,
+            0.800000011920929,
+            0.800000011920929
+          ],
+          "native": {
+            "id": "Base Color",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Metallic": {
+          "semantic": "metalness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Metallic",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Roughness": {
+          "semantic": "reflection.roughness",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "IOR": {
+          "semantic": "reflection.ior",
+          "type": "float",
+          "default": 1.5,
+          "native": {
+            "id": "IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            1,
+            10
+          ]
+        },
+        "Alpha": {
+          "semantic": "opacity",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "Alpha",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "transform": "scalar_to_color",
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Thin Wall": {
+          "semantic": "native.cycles.Thin Wall",
+          "type": "bool",
+          "default": false,
+          "native": {
+            "id": "Thin Wall",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Normal": {
+          "semantic": "normal",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "Normal",
+            "kind": "socket",
+            "codec": "normal"
+          },
+          "omit_if_default": false,
+          "nullable": true
+        },
+        "Weight": {
+          "semantic": "native.cycles.Weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Diffuse Roughness": {
+          "semantic": "diffuse.roughness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Diffuse Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Subsurface Weight": {
+          "semantic": "native.cycles.Subsurface Weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Subsurface Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Subsurface Radius": {
+          "semantic": "native.cycles.Subsurface Radius",
+          "type": "vector",
+          "default": [
+            1.0,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "native": {
+            "id": "Subsurface Radius",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Subsurface Scale": {
+          "semantic": "native.cycles.Subsurface Scale",
+          "type": "float",
+          "default": 0.004999999888241291,
+          "native": {
+            "id": "Subsurface Scale",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Subsurface IOR": {
+          "semantic": "native.cycles.Subsurface IOR",
+          "type": "float",
+          "default": 1.399999976158142,
+          "native": {
+            "id": "Subsurface IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Subsurface Anisotropy": {
+          "semantic": "native.cycles.Subsurface Anisotropy",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Subsurface Anisotropy",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Specular IOR Level": {
+          "semantic": "reflection.weight",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Specular IOR Level",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ],
+          "transform": {
+            "op": "scale",
+            "factor": 2
+          }
+        },
+        "Specular Tint": {
+          "semantic": "reflection.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Specular Tint",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Anisotropic": {
+          "semantic": "reflection.anisotropy",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Anisotropic",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Anisotropic Rotation": {
+          "semantic": "reflection.rotation",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Anisotropic Rotation",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Tangent": {
+          "semantic": "native.cycles.Tangent",
+          "type": "vector",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": "Tangent",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Transmission Weight": {
+          "semantic": "native.cycles.Transmission Weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Transmission Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Coat Weight": {
+          "semantic": "coat.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Coat Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Coat Roughness": {
+          "semantic": "coat.roughness",
+          "type": "float",
+          "default": 0.029999999329447746,
+          "native": {
+            "id": "Coat Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Coat IOR": {
+          "semantic": "coat.ior",
+          "type": "float",
+          "default": 1.5,
+          "native": {
+            "id": "Coat IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            1,
+            10
+          ]
+        },
+        "Coat Tint": {
+          "semantic": "coat.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Coat Tint",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Coat Normal": {
+          "semantic": "coat.normal",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "Coat Normal",
+            "kind": "socket",
+            "codec": "normal"
+          },
+          "omit_if_default": false,
+          "nullable": true
+        },
+        "Sheen Weight": {
+          "semantic": "sheen.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Sheen Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Sheen Roughness": {
+          "semantic": "sheen.roughness",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Sheen Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Sheen Tint": {
+          "semantic": "sheen.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Sheen Tint",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Emission Color": {
+          "semantic": "emission.color",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Emission Color",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Emission Strength": {
+          "semantic": "emission.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Emission Strength",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            100000
+          ]
+        },
+        "Thin Film Thickness": {
+          "semantic": "native.cycles.Thin Film Thickness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Thin Film Thickness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Thin Film IOR": {
+          "semantic": "native.cycles.Thin Film IOR",
+          "type": "float",
+          "default": 1.3300000429153442,
+          "native": {
+            "id": "Thin Film IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        }
+      },
+      "outputs": {
+        "BSDF": {
+          "semantic": "surface",
+          "type": "shader",
+          "native": {
+            "id": "BSDF",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "approximation": "Principled MULTI_GGX / RANDOM_WALK_SKIN 近似映射到标准表面；活动 SSS 尚不支持，渲染外观未验证。"
+    },
+    "ShaderNodeBsdfPrincipled.ggx_random_walk_legacy": {
+      "semantic": "surface.standard",
+      "native": {
+        "id": "ShaderNodeBsdfPrincipled",
+        "label": "Principled BSDF",
+        "properties": {
+          "distribution": "GGX",
+          "subsurface_method": "RANDOM_WALK_LEGACY"
+        }
+      },
+      "inputs": {
+        "Base Color": {
+          "semantic": "base.color",
+          "type": "color",
+          "default": [
+            0.800000011920929,
+            0.800000011920929,
+            0.800000011920929
+          ],
+          "native": {
+            "id": "Base Color",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Metallic": {
+          "semantic": "metalness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Metallic",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Roughness": {
+          "semantic": "reflection.roughness",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "IOR": {
+          "semantic": "reflection.ior",
+          "type": "float",
+          "default": 1.5,
+          "native": {
+            "id": "IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            1,
+            10
+          ]
+        },
+        "Alpha": {
+          "semantic": "opacity",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "Alpha",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "transform": "scalar_to_color",
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Thin Wall": {
+          "semantic": "native.cycles.Thin Wall",
+          "type": "bool",
+          "default": false,
+          "native": {
+            "id": "Thin Wall",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Normal": {
+          "semantic": "normal",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "Normal",
+            "kind": "socket",
+            "codec": "normal"
+          },
+          "omit_if_default": false,
+          "nullable": true
+        },
+        "Weight": {
+          "semantic": "native.cycles.Weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Diffuse Roughness": {
+          "semantic": "diffuse.roughness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Diffuse Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Subsurface Weight": {
+          "semantic": "native.cycles.Subsurface Weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Subsurface Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Subsurface Radius": {
+          "semantic": "native.cycles.Subsurface Radius",
+          "type": "vector",
+          "default": [
+            1.0,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "native": {
+            "id": "Subsurface Radius",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Subsurface Scale": {
+          "semantic": "native.cycles.Subsurface Scale",
+          "type": "float",
+          "default": 0.004999999888241291,
+          "native": {
+            "id": "Subsurface Scale",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Subsurface IOR": {
+          "semantic": "native.cycles.Subsurface IOR",
+          "type": "float",
+          "default": 1.399999976158142,
+          "native": {
+            "id": "Subsurface IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Subsurface Anisotropy": {
+          "semantic": "native.cycles.Subsurface Anisotropy",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Subsurface Anisotropy",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true,
+          "inactive_when": {
+            "input": "Subsurface Weight",
+            "equals": 0
+          }
+        },
+        "Specular IOR Level": {
+          "semantic": "reflection.weight",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Specular IOR Level",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ],
+          "transform": {
+            "op": "scale",
+            "factor": 2
+          }
+        },
+        "Specular Tint": {
+          "semantic": "reflection.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Specular Tint",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Anisotropic": {
+          "semantic": "reflection.anisotropy",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Anisotropic",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Anisotropic Rotation": {
+          "semantic": "reflection.rotation",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Anisotropic Rotation",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Tangent": {
+          "semantic": "native.cycles.Tangent",
+          "type": "vector",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": "Tangent",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Transmission Weight": {
+          "semantic": "native.cycles.Transmission Weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Transmission Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Coat Weight": {
+          "semantic": "coat.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Coat Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Coat Roughness": {
+          "semantic": "coat.roughness",
+          "type": "float",
+          "default": 0.029999999329447746,
+          "native": {
+            "id": "Coat Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Coat IOR": {
+          "semantic": "coat.ior",
+          "type": "float",
+          "default": 1.5,
+          "native": {
+            "id": "Coat IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            1,
+            10
+          ]
+        },
+        "Coat Tint": {
+          "semantic": "coat.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Coat Tint",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Coat Normal": {
+          "semantic": "coat.normal",
+          "type": "vector",
+          "default": null,
+          "native": {
+            "id": "Coat Normal",
+            "kind": "socket",
+            "codec": "normal"
+          },
+          "omit_if_default": false,
+          "nullable": true
+        },
+        "Sheen Weight": {
+          "semantic": "sheen.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Sheen Weight",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Sheen Roughness": {
+          "semantic": "sheen.roughness",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Sheen Roughness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            1
+          ]
+        },
+        "Sheen Tint": {
+          "semantic": "sheen.tint",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Sheen Tint",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Emission Color": {
+          "semantic": "emission.color",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": "Emission Color",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false,
+          "adjustable": true
+        },
+        "Emission Strength": {
+          "semantic": "emission.weight",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Emission Strength",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false,
+          "adjustable": true,
+          "range": [
+            0,
+            100000
+          ]
+        },
+        "Thin Film Thickness": {
+          "semantic": "native.cycles.Thin Film Thickness",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "Thin Film Thickness",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        },
+        "Thin Film IOR": {
+          "semantic": "native.cycles.Thin Film IOR",
+          "type": "float",
+          "default": 1.3300000429153442,
+          "native": {
+            "id": "Thin Film IOR",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        }
+      },
+      "outputs": {
+        "BSDF": {
+          "semantic": "surface",
+          "type": "shader",
+          "native": {
+            "id": "BSDF",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "approximation": "Principled GGX / RANDOM_WALK_LEGACY 近似映射到标准表面；活动 SSS 尚不支持，渲染外观未验证。"
     },
     "ShaderNodeVectorMath.dot_product": {
       "semantic": "color.weighted_sum",

@@ -172,7 +172,7 @@ def build(catalog):
     if "color_context" in catalog:
         profile["evidence"]["color_context"] = catalog["color_context"]
     if engine == "cycles":
-        profile["version"] = "0.3.2"
+        profile["version"] = "0.3.3"
         profile["materialx_export"] = {"color_to_float": "scene_linear_luminance"}
         profile["evidence"]["implicit_color_to_float"] = (
             "https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/convert.h"
@@ -393,8 +393,39 @@ def build(catalog):
             "旧 Principled GGX / BURLEY 配置近似映射到标准表面；不支持非默认 SSS，外观尚未验证。"
         )
         profile["nodes"][shader_key + ".ggx_burley"] = legacy
+        add_blender_principled_variants(profile, catalog, shader_key)
         add_blender_weighted_sum(profile, catalog)
     return profile
+
+
+def add_blender_principled_variants(profile, catalog, shader_key):
+    """补入 A1 实文件读取到的历史 Principled 模式，沿用活动 SSS 阻断规则。"""
+    # 1. 只增加实际样本中出现的组合，并核对该版本实机目录中的枚举。
+    observed = catalog["nodes"][shader_key]["properties"]
+    variants = (
+        ("MULTI_GGX", "RANDOM_WALK_LEGACY"),
+        ("GGX", "RANDOM_WALK_SKIN"),
+        ("MULTI_GGX", "BURLEY"),
+        ("MULTI_GGX", "RANDOM_WALK_SKIN"),
+        ("GGX", "RANDOM_WALK_LEGACY"),
+    )
+    for distribution, method in variants:
+        properties = {"distribution": distribution, "subsurface_method": method}
+        if any(value not in observed[key]["items"] for key, value in properties.items()):
+            raise ValueError("Principled 历史模式缺少当前版本宿主证据")
+        # 2. 来源模式可识别；目标默认保持唯一，未实现的 SSS 不因扩展模式而放行。
+        variant = deepcopy(profile["nodes"][shader_key])
+        variant.pop("target_default")
+        variant["native"]["properties"] = properties
+        variant["approximation"] = (
+            f"Principled {distribution} / {method} 近似映射到标准表面；"
+            "活动 SSS 尚不支持，渲染外观未验证。"
+        )
+        profile["nodes"][f"{shader_key}.{distribution.lower()}_{method.lower()}"] = variant
+    profile["evidence"]["principled_variants"] = (
+        "Blender 5.2.3 对 A1.blend 全部 1803 个材质的原生读取；"
+        "新增五种 distribution / subsurface_method 组合，样本中 SSS 权重均为零。"
+    )
 
 
 def add_blender_weighted_sum(profile, catalog):
