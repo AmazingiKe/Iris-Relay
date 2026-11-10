@@ -6,7 +6,7 @@ Iris Relay 探索跨渲染器的材质转换：以字典建立材质语义对应
 
 当前已完成初步核心：统一 API、材质图协议、声明式字典、转换与诊断报告、联合校正扩展接口，以及通过同一 API 运行的参考插件。Python 核心不依赖 DCC 运行时；0.4.0 引入官方 MaterialX 1.39.5 SDK。
 
-新的 [MaterialX 核心](_docs/materialx-core.md) 支持官方节点定义查询、`.mtlx` 校验与保存、自定义 NodeDef／子图，以及与现有字典功能的受限原生桥接。文档保存范围大于目标转换范围；专有节点没有目标规则时保留源信息并阻断。Maya Arnold → Blender Cycles 是下一条宿主接入方向，Maya 读取尚未实现。
+新的 [MaterialX 核心](_docs/materialx-core.md) 支持官方节点定义查询、`.mtlx` 校验与保存、自定义 NodeDef／子图，以及与现有字典功能的受限原生桥接。文档保存范围大于目标转换范围；专有节点没有目标规则时保留源信息并阻断。现已提供 [Maya 2022 Arnold 导入入口](_docs/maya-materialx-import.md)，将受支持的 `.mtlx` 创建为可编辑原生节点；Maya 原生材质读取及导出尚未实现。
 
 现已提供 Blender Cycles、C4D Redshift 和 C4DtoA 的真实节点目录与基础字典，包含节点名称、资产 ID、整数 code 和端口绑定。本轮 6 组源材质完成保存重开和原生识别，随后 18 组转换完成目标创建、保存重开及参数／连接核对。详见[原生字典与验证范围](_docs/native-dictionaries.md)。
 
@@ -82,6 +82,17 @@ GUI 按需加载核心；重复运行入口会重新加载宿主模块、清空�
 
 同日在独立前台测试副本检查面板、输入文件选择器、检查与导入按钮；导入后材质数从 2 增至 3、图片数从 8 增至 11，通过顶部编辑菜单撤销后恢复为 2 和 8，旧成功报告随之清空。未操作用户原先打开的 Blender 场景。
 
+## Maya 2022 导入
+
+在 Maya 脚本编辑器 **Python** 页签运行，替换仓库路径：
+
+```python
+import runpy
+runpy.run_path(r"仓库绝对路径/_examples/maya_demo_gui.py", run_name="__main__")
+```
+
+选择文件／目录 → 检查选中 → 查看并接受警告 → 导入为新材质。默认不替换绑定，每份材质可撤销。实测版本为 Maya 2022.5、MtoA 5.3.5.3、Arnold 7.2.5.3；复用仓库 `.venv`，不在 Maya 安装 MaterialX。上一轮 A1 的 89 份文件中，31 份通过节点、贴图连接及保存重开检查；其余明确阻断。使用方式、已解决问题和限制见 [Maya 导入文档](_docs/maya-materialx-import.md)。未验证渲染外观。
+
 ## 统一接口
 
 阅读 GUI 导出代码时，可按下面顺序定位；主入口内已有步骤注释，具体处理拆到对应的小函数：
@@ -110,6 +121,7 @@ iris_relay/            核心、公开 API、插件辅助接口与命令行
 dictionaries/          真实转换字典；catalogs/ 保存原生节点探测目录
 plugins/               宿主接入层，按实际宿主分目录
   blender/             GUI（ui.py）、导入导出控制（controller.py）、材质读写（adapter.py）
+  maya/                Maya 2022 导入界面、公开 API 控制层与原生节点创建
 _scripts/              节点探测、字典生成和独立宿主验证
 _examples/             可执行参考插件、GUI 测试入口、请求和示例字典
 _tests/                图转换、接口、失败回退和跨进程测试

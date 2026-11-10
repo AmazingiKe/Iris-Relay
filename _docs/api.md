@@ -181,6 +181,10 @@ uv run python _examples/plugin_demo.py --transport process
 
 本地子进程从其他工作目录启动时，可传入 `JsonCommandService([...], cwd=仓库根目录)`，使 `python -m iris_relay` 能定位核心；该设置只影响子进程，不改变宿主工作目录。
 
+Python 3.7 宿主可从 `iris_relay.transport` 导入 `JsonCommandService`，从 `iris_relay.protocol` 导入 `ValidationError`；两者及公开 `iris_relay.native` 辅助接口不加载核心或 SDK。旧 `iris_relay.plugin` 导入路径保留，但该模块本身仍面向 Python 3.11+。`env=环境字典` 可指定子进程环境；不传时继承父进程。Maya 控制层仅对子进程清除 Maya 注入的 `PYTHONHOME` / `PYTHONPATH`。
+
+Maya 字典的端口 `native.properties.enum_values` 是原生枚举编码表，例如 `[5, 6, 7]` 将标准 RGB 索引 0/1/2 写为对应 `aiColorToFloat.mode`。它不参与语义计算；动态连接到该枚举端口会被宿主明确阻断。标准 NodeDef 的 integer 端口在旧材质协议中使用数值字段，要求实际值为整数，导出时写为 MaterialX integer。
+
 ## 联合校正扩展
 
 核心可配置一个实现 `JointPredictor` 的对象：`model_id` 标识模型与版本，`predict(context)` 返回 `CorrectionProposal`。上下文包含完整 `source`、`intermediate`、`target` 和 `dictionary_versions`，均为隔离副本。

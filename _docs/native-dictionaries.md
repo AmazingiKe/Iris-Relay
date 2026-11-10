@@ -1,6 +1,6 @@
 # 原生节点字典与实机验证
 
-真实字典位于 [`dictionaries/`](../dictionaries/)，不再使用示例节点名代替软件 API。当前覆盖本机已核验的 Blender Cycles、Cinema 4D Redshift 和 C4DtoA，版本精确匹配；尚未覆盖所有 DCC、其他版本或第三方节点。
+真实字典位于 [`dictionaries/`](../dictionaries/)，不再使用示例节点名代替软件 API。当前包含本机已核验的 Blender Cycles、Cinema 4D Redshift、C4DtoA，以及 Maya 2022 Arnold 导入目标，版本精确匹配；尚未覆盖所有 DCC、其他版本或第三方节点。
 
 精确匹配指渲染器版本、宿主版本与节点系统。C4DtoA 4.8.3.1 是此次实机核验条件，核心目前没有独立的 C4DtoA 插件版本匹配字段。
 
@@ -11,6 +11,9 @@
 | Blender 5.2.3 LTS／Cycles 5.2.3 | [目录](../dictionaries/catalogs/blender-cycles-5.2.3.json) | [字典](../dictionaries/blender-cycles-5.2.3.json) | 发现 100 种 ShaderNode 类型，99 种可实例化 |
 | Cinema 4D 2025.3.2／Redshift 2025.3.0 | [目录](../dictionaries/catalogs/cinema4d-redshift-2025.3.0.json) | [字典](../dictionaries/cinema4d-redshift-2025.3.0.json) | 154 个节点资产可实例化 |
 | Cinema 4D 2025.3.2／Arnold 7.4.3.0，C4DtoA 4.8.3.1 | [目录](../dictionaries/catalogs/cinema4d-arnold-7.4.3.0.json) | [字典](../dictionaries/cinema4d-arnold-7.4.3.0.json) | 131 个内置 shader／custom shader 可实例化 |
+| Maya 2022.5／Arnold 7.2.5.3，MtoA 5.3.5.3 | [任务所需类型目录](../dictionaries/catalogs/maya-arnold-7.2.5.3.json) | [字典](../dictionaries/maya-arnold-7.2.5.3.json) | 17 种原生类型实际创建及属性查询；不是完整探测目录 |
+
+Maya 新增目标的节点映射、31 / 89 份实际文件导入及 5 / 5 份 HSV 夹具结果见 [Maya 导入文档](maya-materialx-import.md)。该字典不构成 Maya 原生读取／导出实现，MtoA 精确版本另由宿主适配器检查。下文三端数量和 18 组跨端结果是原 Blender / C4D 验证记录，不包含本次 Maya 增量。
 
 目录记录类型名称、字符串 ID 或整数 code、端口、默认值及探测状态。Blender 的 `ShaderNodeCustomGroup` 不能直接实例化，保留失败原因。动态节点组、用户资产、第三方程序生成节点和不同模式下新增的端口不属于此次完整性范围。个别 Arnold 类型的头文件没有可提取的参数表，个别 Redshift 端口的 Python 值不可读；目录明确保留空列表或 `unreadable`，不猜测数值。
 

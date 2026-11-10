@@ -2,6 +2,8 @@
 
 Iris Relay 0.4.0 使用官方 MaterialX 1.39.5 SDK，提供材质文档校验、节点定义查询、自定义节点保存和受限原生转换。插件仍只调用公开 Python API，不需要 HTTP，也不需要每次经过磁盘文件。
 
+新增 [Maya 2022 Arnold 目标入口](maya-materialx-import.md)：通过同一 `materialx.convert` 将标准图创建为可编辑节点，HSV 扩展展开为受支持的数学节点。integer 索引按整数验证和序列化；宿主负责原生枚举编码及图片通道预检。Maya 原生读取／导出、四通道 Alpha、UV 矩阵还原和渲染外观仍未实现或验证。
+
 ## 最小调用
 
 核心位于仓库根目录的 `iris_relay/`，无需安装项目自身。在仓库根目录运行 `uv sync --extra dev` 安装第三方依赖，然后：
