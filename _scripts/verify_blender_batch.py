@@ -3,18 +3,16 @@
 import argparse
 import json
 import sys
+import time
 from copy import deepcopy
 from dataclasses import asdict
 from pathlib import Path
-
-import bpy
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from _scripts.verify_native_host import equal  # noqa: E402
 from plugins.blender import controller  # noqa: E402
-from plugins.blender.adapter import BlenderAdapter, renderer_ref  # noqa: E402
 
 
 class CachedService:
@@ -39,11 +37,23 @@ def write_json(path, data):
     """保存本次任务自身的进度文件，中文问题保持可读。"""
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-    temporary.replace(path)
+    # Windows 上读者可能短暂阻止原子替换；保留旧进度，有限重试后仍明确失败。
+    for attempt in range(8):
+        try:
+            temporary.replace(path)
+            return
+        except PermissionError:
+            if attempt == 7:
+                raise
+            time.sleep(0.05 * (attempt + 1))
 
 
 def export_all(args, service):
     """只附加源文件的材质，逐一导出；保留每个失败报告及已成功的文档。"""
+    import bpy
+
+    from plugins.blender.adapter import BlenderAdapter
+
     # 1. 附加材质及其依赖，避免加载和求值与材质检查无关的整场景几何体。
     with bpy.data.libraries.load(str(args.source), link=False) as (source, target):
         target.materials = list(source.materials)
@@ -89,6 +99,10 @@ def export_all(args, service):
 
 def import_all(args, service):
     """从独立目录的文档还原新材质，输入只包含 .mtlx 与其资源。"""
+    import bpy
+
+    from plugins.blender.adapter import BlenderAdapter, renderer_ref
+
     summary = {"version": bpy.app.version_string, "cases": []}
     created = []
     for path in sorted(args.documents.glob("*.mtlx")):
@@ -157,6 +171,8 @@ def compare_target_graph(expected, actual):
 
 def main():
     """只允许后台独立任务；输出目录必须新建，防止混用旧结果。"""
+    import bpy
+
     if not bpy.app.background or "--factory-startup" not in sys.argv:
         raise RuntimeError("必须使用独立后台 Blender 和 --factory-startup")
     parser = argparse.ArgumentParser(description=__doc__)
