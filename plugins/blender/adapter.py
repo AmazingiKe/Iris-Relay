@@ -14,6 +14,8 @@ import bpy
 from iris_relay.model import Material, ValidationError
 from iris_relay.native import decode_value, describe, encode_value, identify
 
+from .groups import ExpandedGraph
+
 
 def renderer_ref():
     """取得当前 Blender/Cycles 版本，供核心选择精确匹配的字典。"""
@@ -151,7 +153,8 @@ def read_uv_coordinates(socket, structural):
                         raise ValidationError("坐标变换链超过 64 层", "UV_UNSUPPORTED")
                 socket = node.inputs["Vector"]
                 continue
-        raise ValidationError(f"坐标链暂不支持节点或变换：{node.name}", "UV_UNSUPPORTED")
+        label = getattr(node, "diagnostic_name", node.name)
+        raise ValidationError(f"坐标链暂不支持节点或变换：{label}", "UV_UNSUPPORTED")
 
 
 def create_uv_coordinates(tree, image_node, coordinates):
@@ -360,6 +363,8 @@ class BlenderAdapter:
     def _collect_surface_graph(self, tree, output):
         """从表面出口向上游遍历，解析转接点与 UV 链，报告未使用节点。"""
         # 1. 以真实表面节点为起点；structural 记录已解析的转接点/坐标节点。
+        expanded = ExpandedGraph(tree)
+        output = expanded.node(output)
         structural, active, uv_images = set(), {}, {}
         surface = linked_source(output.inputs["Surface"], structural)
         pending = [surface.node]
@@ -403,11 +408,17 @@ class BlenderAdapter:
             n.name
             for n in tree.nodes
             if n.name not in active
-            and n.name not in structural
+            and n.name not in structural | expanded.root_groups | expanded.root_reroutes
             and n.bl_idname not in {"NodeFrame", "ShaderNodeOutputMaterial"}
         ]
         if unused:
             self.note("UNUSED_NODES", "未参与所选表面的节点仅保留于源快照：" + "、".join(unused))
+        if expanded.scopes:
+            self.note(
+                "NODE_GROUPS_EXPANDED",
+                f"已按实例展开 {len(expanded.scopes)} 个节点组，保留输入值与连线；"
+                "导入创建可编辑功能节点，组层级和布局不随标准图重建",
+            )
         return _SurfaceGraph(surface, active, links, uv_images, needs_color_cast)
 
     def _read_native_graph(self, material, schema, graph):
@@ -452,7 +463,7 @@ class BlenderAdapter:
             )
         except ValidationError as exc:
             raise ValidationError(
-                f"节点「{node.name}」({node.bl_idname})：{exc}", exc.code
+                f"节点「{node.diagnostic_name}」({node.bl_idname})：{exc}", exc.code
             ) from exc
         implementation = match["implementation"]
         return implementation, schema["nodes"][implementation]
@@ -467,6 +478,8 @@ class BlenderAdapter:
             "outputs": list(rule["outputs"]),
             "metadata": {},
         }
+        if node.source_group_path:
+            record["metadata"]["source_group_path"] = node.source_group_path
         for port, port_rule in rule["inputs"].items():
             binding = port_rule["native"]
             if binding["kind"] == "resource":
