@@ -73,6 +73,8 @@ uv run python -m iris_relay --dictionaries _examples/dictionaries --request _exa
 
 `identify.payload` 可额外提交 `implementation_hint`，值为先前创建材质时保存的实现键。该键只能在当前原生 ID 与全部配置仍匹配的候选中消除歧义；失效提示返回 `NATIVE_HINT_MISMATCH`。适配器仍须读取当前节点、所有受支持属性和连接，不能借提示或源 XML 快照恢复已被用户改动的材质。
 
+无提示的原生图可显式提交 `prefer_source_default: true`，只使用当前匹配候选中唯一的 `source_default`；不选取列表第一项。缺省仍严格报告歧义。该来源选择与 `target_default` 分开，不能免除当前模式、值和连接核验。
+
 例如查询 Redshift 高度凹凸实现：
 
 ```python
@@ -122,11 +124,11 @@ response = api.handle(
 
 每项贴图描述包含 `uri`、`color_space`、`coordinates` 对象，可含 `metadata`。旧 `convert` 保留这些描述，不读取贴图像素、不自动转换色彩空间、不下载资源，也不更改资源路径。真实适配器须根据共同约定解析这些信息。示例使用的 `memory://reference/albedo` 只代表参考资源，并无附带图像文件。
 
-`materialx.export`／`materialx.convert` 另解释可选的 `metadata.image_alpha: {"mode":"STRAIGHT","channels":4}`：模式限定为 `STRAIGHT`、`PREMUL`、`CHANNEL_PACKED`、`NONE`，通道限定为整数 1、3、4。源适配器提供实际观测，核心不读像素猜测；目标字典须用可选 `texture_alpha_modes` 列表声明支持的模式。缺省字段仍采用旧 RGB 行为，使用 Alpha 输出时必须补充明确描述。标准图和原生还原边界见 [图片 Alpha](materialx-core.md#图片-alpha-与透明度连接)。
+`materialx.export`／`materialx.convert` 另解释可选的 `metadata.image_alpha: {"mode":"STRAIGHT","channels":4}`：模式限定为 `STRAIGHT`、`PREMUL`、`CHANNEL_PACKED`、`NONE`，通道限定为整数 1、3、4；可选 `association` 为 `premultiplied` 或 `independent`，表示已观测原生输出的关联。源适配器提供实际证据，核心不读像素猜测；目标模式、通道及按格式的关联能力由字典分别声明。缺省字段仍采用旧 RGB 行为，使用 Alpha 输出时必须补充明确描述。标准图和原生还原边界见 [图片 Alpha](materialx-core.md#图片-alpha-与透明度连接)。
 
 目标字典可另用 `texture_image_channels` 声明不重复的 1／3／4 通道列表；未声明时兼容既有通道行为。核心按图片声明提前拒绝超出能力的图，宿主继续核对实际资源，不能仅检查 Alpha 模式。当前 Maya／Redshift 配置声明 `[1, 3]`，RGBA 继续阻断。PNG／EXR 文件头核对只提供通道证据，不证明像素、采样或外观相同。
 
-`materialx.export`／`materialx.convert` 另解析受限 UV 描述：`{"kind":"uv","set":"UV名称或空字符串","transforms":[矩阵1,矩阵2]}`。`transforms` 可省略；每个矩阵为按 MaterialX 行向量约定展平的 16 个有限数值，按列表顺序应用。只支持仿射矩阵，数量最多 64。命名 UV 和变换的目标能力由字典的可选 `texture_coordinates` 声明，缺省只接受默认 UV；目前 `transforms` 能力取值为 `none` 或 `trs`。实际标准节点及宿主限制见 [MaterialX 坐标说明](materialx-core.md#uv-与静态-mapping)。
+`materialx.export`／`materialx.convert` 另解析受限 UV 描述：`{"kind":"uv","set":"UV名称或空字符串","transforms":[矩阵1,矩阵2]}`。`transforms` 可省略；每个矩阵为按 MaterialX 行向量约定展平的 16 个有限数值，按列表顺序应用。只支持仿射矩阵，数量最多 64。命名 UV 和变换的目标能力由可选 `texture_coordinates` 声明，缺省只接受默认 UV；`transforms` 为 `none`、`trs` 或 `trs2d`。后者须另声明二维 `sampler` 的旋转单位、中心、次序及验证状态；未验证约定固定报告近似。实际标准节点及宿主限制见 [MaterialX 坐标说明](materialx-core.md#uv-与静态-mapping)。
 
 源图中未列出的已知输入由源字典默认值补全。源图含未知输入或输出时阻断转换。目标端增加了源端没有的语义时，使用目标字典默认值并发出 `TARGET_DEFAULT` 警告；目标端丢失源语义则阻断。
 
@@ -141,7 +143,7 @@ API 接受有限数值；JSON 文件拒绝重复键、NaN 和 Infinity，单次 
 - 节点键表示一种确定的原生实现配置，映射到唯一 `semantic`。多个键可以共用原生 ID，通过 `native.properties` 区分模式；多个原生实现也可以归入同一通用功能。
 - 同一功能仅一个目标实现时直接选择；多个实现须声明唯一布尔值 `target_default: true`，否则转换返回 `AMBIGUOUS_TARGET_NODE` 并保留源图。多个默认值在加载字典时拒绝。默认选择不免除参数、连接和支持边界检查。
 - 新真实字典声明 `semantic_schema_version: "1"`，加载时按核心集中契约校验功能名、端口名、类型、可空性和必要端口。`native.*` 专用输入只允许显式声明 `omit_if_default`；未声明语义版本的旧协议示例保留兼容，不作为标准定义。
-- 输入规则包含 `semantic`、`type`、`default`，可指定 `range`、`transform`、`adjustable`、`nullable`、`omit_if_default`、`inactive_when`；输出规则包含 `semantic`、`type`。节点和端口可包含 `native`；节点可通过 `approximation` 声明近似。
+- 输入规则包含 `semantic`、`type`、`default`，可指定 `range`、`transform`、`adjustable`、`adjustment_range`、`nullable`、`omit_if_default`、`inactive_when`；输出规则包含 `semantic`、`type`。`adjustment_range` 仅可用于可调整输入，只约束校正提案，不收窄基础转换。节点和端口可包含 `native`；节点可通过 `approximation` 声明近似。
 - `transform` 白名单包含 `identity`、用于浮点值的 `one_minus`、`{"op":"scale","factor":非零有限数值}` 及 `scalar_to_color`。后者将标量展开为三个相等的颜色分量，逆变换只接受灰度颜色。默认值和范围描述原生参数域，解码后进入语义域，编码时逆变换回目标原生域。
 - 旧 `convert` 的非恒等变换遇到连接时返回阻断报告。MaterialX 桥接另支持将 `scalar_to_color` 连接显式展开为标准转换节点，并在目标适配规则匹配时还原；缩放与反相等连接仍阻断。
 
@@ -169,6 +171,20 @@ API 接受有限数值；JSON 文件拒绝重复键、NaN 和 Infinity，单次 
 目标字典还可声明 `materialx_lowerings`，以官方 NodeDef 名称为键，候选为 `{"when": {常量选择端口: 值}, "replacement": "目标内联 NodeDef"}`。替换定义须来自已校验的 `materialx_extensions`，输出类型一致，输入接口只允许省去已经精确匹配的常量选择端口；动态连接不能冒充常量。核心在工作副本中展开，保留源文档，限制循环与规模，重名但不同的实现阻断。规则归核心执行，宿主不复制公式。已验证实例见 [ADR-0006](adr/0006-未知原生图保存与目标组合转换.md)。
 
 ## 未知原生图保存
+
+## 资源与语义差异
+
+新增公开操作：
+
+| 操作 | payload | 结果与边界 |
+| --- | --- | --- |
+| `materialx.resources` | `{"document": XML}` | 文档 SHA-256 与全部非空 filename 端口的 `path`、`uri`、`resolved_uri`、`color_space`；不读取文件 |
+| `materialx.rewrite_resources` | `{"document": XML, "resources": {端口路径: {"expected_uri": 原值, "uri": 新值}}}` | 要求完整映射、原值相符；移除旧 fileprefix 并返回校验后的新文档；不改源文件 |
+| `materialx.diff` | `{"before": XML, "after": XML}`；可选 `node_mapping`、`tolerance` | 逐字段差异及 `identical`；显式节点映射须存在且无身份冲突，默认容差 `2e-6` |
+
+差异包括节点定义、实现声明、有效默认值、连接／输出选择、URI、颜色和 Alpha；不读纹理像素，不推断任意图同构或视觉等价。资源与差异操作均沿用完整文档校验；核心不会按文档中的代码声明执行外部实现。资源复制使用宿主公共 `plugins.resources.package_materialx`，见[便携资源说明](editable-materialx-20261111.md#c2rgba坐标与便携资源)。
+
+`capabilities.result.renderers[].conversion_scope` 明确为 `dictionary_declaration` 证据，包含节点实现、图像通道和坐标摘要；`runtime_preflight_required=true`，`appearance_verified=false`。声明支持不能跳过实际宿主解码、颜色和节点预检。
 
 `materialx.preserve` 的 payload 为 `{"snapshot": 原生快照}`。快照包含 `name`、`host`、`nodes`、`links`，可选 `metadata`。每个节点包含 `id`、原生 `type`、`inputs`、`outputs`，可选 `properties`／`metadata`；输入输出为含 `id`、MaterialX `type` 以及可选 `value`／`metadata` 的列表。连线仍使用 `from`／`to` 的节点与端口标识。完整小例见 [保存测试夹具](../_tests/test_materialx_preserve.py)。
 
@@ -216,10 +232,10 @@ Maya 字典的端口 `native.properties.enum_values` 是原生枚举编码表，
 
 ## 联合校正扩展
 
-核心可配置一个实现 `JointPredictor` 的对象：`model_id` 标识模型与版本，`predict(context)` 返回 `CorrectionProposal`。上下文包含完整 `source`、`intermediate`、`target` 和 `dictionary_versions`，均为隔离副本。
+核心可配置一个实现 `JointPredictor` 的对象：`model_id` 标识模型与版本，`predict(context)` 返回 `CorrectionProposal`。上下文包含完整 `source`、`intermediate`、`target` 和 `dictionary_versions`，均为隔离副本。`materialx.convert` 也接受可选 `calibrate: true` 与声明式 `calibration_context`；后者以 `material_context` 交给预测器，不能请求宿主场景修改。
 
 提案中的 `InputChange` 指定节点、原生输入端口及新值。一次提案可以修改多个节点、多个属性。首版只允许字典标记 `adjustable` 的数值或向量输入，不能修改受连接驱动的输入、节点拓扑或纹理资源。所有操作验证通过后整组应用；任何一个操作失败就保留完整基础方案。
 
 状态包含 `not_requested`、`skipped`、`unavailable`、`rejected`、`unchanged`、`applied`。缺少模型或模型异常会报告警告；`applied` 仅表示提案成功应用，不证明外观变好。
 
-仓库没有训练模型、权重或真实训练数据，测试预测器只验证接口。后续模型应学习整体关联，不能把测试提案中的固定值当作校正算法。新增贴图或拓扑调整需要扩展操作协议与验证规则。
+仓库不提交权重或真实训练数据。`iris_relay.neural.NeuralJointPredictor` 可加载有界、有限数值的 JSON MLP，核心推理不依赖 PyTorch；训练依赖放在独立实验环境。模型须匹配渲染器／字典版本、特征格式、源着色模型和冻结条件身份，超域或加载失败不能伪装成已校正。单元测试中的手工小权重只验证协议，真实实验状态见[验收清单](overnight-acceptance-20261111.md)。新增贴图或拓扑调整仍需扩展操作协议与验证规则。

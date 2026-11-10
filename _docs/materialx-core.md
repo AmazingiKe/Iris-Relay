@@ -2,7 +2,7 @@
 
 Iris Relay 0.4.0 使用官方 MaterialX 1.39.5 SDK，提供材质文档校验、节点定义查询、自定义节点保存和受限原生转换。插件仍只调用公开 Python API，不需要 HTTP，也不需要每次经过磁盘文件。
 
-新增 [Maya 2022 Arnold 目标入口](maya-materialx-import.md)：通过同一 `materialx.convert` 将标准图创建为可编辑节点，HSV 扩展展开为受支持的数学节点。integer 索引按整数验证和序列化；宿主负责原生枚举编码及图片通道预检。A12 后续已补充受限 Maya 原生再导出与 C4D Redshift 组合节点接入；50 个材质的三条链路通过实机保存重开。四通道 Alpha、目标 UV 矩阵还原与外观仍受限制，见 [A12 报告](a12-materialx-interoperability.md)。
+通过 [Maya 2022 Arnold 入口](maya-materialx-import.md) 及 C4D Redshift 适配器创建可编辑节点，再从当前原生图导出。最新 [2026-11-11 完善报告](editable-materialx-20261111.md)记录 997 份标准／内联图、50 个材质多向保存重开、RGBA／命名 UV、功能分组和共享控制，以及外部官方文档验证。结构、实际采样和外观结论分别报告。
 
 ## 最小调用
 
@@ -49,7 +49,10 @@ uv run python _examples/materialx_demo.py --out .local/materialx-demo-新编号
 | `materialx.normalize` | `{"document": XML字符串, "flatten": false}` | 校验后输出规范化 XML；可选 `flatten=true` 展开自定义节点子图，保留标准着色节点 |
 | `materialx.preserve` | `{"snapshot": 原生图快照}` | 带 `preservation_only` 标记的自定义声明文档；`conversion_supported=false`，不能计入转换成功 |
 | `materialx.export` | `{"material": 既有原生JSON材质图}` | 标准 MaterialX `document`、源图 `source` 和 `report` |
-| `materialx.convert` | `{"document": XML字符串, "target": 渲染器引用}`；可选 `material_name` | 目标 JSON `material`、原文 `source` 和 `report`；多材质文档必须选择顶层 surfacematerial 名称 |
+| `materialx.convert` | `{"document": XML字符串, "target": 渲染器引用}`；可选 `material_name`、`calibrate`、`calibration_context` | 目标 JSON `material`、原文 `source`、`intermediate` 和 `report`；多材质文档必须选择顶层 surfacematerial 名称 |
+| `materialx.resources` | `{"document": XML字符串}` | filename 端口、原 URI、前缀解析 URI 与颜色解释；不读取文件 |
+| `materialx.rewrite_resources` | 文档与所有 filename 端口的原值／新值映射 | 独立新文档，原值和完整映射不符即拒绝 |
+| `materialx.diff` | `before`、`after`；可选显式 `node_mapping` 与数值 `tolerance` | 计算字段差异；不证明像素或任意图同构 |
 
 文档校验失败时 `valid=false`，规范化输出为 null；目标转换失败时 `material=null`。输入结构错误或字典缺失时遵循既有 API，`result=null`。合法专有节点没有实现时，文档仍可保存，返回 `MATERIALX_IMPLEMENTATION_MISSING` 警告；缺少目标转换规则则阻断转换。
 
@@ -86,7 +89,7 @@ GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶�
 | `extract`，color3→float | `channel.red` | 仅 index=0 |
 | `luminance → extract(index=0)`；或 `dotproduct(vector3)` | `color.weighted_sum` | 三套字典；常量系数；点积的颜色连接须先经 `convert(color3→vector3)` |
 
-自定义子图展开后全部相关节点落在以上范围内才可转换；否则保留原文并报告不支持。标准库中的其他节点可查询、校验和保存，但没有自动获得目标转换能力。未知原生节点的正常导出仍失败并保留源 JSON；可另调用 `materialx.preserve` 保存明确不可转换的原生声明，不赋予未知节点可执行含义。
+上表是基础共同语义；各目标另有官方数学绑定及有界组合展开。自定义子图展开后全部相关节点落在目标能力内才可转换，否则保留原文并报告不支持。可变 ColorRamp／Mix 配方、功能元数据及实际回导见[最新报告](editable-materialx-20261111.md#c1配方与源覆盖)与 [ADR-0008](adr/0008-可编辑图与贴图语义交换.md)。标准库节点可查询、校验和保存，并不自动获得目标转换能力。未知原生节点正常导出仍失败，可另用 `materialx.preserve` 保存不可转换的原生声明。
 
 ### 官方 NodeDef 直接绑定
 
@@ -94,9 +97,9 @@ GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶�
 `materialx.export` 和 `materialx.convert` 按 MaterialX 1.39.5 SDK 核对定义是否存在、端口名和类型是否一致，错误返回 `MATERIALX_BINDING_INVALID` 并保留源信息。
 宿主中的 `describe`／`identify` 只需读取原生声明，无需在宿主进程加载 SDK；官方契约校验在统一服务的 MaterialX 操作中执行。
 
-目前直接映射覆盖 Blender 未钳制的 Math / ADD、SUBTRACT、MULTIPLY，以及 Redshift 对应标量数学资产。
+最初直接映射覆盖 Blender 未钳制的 Math / ADD、SUBTRACT、MULTIPLY，以及 Redshift 对应标量数学资产；当前字典另补充受限数学、条件、组合与颜色实现，准确清单通过 `describe` 查询。
 这些节点可与既有表面、图片和亮度链连接，也可承接自定义子图展开后的同类标准节点。没有目标绑定的标准节点仍阻断；C4DtoA 尚无这三个标量绑定；Maya Arnold 的数学绑定见其独立文档。
-直接绑定首版只接受单个、已支持数据类型的输出；不会因引用 NodeDef 就自动实现全部官方库、任意多输出节点或专有节点。
+直接绑定支持明确声明的单输出及有限的多输出选择，连接始终保留实际输出名称；可变 ColorRamp 使用受校验配方。不会因引用 NodeDef 就自动实现全部官方库、任意多输出节点或专有节点。
 
 Blender 字典 `0.3.7` 增加 `ShaderNodeInvert → materialx.ND_invert_color3`，保留颜色输入及共享输出，允许后接显式亮度链。
 仅支持未连接且等于 1 的 `Fac`；部分反相、连接系数，以及 MaterialX 非默认 `amount` 仍阻断。
@@ -106,7 +109,7 @@ Blender 的 RGB 运算为 `mix(color, 1-color, Fac)`，MaterialX 则为 `amount-
 独立宿主夹具由 `_scripts/verify_blender_math.py -- --out "新目录"` 导出，再分别交给 `verify_blender_batch.py --documents` 和 `verify_materialx_targets.py --documents` 回读。
 三组夹具含负数、非对称输入、共享输出，Blender 和 Redshift 均完成保存重开核对；钳制模式及未支持运算继续阻断。未做渲染对照。
 
-当前桥接拒绝尚未处理的单位、文件前缀、通道重排和非图片输入色彩空间上下文。只转换选定材质可达的图；未选用的顶层节点有信息报告，完整内容保留在源文档。资源、节点 metadata 等原生专用信息也保留在响应源快照中，不保证仅凭标准 `.mtlx` 重建所有原生信息。
+当前桥接拒绝尚未处理的单位、通道重排和未知颜色上下文；已知全局 `lin_rec709` 与文件资源前缀可解析。只转换选定材质可达的图；未选用顶层节点有信息报告，完整内容保留在源文档。原生专用信息保留于来源记录，不保证仅凭标准 `.mtlx` 重建全部宿主状态。
 
 旧 `convert` 继续使用旧语义链路；新路径显式使用 `materialx.export`／`materialx.convert`。Maya Arnold 已有独立版本字典及受限原生读取，不套用 C4DtoA 的整数绑定。当前不会生成 USD、自动训练网络或证明外观一致。
 
@@ -154,7 +157,7 @@ Blender 读取源 Image 的 Alpha 模式，优先检查 PNG／EXR 文件头的�
 
 XML 的 `iris_alpha_mode`、`iris_image_channels`、`iris_alpha_used` 及辅助节点来源／角色属性用于还原原生解释和合并同一图片的两个输出。回导会核验实际标准节点、常量及连线；修改运算或错误标记不会被忽略。计算本身由标准节点表达，附加属性不执行着色。当前原生合并只识别这一规范组合；任意外部 RGBA 图或丢失这些属性的图尚不保证可以转回原生图片，不能将此能力表述为所有 MaterialX 图片图的导入支持。
 
-目标字典通过 `texture_alpha_modes` 声明原生模式读写能力。Blender 已声明四种模式；Maya 与 C4D Redshift 后续声明模式及 `texture_image_channels=[1,3]` 能力，核心提前拒绝未核验四通道，宿主再核验实际文件。C4DtoA 仍未声明新解释，不能沿用旧 RGB 文档的兼容结论。旧文档和旧 API 不因新增字段自动获得 Alpha 支持。
+目标字典通过 `texture_alpha_modes`、`texture_image_channels` 和按格式的 `texture_alpha_behavior` 声明能力；Blender、Maya 与 Redshift 已接入 1／3／4 通道的有界路径，宿主必须再核验实际文件。Arnold PNG 与 Raw RGBA EXR 的实际关联不同，核心增加显式数学；非 Raw RGBA EXR 仍阻断，零 Alpha 隐藏 RGB 和透明过滤不宣称完全恢复。Redshift 关联尚未渲染验证，固定报告 `RS_RGBA_SAMPLING_UNVERIFIED`。C4DtoA 未接入这些新能力，旧 RGB 兼容结论不能自动扩大。
 
 独立夹具入口为 `_scripts/verify_blender_alpha.py -- --out "新夹具目录"`，随后交给 `verify_blender_batch.py --documents` 在另一 Blender 中还原、保存重开。夹具覆盖灰度／RGB／RGBA、四种模式、两种色彩解释和 Alpha 使用／未使用的 48 种组合，以及同一图片共享输出、源数据保护和失败清理。详细运行证据见 [A1 记录](a1-materialx-roundtrip.md)。
 
@@ -164,7 +167,7 @@ XML 的 `iris_alpha_mode`、`iris_image_channels`、`iris_alpha_used` 及辅助�
 静态 POINT Mapping 链表示为 `vector2 → vector3 → transformmatrix(vector3,matrix44) 序列 → vector2`，每步对应一个矩阵；只在进入图片采样前舍弃 Z。
 这些都是 SDK 标准节点，输出不依赖 Iris 私有 NodeDef。矩阵按 MaterialX 行向量顺序保存，平移位于最后一行。
 
-图片资源的 `coordinates` 可带 `transforms`：最多 64 个按应用顺序排列的 16 元素仿射矩阵。目标字典须明确声明坐标能力；Blender 支持命名 UV 和逐步非退化 TRS，未声明能力的 C4D 目标明确阻断。
+图片资源的 `coordinates` 可带 `transforms`：最多 64 个按应用顺序排列的 16 元素仿射矩阵。Blender 支持命名 UV 和逐步非退化 TRS；Maya 使用当前 `aiUvTransform` 链，已有命名 UV 加两步变换的实际采样对照。Redshift 支持二维采样器结构读写，次序／旋转中心未渲染核验，报告 `UV_SAMPLER_CONVENTION_UNVERIFIED`。未声明能力的其他目标仍阻断。
 完整三维静态 POINT 链可以保存，剪切和退化矩阵不能强行分解为 Blender Mapping。
 动态矩阵、实例 UV、Generated／Object 坐标、其他 Mapping 模式和非零 UV 索引目前没有对应目标规则。
 
@@ -182,7 +185,7 @@ Blender 回读创建 UV 和可编辑 Mapping 节点，不依赖原生源图快�
 
 `_scripts/verify_blender_uv_expressions.py` 覆盖五种旋转模式的正反向、每组两个实例、非均匀／负缩放与中文 UV，先独立核对 60 个采样点，再导出给批量回读入口。
 10 份文档完成独立 Blender 创建、保存重开，核对 360 个输入及 30 条功能连接，坐标另按矩阵核对；动画及共享依赖负例也通过。
-C4D 两端因未声明命名 UV／矩阵能力而各阻断 10 份，尚无这条坐标链的跨宿主还原证据。
+该早期夹具运行中 C4D 两端因尚未声明命名 UV／矩阵能力而各阻断 10 份；后续 Maya 与 Redshift 的新增范围和证据见[最新报告](editable-materialx-20261111.md#c2rgba坐标与便携资源)，不把旧失败改写为新通过。
 
 坐标夹具覆盖中文 UV 名称、连续变换、非均匀与负缩放、三个采样点、共享坐标输入、失败清理及源图／图片保护。
 运行 `_scripts/verify_blender_coordinates.py -- --out "新夹具目录"` 后，将该目录交给下面的独立回读脚本；三份文档已通过创建、保存重开和 108 个输入、9 条功能连接核对。坐标节点连接由读回资源矩阵与来源名称另行核对，不计入这 9 条功能连接。

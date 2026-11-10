@@ -6,11 +6,13 @@ Iris Relay 探索跨渲染器的材质转换：以字典建立材质语义对应
 
 当前已完成初步核心：统一 API、材质图协议、声明式字典、转换与诊断报告、联合校正扩展接口，以及通过同一 API 运行的参考插件。Python 核心不依赖 DCC 运行时；0.4.0 引入官方 MaterialX 1.39.5 SDK。
 
-新的 [MaterialX 核心](_docs/materialx-core.md) 支持官方节点定义查询、`.mtlx` 校验与保存、自定义 NodeDef／子图，以及与现有字典功能的受限原生桥接。文档保存范围大于目标转换范围；专有节点没有目标规则时保留源信息并阻断。现已提供 [Maya 2022 Arnold 导入与原生再导出](_docs/maya-materialx-import.md)，以及 C4D Redshift 接入。[A12 实测](_docs/a12-materialx-interoperability.md)完成全量 1,801 份文档输出，其中 688 份标准／内联图、1,113 份仅保留原生结构；50 个材质通过 Blender → Maya／C4D 及 Maya 再导出 → C4D 保存重开验证。原生保留文件不能计入转换成功。
+新的 [MaterialX 核心](_docs/materialx-core.md) 支持官方节点查询、`.mtlx` 校验与保存、自定义 NodeDef／子图、资源枚举与改写、语义字段差异及受限原生桥接。专有节点没有目标规则时保留源信息并阻断。[最新交换报告](_docs/editable-materialx-20261111.md)完成 A12 全量 1,801 份文档，其中 997 份标准／内联图、804 份仅保留原生结构；最终 50 个材质通过 Blender → Maya／C4D、两端当前原生再导出 → Blender，以及 Maya → C4D 的保存重开。原生保留文档不能计入转换成功。
 
-现已提供 Blender Cycles、C4D Redshift 和 C4DtoA 的真实节点目录与基础字典，包含节点名称、资产 ID、整数 code 和端口绑定。本轮 6 组源材质完成保存重开和原生识别，随后 18 组转换完成目标创建、保存重开及参数／连接核对。详见[原生字典与验证范围](_docs/native-dictionaries.md)。
+已提供 Blender Cycles、C4D Redshift 和 C4DtoA 的真实节点目录与基础字典，包含节点名称、资产 ID、整数 code 和端口绑定。早期 6 组源材质完成保存重开和原生识别，随后 18 组转换完成目标创建、保存重开及参数／连接核对；最新批次另列于上述交换报告。详见[原生字典与验证范围](_docs/native-dictionaries.md)。
 
-每端目前支持标准表面、图片、切线法线、高度凹凸、显式 R 通道提取及 RGB 显式加权求和六类功能。Blender 和 Redshift 另支持直接引用官方 MaterialX NodeDef 的标量加减乘。统一语义层集中定义功能和端口，通过原生 ID 与配置识别具体实现；多个来源实现可归入同一功能，多个目标实现必须指定唯一默认选择。Blender 提供实验性脚本适配器，C4D 提供独立验证脚本。尚无完整生产插件、训练模型或跨渲染器视觉一致性证明。示例中的 `reference.gloss` 和 `reference.rough` 仍仅用于协议测试。
+基础语义包括标准表面、图片、切线法线、高度凹凸、通道及 RGB 加权求和；标准数学直接复用官方 NodeDef。本轮补充受限 ColorRamp／Mix 配方、RGBA、命名 UV／静态变换、原生功能分组和共享控制；支持范围按精确宿主字典与实际预检决定。Blender 与 Maya 提供脚本界面，C4D 提供适配器及独立验证入口。尚无完整生产插件或任意材质视觉一致性证明；[验收清单](_docs/overnight-acceptance-20261111.md)分别跟踪结构与首轮神经实验。示例中的 `reference.gloss` 和 `reference.rough` 仍仅用于协议测试。
+
+[首轮真实神经实验](_docs/neural-experiment-20261111.md)已完成 Cycles → Arnold 的 32 个材质族、128 组变体训练及独立渲染测试。测试平均误差下降 34.29%，但材质族置信区间跨零，且包含退化样本，尚未证明稳定改善。模型不默认启用；权重与训练数据留在仓库外。
 
 ## 快速开始
 
@@ -55,7 +57,7 @@ python -m venv .venv
 
 新材质启用保留标记（Fake User），未绑定对象也能随 `.blend` 保存。导入操作加入 Blender 全局撤销，可通过顶部“编辑 → 撤销”恢复；撤销、重做或打开文件后清除过期报告。源文件与贴图只读，导入失败由适配器清理本次新增数据。图片相对路径以 `.mtlx` 所在目录解析，缺图时明确阻断；不自动下载或打包资源。
 
-导出采用排他创建，不覆盖现有文件；写入失败会尝试清理本次创建的残留。源材质、绑定和贴图保持不变，不改变场景渲染条件。贴图保留原文件路径引用，不复制或打包资源，因此输出不是独立资源包。文件可保存、目标可转换和外观一致是不同结论。
+导出采用排他创建，不覆盖现有文件；写入失败会尝试清理本次创建的残留。源材质、绑定和贴图保持不变，不改变场景渲染条件。GUI 保留原贴图引用；需要便携交付时可使用[资源打包工具](_docs/editable-materialx-20261111.md#c2rgba坐标与便携资源)复制贴图并改写相对 URI。文件可保存、目标可转换和外观一致是不同结论。
 
 界面位于 `plugins/blender/ui.py`，`controller.py` 负责核心连接、导入导出检查和文件流程，`adapter.py` 负责 Blender 材质读写；`from plugins.blender import BlenderAdapter` 保持兼容。首次操作时优先使用仓库已有 `.venv` 通过公开 `JsonCommandService` 调用核心，不向 Blender 安装依赖。不存在 `.venv` 时尝试进程内服务，两种方式都要求 MaterialX 1.39.5；依赖缺失或版本不同会明确报错。本机 Blender 5.2.3 自带 SDK 为 1.39.4，因此本轮使用仓库环境的 1.39.5。
 

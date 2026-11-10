@@ -1,6 +1,6 @@
 # Maya 2022：MaterialX 导入与原生图再导出
 
-后续 A12 测试已补充当前原生图读取及 `.mtlx` 导出：50 / 50 个材质完成导入、保存重开、原生回读及再导出，并全部进入 C4D Redshift。结果及新限制见 [A12 报告](a12-materialx-interoperability.md)。下文 A1 的 31 / 89 与 422 项测试是初次导入阶段的历史记录。
+2026-11-11 最新批次 50 / 50 个材质完成导入、保存重开、当前原生回读再导出，全部回到 Blender 并进入 C4D Redshift。已增加有界 RGBA、命名 UV／静态矩阵、功能容器、共享参数及独立未标记原生图读取。最新数量、实际采样和边界见[完善报告](editable-materialx-20261111.md)。下文 A1 的 31 / 89 与 422 项测试是初次导入阶段的历史记录。
 
 2026-11-10 已在本机 Maya 2022.5、Python 3.7.7、MtoA 5.3.5.3、Arnold 7.2.5.3 完成受限导入验证。输入是上一轮从 A1 导出的 89 份 `.mtlx`；31 份创建成功并通过保存重开核对，58 份明确阻断。本轮只验证节点结构、参数、贴图引用和连接，没有渲染对照或神经网络校正。
 
@@ -19,10 +19,11 @@ runpy.run_path(r"仓库绝对路径/_examples/maya_demo_gui.py", run_name="__mai
 3. 查看报告；接受列出的近似时勾选“允许带警告导入”。错误不能绕过。
 4. 点击“导入选中为新材质”。每次重新检查文件，逐个创建独立节点网络及 shadingEngine，失败不影响其他文件。
 5. 点击“选中已导入材质”，在 Hypershade 查看上游连接，按需手动绑定对象。
+6. 点击“查看节点与共享参数”，在实际 Node Editor 查看图；左侧控件直接编辑原生发布属性。修改后可选中 `aiStandardSurface`，导出当前图。
 
 默认不替换对象绑定、不修改已有材质。每份创建使用独立撤销块，面板批操作可能被 Maya 合并为一次撤销；支持撤销／重做。撤销、重做或打开场景后清除过期报告。重复运行入口只重建面板，保留已创建的材质。关闭面板即可结束，不需要安装 `.mll` 或修改用户启动文件。
 
-图片路径以 `.mtlx` 所在目录解析，支持现存绝对路径及相对路径；缺图明确阻断。面板不下载、不打包资源，保存的 `.ma` 继续引用原贴图，因此不是独立资源包。`aiImage.autoTx` 关闭，避免本次导入生成派生 `.tx`。
+图片路径以 `.mtlx` 所在目录解析，支持现存绝对路径及相对路径；缺图明确阻断。面板保留引用；可先运行[单文档资源打包工具](editable-materialx-20261111.md#c2rgba坐标与便携资源)，再导入资源包中的文档。`aiImage.autoTx` 关闭，避免本次材质导入请求生成派生 `.tx`；实际渲染器的纹理缓存另由对应测试目录记录。
 
 ## 节点与架构
 
@@ -39,12 +40,13 @@ Maya 的 Python 3.7 使用公开 `iris_relay.transport.JsonSessionService` 调�
 | floor、clamp | `aiFloatToInt` 的 floor 模式、`aiClamp` |
 | 等于／大于条件、颜色混合 | Maya `condition`、`blendColors` |
 | 三分量组合、标量广播 | `aiFloatToRgba`、`aiAdd` 配置；标量到颜色连接显式分发到三个子端口 |
+| 标量 power、静态 UV 上下文 | 实测 `aiPow`、`aiUvTransform.uvwMatrix`；RGB 与 Alpha 使用同一 UV 链 |
 
-Blender HSV 自定义功能在核心展开为标准数学图，再创建上述可编辑节点；共享上游连接保留。展开后不保留原 Blender 节点组层级、排版或单个 HSV 节点外壳。材质原名保存在 `irisMaterialName`，原生名称使用安全前缀及 Maya 唯一命名。
+Blender HSV、ColorRamp、Mix 等功能在核心生成标准数学图，再创建上述节点；共享上游保留一份。功能来源映射到原生容器，共享作者参数发布为可编辑属性；不承诺复刻原 Blender 的原生组类型或像素排版。材质原名保存在 `irisMaterialName`，原生名称使用安全前缀及 Maya 唯一命名。
 
 Autodesk 提供的 [MaterialX Shader](https://help.autodesk.com/cloudhelp/ENU/AR-Maya/files/am-Arnold_for_Maya_User_Guide/shaders/surface/arnold_for_maya_surface_am_MaterialX_Shader_html.html) 可引用 MaterialX 文件。本入口选择逐节点创建，便于检查和编辑；没有据此宣称该插件可以导入所有 Arnold MaterialX 文档。其他 DCC 仍须有各自的字典与宿主证据。
 
-## 实机结果
+## 初次 A1 实机结果（历史记录）
 
 | 样本 | 尝试／成功 | 原生功能节点 | 有效未连接输入 | 图连接（含表面出口） | 图片节点 |
 | --- | --- | --- | --- | --- | --- |
@@ -61,7 +63,7 @@ Autodesk 提供的 [MaterialX Shader](https://help.autodesk.com/cloudhelp/ENU/AR
 | 17 | `INVALID_VALUE` | 反射权重超过 `aiStandardSurface.specular` 的 0–1 范围；由字典提前阻断，不强行钳制 |
 | 5 | `MATERIALX_RESOURCE_UNSUPPORTED` | 图片使用尚未实现的 UV 矩阵变换，保留错误，不改为默认坐标 |
 
-这些是当前检查顺序遇到的原因；修复首个阻断后仍可能出现其他缺口，不能据此保证剩余材质只需一次修改。
+这些是当时检查顺序遇到的原因。新版本已补部分四通道和 UV 能力，但没有重新把这份 A1 旧批次标记通过；不能据首错推算剩余材质修复后的数量。
 
 事务验证通过：单份导入撤销后节点集恢复、重做后图可再次核对、第二次参数写入时注入失败后清理新增节点、已有对象绑定及选择保留。前台 Maya 面板完成两份真实文件的检查、允许警告和导入；撤销后旧成功报告清空。
 
@@ -92,10 +94,10 @@ Autodesk 提供的 [MaterialX Shader](https://help.autodesk.com/cloudhelp/ENU/AR
 & "本机Maya2022/bin/mayapy.exe" _scripts/verify_maya_import.py --documents "已有mtlx目录" --out "新的验证输出目录" --transactions
 ```
 
-字典生成入口是 `_scripts/build_maya_dictionary.py`，输入 `dictionaries/catalogs/maya-arnold-7.2.5.3.json`。该目录只收录本任务实际创建、查询过的 17 种类型，不是完整 Maya 节点大全。Maya 版本和 MtoA 版本由适配器检查，Arnold 版本由字典精确匹配。
+字典生成入口是 `_scripts/build_maya_dictionary.py`，输入 `dictionaries/catalogs/maya-arnold-7.2.5.3.json`。目录现有 19 种实际创建、查询过的原生类型，字典含 32 个实现配置；不是完整 Maya 节点大全。Maya 与 MtoA 版本由适配器检查，Arnold 版本由字典精确匹配。
 
-目前图片只接受实际 1 或 3 通道，且文档有通道声明时必须相符。字典列出的 Alpha 模式不意味着四通道语义已实现；宿主预检仍是必经步骤。floor 使用 32 位整数输出，极大数值、动态枚举索引及未支持的坐标链不宣称等价。窗口不调整工作色彩空间；当前 Maya 色彩上下文会作为警告输出。
+目前图片接受实际 1／3 通道，以及具有明确格式／Alpha 说明的有界 4 通道路径；文档声明必须与实际文件相符。PNG 与 Raw RGBA EXR 分别声明关联行为；非 Raw RGBA EXR、当前解码器不能读取的 AVIF／WebP 明确阻断。PNG 零 Alpha 隐藏颜色与过滤差异不能完全恢复。floor 使用 32 位整数输出，极大数值、动态枚举索引和未支持坐标链不宣称等价。窗口不调整工作色彩空间，当前上下文作为警告输出。
 
 已实现受限 Maya 原生材质读取／导出：在场景选中 `aiStandardSurface`，点击面板新增导出按钮并选择输出目录；警告默认阻止写入，文件不覆盖。读取当前参数及连线，经核心生成新文档，不复用导入 XML。`irisImplementation` 提示由当前原生类型和配置重新核验；无提示且匹配歧义、未知节点、多余连接或未支持配置仍拒绝。
 
-本轮未验证完整 Maya → Blender 链路。节点可编辑、贴图引用正确及保存重开通过，都不等于 Arnold 与 Cycles 外观一致；BSDF、切线、色彩处理和动态计算的渲染语义仍待后续对照验证。
+最新 50 个材质已通过 Maya 当前原生再导出 → Blender 保存重开；四个功能组夹具还验证发布参数修改后的再次导出。节点、资源与保存重开通过仍不等于 Arnold 与 Cycles 外观一致；首轮真实神经实验单独记录，不扩大此处结构范围。

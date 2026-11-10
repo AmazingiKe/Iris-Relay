@@ -11,13 +11,13 @@
 | Blender 5.2.3 LTS／Cycles 5.2.3 | [目录](../dictionaries/catalogs/blender-cycles-5.2.3.json) | [字典](../dictionaries/blender-cycles-5.2.3.json) | 发现 100 种 ShaderNode 类型，99 种可实例化 |
 | Cinema 4D 2025.3.2／Redshift 2025.3.0 | [目录](../dictionaries/catalogs/cinema4d-redshift-2025.3.0.json) | [字典](../dictionaries/cinema4d-redshift-2025.3.0.json) | 154 个节点资产可实例化 |
 | Cinema 4D 2025.3.2／Arnold 7.4.3.0，C4DtoA 4.8.3.1 | [目录](../dictionaries/catalogs/cinema4d-arnold-7.4.3.0.json) | [字典](../dictionaries/cinema4d-arnold-7.4.3.0.json) | 131 个内置 shader／custom shader 可实例化 |
-| Maya 2022.5／Arnold 7.2.5.3，MtoA 5.3.5.3 | [任务所需类型目录](../dictionaries/catalogs/maya-arnold-7.2.5.3.json) | [字典](../dictionaries/maya-arnold-7.2.5.3.json) | 17 种原生类型实际创建及属性查询；不是完整探测目录 |
+| Maya 2022.5／Arnold 7.2.5.3，MtoA 5.3.5.3 | [任务所需类型目录](../dictionaries/catalogs/maya-arnold-7.2.5.3.json) | [字典](../dictionaries/maya-arnold-7.2.5.3.json) | 19 种原生类型实际创建及属性查询；不是完整探测目录 |
 
 Maya 新增目标的节点映射、31 / 89 份实际文件导入及 5 / 5 份 HSV 夹具结果见 [Maya 导入文档](maya-materialx-import.md)。A12 后续已实现受限 Maya 原生读取及再导出，见 [三宿主报告](a12-materialx-interoperability.md)；初次字典提交本身不构成原生读取／导出实现，MtoA 精确版本另由宿主适配器检查。下文三端数量和 18 组跨端结果是原 Blender / C4D 验证记录，不包含本次 Maya 增量。
 
 目录记录类型名称、字符串 ID 或整数 code、端口、默认值及探测状态。Blender 的 `ShaderNodeCustomGroup` 不能直接实例化，保留失败原因。动态节点组、用户资产、第三方程序生成节点和不同模式下新增的端口不属于此次完整性范围。个别 Arnold 类型的头文件没有可提取的参数表，个别 Redshift 端口的 Python 值不可读；目录明确保留空列表或 `unreadable`，不猜测数值。
 
-**收录 385 个类型不等于支持 385 个节点互换。** 每套可转换字典包含标准表面、图片、切线空间法线、高度凹凸、显式 R 通道提取及 RGB 显式加权求和六类共有功能；Blender 另含六种历史 Principled 配置，Blender 和 Redshift 另各有三个直接引用官方 MaterialX NodeDef 的标量数学模式，三套字典共 30 个实现配置。Redshift 的高度凹凸与切线法线共用节点资产，模式不同，因此实现配置数不等于原生节点类型数。目录用于查 code、补充映射和发现缺口；核心只加载 `dictionaries/` 顶层字典，不把 `catalogs/` 当成转换规则。
+**目录类型不等于可互换节点。** 基础共有语义包括标准表面、图片、切线法线、高度凹凸、通道及 RGB 加权求和；当前标准数学、ColorRamp／Mix 配方等范围按精确字典判断。Blender 0.4.0 有 123 个实现配置，Maya 0.4.0 有 32 个，Redshift 0.5.0 有 23 个；一个原生类型可对应多种模式，实现配置数不等于类型数。C4DtoA 的早期范围保持，不能沿用其他字典的新能力。最新实机链路见[完善报告](editable-materialx-20261111.md)。核心只加载 `dictionaries/` 顶层字典，不把 `catalogs/` 当成转换规则。
 
 ## 真实名称与 code 示例
 
@@ -66,7 +66,7 @@ USD/UsdShade 与 MaterialX 的早期职责评估见 [ADR-0004](adr/0004-统一�
 - Cycles 的 Specular IOR Level 使用声明式 `scale` 映射到反射权重，仅是基础近似。Alpha 可展开成灰度颜色；反向遇到非灰度透明颜色时阻断。
 - 未建立共同语义的输入只在等于原生默认值且未连接时允许省略，并保留源快照和 `NATIVE_DEFAULT_OMITTED` 记录。修改后的 SSS、透射、特殊采样等参数不会静默丢弃；目标不能表达时阻断。
 - MaterialX 桥接显式处理 `scalar_to_color` 连接；旧 `convert` 的非恒等连接及尚未实现的反相、缩放连接仍阻断。未使用的已知输出允许省略；参与连接或作为最终输出的端口不能丢弃。
-- 图片验证限定存在的外部单张文件和明确色彩空间。Blender 另支持默认／命名 UV 与静态 POINT Mapping 序列；C4D 两端目前只声明默认 UV。Blender 适配器仍拒绝内嵌图、序列、UDIM、非默认投影／采样配置及未知节点。Redshift 的部分二维 UV 控件尚不能可靠读回，不能据此声称支持任意现有图片节点导出。
+- 图片验证限定存在的外部单张文件和明确色彩空间。Blender 支持默认／命名 UV 与静态 POINT Mapping，Maya 使用命名集及矩阵上下文，Redshift 已接入二维采样器读写但中心／次序未渲染核验，始终报告近似。C4DtoA 仍仅默认 UV。内嵌图、序列、UDIM、未支持投影／采样配置及未知节点保持阻断；不能将字典声明当作任意图片节点导出成功。
 - 切线法线与高度凹凸分开定义。高度幅度是有近似警告的基础映射，不证明各宿主单位和空间导数等价；Blender Strength、Filter Width 等无共同映射的非默认参数继续阻断。
 - 高度输入要求标量。显式 `channel.red` 可以形成图片 → R 通道 → 高度凹凸的连接；旧 `convert` 的直接 RGB → 高度仍返回类型错误，不隐式取平均。MaterialX 导出的受限亮度规则见下节，其他通道或任意颜色计算尚未覆盖。数据纹理保留 `Raw` 等解释，不修改场景色彩管理。
 - 尚未验证任意法线贴图的方向、切线重建和视觉结果，连接正确不等于外观一致。
