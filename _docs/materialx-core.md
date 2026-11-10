@@ -113,11 +113,18 @@ Blender 的 RGB 运算为 `mix(color, 1-color, Fac)`，MaterialX 则为 `amount-
 
 展开后的原生记录用 `metadata.source_group_path` 保存组实例和内部节点的来源路径；该信息用于报告追踪。标准 `.mtlx` 保存实际计算节点与连接，回导只依赖文档和引用资源，创建可编辑功能节点。当前不重建 Blender 原组层级、布局或共用组数据块，不把展开称为原始界面的逐项复制；报告包含 `NODE_GROUPS_EXPANDED`。
 
-缺失或空的组定义、非唯一活动输出、静音节点、递归与接口循环明确阻断。组边界尚未显式表达的类型转换不会在展开时消失。只有同类型浮点／颜色常量可以直接传入目标默认值；常量向量连接与图片的默认 UV、表面的隐式法线不同，因此未支持的常量向量接口返回 `GROUP_DEFAULT_UNSUPPORTED`。组内未知节点仍按其实际类型报告。限制为 64 层和 20,000 个读取节点。
+缺失或空的组定义、非唯一活动输出、静音节点、递归与接口循环明确阻断。同一接口的内外声明必须一致，沿连接发生的一次类型转换保留在展开后的真实端点上；核心再按字典决定能否转换，例如颜色转标量生成显式亮度节点。
+途中发生多次转换时不能只连接两端，即使两端类型相同也返回 `GROUP_SOCKET_TYPE_UNSUPPORTED`；当前不消除 `RGBA→VALUE→RGBA` 或 `VALUE→RGBA→VALUE` 中的中间步骤。
+浮点组默认值接颜色端口时按原生约定读作 `[v,v,v,1]`，保持各实例覆盖值；其他未实现的常量类型转换仍阻断。依据为 [Blender 5.2.3 默认值转换](https://github.com/blender/blender/blob/v5.2.3/source/blender/nodes/shader/node_shader_util.cc)及本版本实机夹具。
+常量向量连接与图片的默认 UV、表面的隐式法线不同，因此普通功能节点上未支持的常量向量接口返回 `GROUP_DEFAULT_UNSUPPORTED`。组内未知节点仍按其实际类型报告。限制为 64 层和 20,000 个读取节点。
 
 静态坐标求值器可显式读取组向量字面量，并作为常量参与后续运算；这不会放宽普通功能节点对隐式几何输入的限制。最终图片坐标仍须追溯到受支持的 UV 来源。
 
 验证入口 `_scripts/verify_blender_groups.py -- --out "新夹具目录"` 创建共享／嵌套数学组、命名 UV 驱动的组内图片双输出及组内表面。先按手工预期核对实例输入与连线，再通过 `verify_blender_batch.py --documents` 在另一个 Blender 中导入、保存重开。测试同时检查原材质及全部组定义保持不变；具体全量结果见 [A1 记录](a1-materialx-roundtrip.md)。接口标识依据为 [Blender NodeTreeInterfaceSocket API](https://docs.blender.org/api/5.1/bpy.types.NodeTreeInterfaceSocket.html)，实际行为在本机 5.2.3 核验。
+
+`_scripts/verify_blender_group_casts.py` 补充组输入、组输出、嵌套接口的颜色转标量，以及浮点组默认值接颜色的四组夹具。
+先核对原生端点类型、实例值及 XML 中的实际亮度系数，再独立 Blender 导入、保存重开，核对 148 个输入、17 条连接；多次转换负例保持阻断。
+C4D 两端各有三份因图片资源能力缺失、一份因反相绑定缺失阻断，未产生新的跨宿主还原证据。
 
 ### 图片 Alpha 与透明度连接
 
