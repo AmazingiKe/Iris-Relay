@@ -4,6 +4,7 @@ import json
 import os
 import sys
 import traceback
+from copy import deepcopy
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,6 +33,17 @@ def equal(actual, expected):
             and all(equal(actual[key], value) for key, value in expected.items())
         )
     return actual == expected
+
+
+def resource_equal(actual, expected):
+    """完整核对声明的资源；旧协议未声明 Alpha 时允许新增的探测信息，不推断已还原。
+
+    新协议的模式与通道必须完全匹配；读回报告仍保存所有探测结果。
+    """
+    observed = deepcopy(actual)
+    if "image_alpha" not in expected.get("metadata", {}):
+        observed.get("metadata", {}).pop("image_alpha", None)
+    return equal(observed, expected)
 
 
 def run_blender(job, api):
@@ -64,7 +76,7 @@ def run_blender(job, api):
             for port, value in node["inputs"].items():
                 if isinstance(value, dict) and "texture" in value:
                     resource = actual["textures"][found["inputs"][port]["texture"]]
-                    assert resource == expected["textures"][value["texture"]]
+                    assert resource_equal(resource, expected["textures"][value["texture"]])
                 else:
                     assert equal(found["inputs"][port], value), (
                         node["id"],

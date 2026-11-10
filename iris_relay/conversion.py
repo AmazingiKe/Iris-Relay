@@ -46,6 +46,7 @@ def transcode(
     renderer: dict,
     issues: list,
     explicit_casts=frozenset(),
+    explicit_transforms=frozenset(),
 ) -> dict:
     """按字典转换一遍图；encode=False 解码原生图，True 编码目标原生图。"""
     # 1. 复制输入并统计连接；任何转换都不直接修改调用方的源图。
@@ -160,9 +161,11 @@ def transcode(
                 )
                 continue
             node["inputs"][target_name] = value
-            if (node_id, source_name) in linked and port_rule.get(
-                "transform", "identity"
-            ) != "identity":
+            if (
+                (node_id, source_name) in linked
+                and port_rule.get("transform", "identity") != "identity"
+                and (node_id, source_name) not in explicit_transforms
+            ):
                 issues.append(
                     issue(
                         "LINK_TRANSFORM_UNSUPPORTED",

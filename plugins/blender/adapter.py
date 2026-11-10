@@ -6,6 +6,7 @@
 """
 
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 import bpy
@@ -72,6 +73,7 @@ def source_snapshot(material):
                 "color_space": image.colorspace_settings.name,
                 "source": image.source,
                 "packed": bool(image.packed_file),
+                "alpha_mode": image.alpha_mode,
             }
         nodes.append(record)
     # 2. 单独保存原始连接；快照不跟随表面图的简化而改变。
@@ -256,6 +258,28 @@ class _SurfaceGraph:
     links: list
     uv_images: dict[str, dict]
     needs_color_cast: bool
+
+
+@lru_cache(maxsize=512)
+def image_file_channels(filepath, size, modified):
+    """在临时 Image 中探测文件色彩通道，随即释放；缓存键包含文件大小和修改时间。
+
+    Image.channels 是像素缓存通道，RGB 文件也可能返回 4；depth 才反映解码色彩模式。
+    PNG 灰度加 Alpha 的两通道文件尚未实现标准采样对应，明确拒绝。
+    """
+    with Path(filepath).open("rb") as stream:
+        header = stream.read(26)
+    if header.startswith(b"\x89PNG\r\n\x1a\n") and len(header) == 26 and header[25] == 4:
+        raise ValidationError("暂不转换灰度加 Alpha 的双通道 PNG", "MATERIALX_RESOURCE_UNSUPPORTED")
+    temporary = bpy.data.images.load(filepath, check_existing=False)
+    try:
+        depth = temporary.depth
+        channels = depth // (32 if temporary.is_float else 8)
+        if temporary.type != "IMAGE" or channels not in {1, 3, 4}:
+            raise ValidationError("图片解码通道或类型尚未核验", "MATERIALX_RESOURCE_UNSUPPORTED")
+        return channels
+    finally:
+        bpy.data.images.remove(temporary)
 
 
 class BlenderAdapter:
@@ -465,16 +489,25 @@ class BlenderAdapter:
             raise ValidationError(
                 "首版图片适配只接受已存在的外部单张图像；不静默替代内嵌、序列或 UDIM"
             )
+        if image.is_dirty:
+            raise ValidationError(
+                "图片有未保存的像素修改，不能用磁盘文件替代", "MATERIALX_RESOURCE_UNSUPPORTED"
+            )
         path = Path(bpy.path.abspath(image.filepath, library=image.library)).resolve()
         if not path.is_file():
             raise ValidationError(f"贴图文件不存在：{path}")
         resource_id = "image_" + str(len(textures))
         space = image.colorspace_settings.name
+        stat = path.stat()
+        description = {
+            "mode": image.alpha_mode,
+            "channels": image_file_channels(str(path), stat.st_size, stat.st_mtime_ns),
+        }
         textures[resource_id] = {
             "uri": str(path),
             "color_space": "Raw" if space == "Non-Color" else space,
             "coordinates": coordinates or {"kind": "uv", "set": ""},
-            "metadata": {},
+            "metadata": {"image_alpha": description},
         }
         return {"texture": resource_id}
 
@@ -513,6 +546,18 @@ class BlenderAdapter:
                         # 不复用已有 Image，避免修改源材质使用的色彩空间。
                         image = bpy.data.images.load(str(path), check_existing=False)
                         created_images.append(image)
+                        description = resource.get("metadata", {}).get("image_alpha")
+                        if description is not None:
+                            stat = path.stat()
+                            if (
+                                image_file_channels(str(path), stat.st_size, stat.st_mtime_ns)
+                                != description["channels"]
+                            ):
+                                raise ValidationError(
+                                    "目标图片通道与 MaterialX 描述不符",
+                                    "MATERIALX_RESOURCE_UNSUPPORTED",
+                                )
+                            image.alpha_mode = description["mode"]
                         image.colorspace_settings.name = (
                             "Non-Color"
                             if resource["color_space"] == "Raw"

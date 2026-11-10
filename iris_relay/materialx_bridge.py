@@ -12,6 +12,14 @@ import MaterialX as mx
 
 from .conversion import issue, status_for, transcode
 from .materialx_coordinates import check_target_coordinates, export_coordinates, import_coordinates
+from .materialx_images import (
+    IMAGE_TYPES,
+    ImageGraphReader,
+    add_image_outputs,
+    alpha_description,
+    alpha_warning,
+    check_target_alpha,
+)
 from .model import Material, ValidationError
 
 # 这里只声明已核验的语义对应，不复制 MaterialX 的类型和默认值定义。
@@ -213,6 +221,12 @@ def export_material(core, source, dictionary):
     try:
         bindings = bindings_for(core, dictionary)
         casts, coefficients = explicit_color_casts(source.data, dictionary)
+        transforms = {
+            (node["id"], port)
+            for node in source.data["nodes"]
+            for port, rule in dictionary.nodes.get(node["type"], {}).get("inputs", {}).items()
+            if rule.get("transform") == "scalar_to_color"
+        }
     except ValidationError as exc:
         issues.append(issue(exc.code, str(exc)))
         return result
@@ -224,6 +238,7 @@ def export_material(core, source, dictionary):
         renderer={"id": "iris.semantic", "version": "1"},
         issues=issues,
         explicit_casts=casts,
+        explicit_transforms=transforms,
     )
     if status_for(issues) == "error":
         return result
@@ -232,8 +247,10 @@ def export_material(core, source, dictionary):
         doc = mx.createDocument()
         doc.setDataLibrary(core.library)
         doc.setAttribute("iris_material_name", source.data["name"])
-        index = _create_export_nodes(core, doc, semantic, bindings)
-        _connect_export_links(core, doc, source.data, semantic, index, casts, coefficients, issues)
+        index = _create_export_nodes(core, doc, semantic, bindings, issues)
+        _connect_export_links(
+            core, doc, source.data, semantic, index, casts, coefficients, issues, transforms
+        )
 
         # 4. 增加材质根节点，把选定的表面连接到 surfaceshader。
         material = doc.addNodeInstance(
@@ -253,7 +270,7 @@ def export_material(core, source, dictionary):
     return result
 
 
-def _create_export_nodes(core, doc, semantic, bindings):
+def _create_export_nodes(core, doc, semantic, bindings, issues):
     """创建所有标准节点及输入，返回端口索引；未知节点或被使用的未知输出阻断。"""
     index = _ExportNodes(bindings=bindings)
     used = {(link["from"]["node"], link["from"]["socket"]) for link in semantic["links"]}
@@ -265,13 +282,31 @@ def _create_export_nodes(core, doc, semantic, bindings):
                 f"尚无 MaterialX 对应：{record['type']}", "MATERIALX_NODE_UNSUPPORTED"
             )
         definition, inputs, output = binding
+        description = None
+        used_alpha = (record["id"], "alpha") in used
+        if record["type"] == "texture.image":
+            reference = record["inputs"].get("image")
+            resource = semantic["textures"].get(reference["texture"]) if reference else None
+            description = alpha_description(resource) if resource else None
+            if used_alpha and description is None:
+                raise ValidationError(
+                    "使用 Alpha 输出需要明确文件通道和 Alpha 模式", "MATERIALX_RESOURCE_UNSUPPORTED"
+                )
+            if description is not None:
+                definition = "ND_image_" + IMAGE_TYPES[description["channels"]]
         name = doc.createValidChildName(mx.createValidName(record["id"]))
         node = doc.addNodeInstance(core.library.getNodeDef(definition), name)
         node.setAttribute("iris_source_name", record["id"])
         index.nodes[record["id"]] = node
         index.outputs[(record["id"], output)] = node
+        if description is not None:
+            outputs = add_image_outputs(
+                core, doc, node, description, used_alpha, resource["color_space"], add_value
+            )
+            index.outputs.update({(record["id"], key): value for key, value in outputs.items()})
+            alpha_warning(description, resource["color_space"], issues, record["id"])
         for port in record["outputs"]:
-            if port != output and (record["id"], port) in used:
+            if (record["id"], port) not in index.outputs and (record["id"], port) in used:
                 raise ValidationError(
                     f"尚不支持输出：{record['id']}.{port}", "MATERIALX_OUTPUT_UNSUPPORTED"
                 )
@@ -318,8 +353,10 @@ def _create_export_input(core, doc, node, semantic_type, port, mx_port, value, t
     return add_value(node, mx_port, value) if value is not None else None
 
 
-def _connect_export_links(core, doc, source, semantic, index, casts, coefficients, issues):
-    """按语义图恢复连接；仅对已核验的连接插入显式颜色转标量节点。"""
+def _connect_export_links(
+    core, doc, source, semantic, index, casts, coefficients, issues, transforms
+):
+    """按语义图恢复连接；按已核验规则补出颜色转亮度和标量转灰度颜色。"""
     for original, link in zip(source["links"], semantic["links"], strict=True):
         target_key = (link["to"]["node"], link["to"]["socket"])
         port = index.inputs[target_key]
@@ -342,6 +379,13 @@ def _connect_export_links(core, doc, source, semantic, index, casts, coefficient
                     "info",
                 )
             )
+        if (original["to"]["node"], original["to"]["socket"]) in transforms:
+            gray = doc.addNodeInstance(
+                core.library.getNodeDef("ND_convert_float_color3"),
+                doc.createValidChildName("scalar_to_color"),
+            )
+            add_value(gray, "in", None).setConnectedNode(upstream)
+            upstream = gray
         port.setConnectedNode(upstream)
 
 
@@ -439,7 +483,7 @@ def _unwrap_color_vector(upstream, visited):
     return _read_input(upstream, "in")
 
 
-def to_semantic(core, doc, material_name, issues, bindings):
+def to_semantic(core, doc, material_name, issues, bindings, scalar_inputs, transforms):
     """反向读取 MaterialX 可达图，返回既有字典能处理的语义数据；未知含义阻断。"""
     # 1. 拒绝尚不能解释的单位、前缀和色彩上下文。
     for element in doc.traverseTree():
@@ -457,6 +501,7 @@ def to_semantic(core, doc, material_name, issues, bindings):
             )
     # 2. 展开自定义子图并重新校验，然后选定唯一表面材质。
     core.flatten(doc)
+    images = ImageGraphReader(core, doc, _read_input, require_defaults, add_value)
     expanded_issues = core.inspect(doc)
     if status_for(expanded_issues) == "error":
         raise ValidationError("子图展开后未通过校验", "MATERIALX_INVALID")
@@ -492,7 +537,12 @@ def to_semantic(core, doc, material_name, issues, bindings):
         if name in visited:
             return
         visited.add(name)
-        binding = _read_binding(node, reverse)
+        image_info = images.read(node)
+        binding = (
+            ("texture.image", {"image": "file"}, "color")
+            if image_info
+            else _read_binding(node, reverse)
+        )
         if binding is None:
             raise ValidationError(
                 f"目标桥接尚不支持节点：{name} ({node.getCategory()})", "MATERIALX_NODE_UNSUPPORTED"
@@ -508,6 +558,9 @@ def to_semantic(core, doc, material_name, issues, bindings):
         supported = set(ports.values()) | ({"texcoord"} if semantic == "texture.image" else set())
         require_defaults(input_node, supported)
         record = {"id": name, "type": semantic, "inputs": {}, "outputs": [output], "metadata": {}}
+        if image_info:
+            record["outputs"] = list(image_info["outputs"])
+            visited.update(image_info["helpers"])
         data["nodes"].append(record)
         # 3. 逐项读取常量、图片与连接，显式还原颜色转向量的辅助节点。
         for port_name, mx_name in ports.items():
@@ -531,8 +584,10 @@ def to_semantic(core, doc, material_name, issues, bindings):
                     "coordinates": import_coordinates(
                         input_node, visited, _read_input, require_defaults
                     ),
-                    "metadata": {},
+                    "metadata": {"image_alpha": image_info["description"]} if image_info else {},
                 }
+                if image_info:
+                    alpha_warning(image_info["description"], COLOR_FROM_MX[color], issues, name)
                 value = {"texture": resource_id}
             needs_color_vector = (semantic, port_name) == ("normal.tangent", "normal.color") or (
                 (semantic, port_name) == ("color.weighted_sum", "color") and input_node == node
@@ -541,12 +596,26 @@ def to_semantic(core, doc, material_name, issues, bindings):
                 value, upstream = _unwrap_color_vector(upstream, visited)
             if semantic == "color.weighted_sum" and port_name == "weights" and upstream is not None:
                 raise ValidationError("加权求和暂只支持常量系数", "MATERIALX_INPUT_UNSUPPORTED")
+            if (semantic, port_name) in scalar_inputs and upstream is not None:
+                definition = upstream.getNodeDef()
+                if definition is not None and definition.getName() == "ND_convert_float_color3":
+                    require_defaults(upstream, {"in"})
+                    visited.add(upstream.getNamePath())
+                    scalar, upstream = _read_input(upstream, "in")
+                    value = [scalar] * 3
+                    if upstream is not None:
+                        transforms.add((name, port_name))
             if value is None and upstream is None:
                 continue
             record["inputs"][port_name] = value
             if upstream is not None:
+                upstream, image_output = images.resolve(upstream)
                 pending.append(upstream)
-                upstream_binding = _read_binding(upstream, reverse)
+                upstream_binding = (
+                    ("texture.image", {}, image_output)
+                    if image_output
+                    else _read_binding(upstream, reverse)
+                )
                 if upstream_binding is None:
                     raise ValidationError(
                         f"目标桥接尚不支持节点：{upstream.getNamePath()}",
@@ -572,6 +641,13 @@ def to_semantic(core, doc, material_name, issues, bindings):
     # 3. 只遍历选中表面的上游节点；其余节点保留源文档并报告未使用。
     while pending:
         visit(pending.pop())
+    for name, information in images.cache.items():
+        if name in visited and information["used_alpha"] != any(
+            link["from"] == {"node": name, "socket": "alpha"} for link in data["links"]
+        ):
+            raise ValidationError(
+                "图片 Alpha 使用标记与可达连接不符", "MATERIALX_RESOURCE_UNSUPPORTED"
+            )
     unused = [
         n.getNamePath() for n in doc.getNodes() if n != material and n.getNamePath() not in visited
     ]
@@ -599,10 +675,32 @@ def convert_document(core, source, dictionary, target, material_name=None):
             return result
         # 2. 提取可转换部分，再按目标字典生成原生参数与连接。
         bindings = bindings_for(core, dictionary)
-        semantic = to_semantic(core, doc, material_name, issues, bindings)
+        scalar_inputs = set()
+        for semantic_type in {rule["semantic"] for rule in dictionary.nodes.values()}:
+            try:
+                _, rule = dictionary.target_node(semantic_type)
+            except ValidationError:
+                # 未使用功能的歧义不应阻断当前图；实际用到时由 transcode 明确报告。
+                continue
+            scalar_inputs.update(
+                (semantic_type, port["semantic"])
+                for port in rule["inputs"].values()
+                if port.get("transform") == "scalar_to_color"
+            )
+        transforms = set()
+        semantic = to_semantic(
+            core, doc, material_name, issues, bindings, scalar_inputs, transforms
+        )
         check_target_coordinates(semantic, dictionary)
+        check_target_alpha(semantic, dictionary)
         candidate = transcode(
-            semantic, dictionary, encode=True, renderer=deepcopy(target), issues=issues
+            semantic,
+            dictionary,
+            encode=True,
+            renderer=deepcopy(target),
+            issues=issues,
+            explicit_casts=transforms,
+            explicit_transforms=transforms,
         )
         # 3. 最终协议通过校验后才标记为 converted；并不自动写入 DCC。
         if status_for(issues) != "error":

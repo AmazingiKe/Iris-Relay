@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from _scripts.verify_native_host import equal  # noqa: E402
+from _scripts.verify_native_host import equal, resource_equal  # noqa: E402
 from plugins.blender import controller  # noqa: E402
 
 
@@ -152,7 +152,7 @@ def compare_target_graph(expected, actual):
             if isinstance(value, dict) and "texture" in value:
                 actual_resource = actual["textures"][actual_value["texture"]]
                 expected_resource = expected["textures"][value["texture"]]
-                assert equal(actual_resource, expected_resource), (
+                assert resource_equal(actual_resource, expected_resource), (
                     node["id"],
                     name,
                     expected_resource,

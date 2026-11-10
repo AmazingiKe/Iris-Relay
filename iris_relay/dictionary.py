@@ -109,6 +109,7 @@ class Dictionary:
                 "semantic_schema_version",
                 "materialx_export",
                 "texture_coordinates",
+                "texture_alpha_modes",
             },
         )
         if value["schema_version"] != "1":
@@ -130,6 +131,16 @@ class Dictionary:
                 "trs",
             ):
                 raise ValidationError("未知的贴图坐标目标能力")
+        if "texture_alpha_modes" in value:
+            modes = value["texture_alpha_modes"]
+            if (
+                not isinstance(modes, list)
+                or any(
+                    mode not in ("STRAIGHT", "PREMUL", "CHANNEL_PACKED", "NONE") for mode in modes
+                )
+                or len(set(modes)) != len(modes)
+            ):
+                raise ValidationError("未知或重复的图片 Alpha 目标模式")
         if "host" in value:
             host = value["host"]
             fields(host, {"id", "versions", "node_system"})
