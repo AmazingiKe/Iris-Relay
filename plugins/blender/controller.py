@@ -1,7 +1,8 @@
-"""Blender 导出流程：协调公开 API 和文件保存，不实现材质转换规则。
+"""Blender 导入导出流程：协调公开 API、文件与宿主，不实现材质转换规则。
 
 只检查：check_material → adapter 读取 → materialx.export → materialx.validate。
 保存文件：export_material → 检查路径 → check_material → 警告确认 → 排他写入。
+导入文件：import_material → check_import → 警告确认 → adapter 创建新材质。
 """
 
 import os
@@ -10,7 +11,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from iris_relay import RelayAPI
-from iris_relay.model import ValidationError
+from iris_relay.model import Material, ValidationError
 from iris_relay.plugin import JsonCommandService
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -27,6 +28,20 @@ class ExportResult:
     validation_response: dict | None = None
     saved_path: str | None = None
     source_snapshot: dict | None = None
+
+
+@dataclass
+class ImportResult:
+    """导入报告只保存可序列化数据；created_material 是成功创建后的实际名称。"""
+
+    status: str = "error"
+    message: str = "文档尚未检查"
+    issues: list = field(default_factory=list)
+    source_path: str | None = None
+    validation_response: dict | None = None
+    conversion_response: dict | None = None
+    target_material: dict | None = None
+    created_material: str | None = None
 
 
 def request(service, operation, **payload):
@@ -187,4 +202,98 @@ def export_material(adapter, service, filepath, *, accept_warnings=False):
     # 5. 只有写入完成后才设置 saved_path，让 UI 明确区分检查通过与已保存。
     result.saved_path = str(path)
     result.message = "已导出 .mtlx（含警告）" if result.status == "warning" else "已导出 .mtlx"
+    return result
+
+
+def input_path(filepath):
+    """验证输入为已存在的绝对 .mtlx 文件；拒绝 Blender 相对路径的歧义。"""
+    raw = str(filepath).strip()
+    path = Path(raw)
+    if not raw or raw.startswith("//") or not path.is_absolute():
+        raise ValidationError("请选择输入 .mtlx 文件的绝对路径", "INVALID_PATH")
+    if path.suffix.lower() != ".mtlx" or not path.is_file():
+        raise ValidationError("输入需要是已存在的 .mtlx 文件", "INVALID_PATH")
+    return path
+
+
+def _prepare_import_material(response, target, document_path):
+    """校验核心目标协议并定位图片；相对图片路径以文档目录为基准，不改原响应。"""
+    payload = response.get("result") or {}
+    if not isinstance(payload.get("material"), dict):
+        raise ValidationError("核心没有返回目标材质", "INVALID_RESPONSE")
+    material = Material.parse(payload["material"]).to_dict()
+    if material["renderer"] != target:
+        raise ValidationError("核心返回的目标版本与请求不一致", "INVALID_RESPONSE")
+    for resource in material["textures"].values():
+        path = Path(resource["uri"])
+        if not path.is_absolute():
+            path = document_path.parent / path
+        if not path.is_file():
+            raise ValidationError(f"贴图文件不存在：{path}", "TEXTURE_NOT_FOUND")
+        resource["uri"] = str(path.resolve())
+    return material
+
+
+def check_import(service, filepath, target):
+    """只读检查文档、目标转换和贴图；保存完整响应，任何错误均不触碰宿主数据。"""
+    result = ImportResult()
+    try:
+        # 1. 每次重新读取输入，UTF-8 BOM 可接受；限制读取量避免大文件耗尽宿主内存。
+        path = input_path(filepath)
+        result.source_path = str(path)
+        with path.open("rb") as stream:
+            content = stream.read(8 * 1024 * 1024 + 1)
+        if len(content) > 8 * 1024 * 1024:
+            raise ValidationError("输入文档超过 8 MiB 限制", "MATERIALX_LIMIT_EXCEEDED")
+        document = content.decode("utf-8-sig")
+        # 2. 由核心验证文档和转换能力；UI 与控制层不解析 XML 或猜测节点映射。
+        result.validation_response = request(service, "materialx.validate", document=document)
+        result.issues.extend(response_issues(result.validation_response))
+        if (
+            result.validation_response["status"] == "error"
+            or (result.validation_response.get("result") or {}).get("valid") is not True
+        ):
+            return failure(result, "MATERIALX_INVALID", "文档校验失败，未创建材质")
+        result.conversion_response = request(
+            service, "materialx.convert", document=document, target=target
+        )
+        result.issues.extend(response_issues(result.conversion_response))
+        if result.conversion_response["status"] == "error":
+            result.message = "目标转换被阻断，未创建材质"
+            return result
+        # 3. 校验目标协议与资源；缺图时在宿主创建之前失败。
+        result.target_material = _prepare_import_material(result.conversion_response, target, path)
+        if any(i["severity"] == "error" for i in result.issues):
+            result.message = "报告包含阻断问题，未创建材质"
+            return result
+        has_warning = any(i["severity"] == "warning" for i in result.issues) or any(
+            response["status"] == "warning"
+            for response in (result.validation_response, result.conversion_response)
+        )
+        result.status = "warning" if has_warning else "ok"
+        result.message = (
+            "导入检查完成，有警告；尚未创建材质" if has_warning else "检查通过，尚未创建材质"
+        )
+    except (ValidationError, OSError, ValueError) as exc:
+        failure(result, getattr(exc, "code", "IMPORT_READ_FAILED"), str(exc))
+    return result
+
+
+def import_material(adapter, service, filepath, target, *, accept_warnings=False):
+    """重新检查并创建独立材质；不替换绑定，失败清理由宿主适配器保证。"""
+    # 1. 不复用预览结果，防止检查之后文件或引用图片发生变化。
+    result = check_import(service, filepath, target)
+    if result.status == "error":
+        return result
+    # 2. 近似警告默认阻止创建；允许警告不能绕过核心阻断或缺失图片。
+    if result.status == "warning" and not accept_warnings:
+        result.message = "尚未导入：请查看警告并选择是否允许带警告导入"
+        return result
+    # 3. 只有宿主创建成功才记录材质名，失败时保留核心报告供诊断。
+    try:
+        created = adapter.create_material(result.target_material)
+        result.created_material = created.name
+    except Exception as exc:
+        return failure(result, getattr(exc, "code", "IMPORT_FAILED"), f"创建材质失败：{exc}")
+    result.message = f"已导入为新材质：{result.created_material}"
     return result
