@@ -16,6 +16,7 @@ from iris_relay.native import decode_value, encode_value, identify  # noqa: E402
 
 
 def equal(actual, expected):
+    """比较保存重开数据；数值允许宿主浮点误差，字符串、键集合和列表次序须一致。"""
     if isinstance(expected, (int, float)) and not isinstance(expected, bool):
         return isinstance(actual, (int, float)) and abs(actual - expected) < 2e-5
     if isinstance(expected, list):
@@ -23,6 +24,12 @@ def equal(actual, expected):
             isinstance(actual, list)
             and len(actual) == len(expected)
             and all(equal(a, b) for a, b in zip(actual, expected, strict=True))
+        )
+    if isinstance(expected, dict):
+        return (
+            isinstance(actual, dict)
+            and actual.keys() == expected.keys()
+            and all(equal(actual[key], value) for key, value in expected.items())
         )
     return actual == expected
 

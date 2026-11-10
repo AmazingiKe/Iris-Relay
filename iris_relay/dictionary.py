@@ -102,7 +102,14 @@ class Dictionary:
         fields(
             value,
             {"schema_version", "id", "version", "renderer", "nodes"},
-            {"host", "description", "evidence", "semantic_schema_version", "materialx_export"},
+            {
+                "host",
+                "description",
+                "evidence",
+                "semantic_schema_version",
+                "materialx_export",
+                "texture_coordinates",
+            },
         )
         if value["schema_version"] != "1":
             raise ValidationError("不支持的字典协议版本")
@@ -116,6 +123,13 @@ class Dictionary:
             rules = fields(value["materialx_export"], {"color_to_float"})
             if rules["color_to_float"] != "scene_linear_luminance":
                 raise ValidationError("未知的 MaterialX 隐式颜色连接规则")
+        if "texture_coordinates" in value:
+            coordinates = fields(value["texture_coordinates"], {"named_uv", "transforms"})
+            if type(coordinates["named_uv"]) is not bool or coordinates["transforms"] not in (
+                "none",
+                "trs",
+            ):
+                raise ValidationError("未知的贴图坐标目标能力")
         if "host" in value:
             host = value["host"]
             fields(host, {"id", "versions", "node_system"})

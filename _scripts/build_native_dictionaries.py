@@ -172,7 +172,8 @@ def build(catalog):
     if "color_context" in catalog:
         profile["evidence"]["color_context"] = catalog["color_context"]
     if engine == "cycles":
-        profile["version"] = "0.3.4"
+        profile["version"] = "0.3.5"
+        profile["texture_coordinates"] = {"named_uv": True, "transforms": "trs"}
         profile["materialx_export"] = {"color_to_float": "scene_linear_luminance"}
         profile["evidence"]["implicit_color_to_float"] = (
             "https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/convert.h"

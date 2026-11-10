@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "id": "blender.cycles.native",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "semantic_schema_version": "1",
   "description": "真实原生绑定；标准表面、图片、切线法线、高度凹凸与显式 R 通道提取。其余节点见探测目录。",
   "renderer": {
@@ -3947,6 +3947,10 @@
         }
       }
     }
+  },
+  "texture_coordinates": {
+    "named_uv": true,
+    "transforms": "trs"
   },
   "materialx_export": {
     "color_to_float": "scene_linear_luminance"

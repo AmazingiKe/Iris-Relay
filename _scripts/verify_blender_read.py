@@ -71,9 +71,11 @@ def main():
         assert check_material(adapter, service).status == "error"
         tree.nodes.remove(noise)
 
-        # 恒等映射以外、错误坐标来源与静音节点均不能退化成默认 UV。
+        # 非恒等 POINT 须保留显式矩阵，错误坐标来源与静音节点仍阻断。
         mapping.inputs["Scale"].default_value = (2, 1, 1)
-        assert check_material(adapter, service).status == "error"
+        transformed = check_material(adapter, service)
+        assert transformed.status == "warning"
+        assert "transformmatrix" in transformed.export_response["result"]["document"]
         mapping.inputs["Scale"].default_value = (1, 1, 1)
         tree.links.new(uv.outputs["Generated"], mapping.inputs["Vector"])
         assert check_material(adapter, service).status == "error"

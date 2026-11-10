@@ -109,9 +109,11 @@ def linked_source(socket, structural):
         socket = node.inputs[0]
 
 
-def default_uv(socket, structural):
-    """仅接受默认 UV 及 POINT 恒等 Mapping，不把其他坐标近似成默认值。"""
-    seen = set()
+def read_uv_coordinates(socket, structural):
+    """读取 UV 来源与静态 POINT 变换，按应用顺序保留各步矩阵，不改变原图。"""
+    from mathutils import Euler, Matrix, Vector
+
+    seen, matrices = set(), []
     while True:
         source = linked_source(socket, structural)
         node = source.node
@@ -119,21 +121,86 @@ def default_uv(socket, structural):
             raise ValidationError("坐标链包含循环", "INVALID_LINK")
         seen.add(node.name)
         structural.add(node.name)
-        # 到达默认 UV 即完成；实例 UV 的含义不同，继续阻断。
-        if node.bl_idname == "ShaderNodeTexCoord" and source.identifier == "UV":
+        # 默认 UV 和按名称查询的 UV 都是几何属性；实例来源须另行定义。
+        if (
+            node.bl_idname in {"ShaderNodeTexCoord", "ShaderNodeUVMap"}
+            and source.identifier == "UV"
+        ):
             if node.from_instancer:
                 raise ValidationError("尚不支持实例 UV", "UV_UNSUPPORTED")
-            return
-        # 只穿过没有任何变换、且变换参数未被连接驱动的 Mapping。
+            result = {"kind": "uv", "set": getattr(node, "uv_map", "")}
+            if matrices:
+                result["transforms"] = list(reversed(matrices))
+            return result
+        # POINT 按缩放、旋转、平移处理；动态参数不能冻结成当前默认值。
         if node.bl_idname == "ShaderNodeMapping" and node.vector_type == "POINT":
             expected = {"Location": [0, 0, 0], "Rotation": [0, 0, 0], "Scale": [1, 1, 1]}
-            if all(
-                not node.inputs[p].is_linked and socket_value(node.inputs[p]) == v
-                for p, v in expected.items()
-            ):
+            if not any(node.inputs[p].is_linked for p in expected):
+                values = {p: socket_value(node.inputs[p]) for p in expected}
+                if values != expected:
+                    matrix = Matrix.LocRotScale(
+                        Vector(values["Location"]),
+                        Euler(values["Rotation"], "XYZ"),
+                        Vector(values["Scale"]),
+                    )
+                    # Blender 使用列向量；协议遵循 MaterialX 的行向量矩阵约定。
+                    matrices.append([matrix[col][row] for row in range(4) for col in range(4)])
+                    if len(matrices) > 64:
+                        raise ValidationError("坐标变换链超过 64 层", "UV_UNSUPPORTED")
                 socket = node.inputs["Vector"]
                 continue
         raise ValidationError(f"坐标链暂不支持节点或变换：{node.name}", "UV_UNSUPPORTED")
+
+
+def create_uv_coordinates(tree, image_node, coordinates):
+    """在新材质中重建命名 UV 与 POINT Mapping；不可分解的矩阵明确失败。"""
+    import math
+
+    from mathutils import Matrix
+
+    if (
+        not isinstance(coordinates, dict)
+        or set(coordinates) - {"kind", "set", "transforms"}
+        or coordinates.get("kind") != "uv"
+        or not isinstance(coordinates.get("set"), str)
+    ):
+        raise ValidationError("不支持该图片坐标描述", "UV_UNSUPPORTED")
+    matrices = coordinates.get("transforms", [])
+    if not isinstance(matrices, list) or len(matrices) > 64:
+        raise ValidationError("坐标矩阵须为至多 64 项的列表", "UV_UNSUPPORTED")
+    if not coordinates["set"] and not matrices:
+        return
+    uv = tree.nodes.new("ShaderNodeUVMap" if coordinates["set"] else "ShaderNodeTexCoord")
+    if coordinates["set"]:
+        uv.uv_map = coordinates["set"]
+    output = uv.outputs["UV"]
+    for values in matrices:
+        if (
+            not isinstance(values, list)
+            or len(values) != 16
+            or any(type(v) not in (int, float) or not math.isfinite(v) for v in values)
+            or any(values[i] != 0 for i in (3, 7, 11))
+            or values[15] != 1
+        ):
+            raise ValidationError("坐标需要有限仿射 matrix44", "UV_UNSUPPORTED")
+        matrix = Matrix([values[i : i + 4] for i in (0, 4, 8, 12)]).transposed()
+        location, rotation, scale = matrix.decompose()
+        euler = rotation.to_euler("XYZ")
+        restored = Matrix.LocRotScale(location, euler, scale)
+        if min(abs(v) for v in scale) < 1e-12 or any(
+            not math.isclose(matrix[i][j], restored[i][j], rel_tol=1e-5, abs_tol=2e-5)
+            for i in range(4)
+            for j in range(4)
+        ):
+            raise ValidationError("POINT Mapping 不能还原剪切或退化矩阵", "UV_UNSUPPORTED")
+        mapping = tree.nodes.new("ShaderNodeMapping")
+        mapping.vector_type = "POINT"
+        mapping.inputs["Location"].default_value = location
+        mapping.inputs["Rotation"].default_value = euler
+        mapping.inputs["Scale"].default_value = scale
+        tree.links.new(output, mapping.inputs["Vector"])
+        output = mapping.outputs["Vector"]
+    tree.links.new(output, image_node.inputs["Vector"])
 
 
 def color_to_float_context():
@@ -187,7 +254,7 @@ class _SurfaceGraph:
     surface: bpy.types.NodeSocket
     nodes: dict
     links: list
-    uv_images: set[str]
+    uv_images: dict[str, dict]
     needs_color_cast: bool
 
 
@@ -267,9 +334,9 @@ class BlenderAdapter:
         return output
 
     def _collect_surface_graph(self, tree, output):
-        """从表面出口向上游遍历，解析转接点与默认 UV，报告未使用节点。"""
+        """从表面出口向上游遍历，解析转接点与 UV 链，报告未使用节点。"""
         # 1. 以真实表面节点为起点；structural 记录已解析的转接点/坐标节点。
-        structural, active, uv_images = set(), {}, set()
+        structural, active, uv_images = set(), {}, {}
         surface = linked_source(output.inputs["Surface"], structural)
         pending = [surface.node]
         links = []
@@ -285,11 +352,14 @@ class BlenderAdapter:
                 if not socket.is_linked:
                     continue
                 if node.bl_idname == "ShaderNodeTexImage" and socket.identifier == "Vector":
-                    default_uv(socket, structural)
-                    uv_images.add(node.name)
+                    coordinates = read_uv_coordinates(socket, structural)
+                    uv_images[node.name] = coordinates
+                    default = coordinates == {"kind": "uv", "set": ""}
                     self.note(
-                        "DEFAULT_UV_RESOLVED",
-                        "默认 UV、恒等 Mapping 与转接点已解析",
+                        "DEFAULT_UV_RESOLVED" if default else "UV_COORDINATES_PRESERVED",
+                        "默认 UV、恒等 Mapping 与转接点已解析"
+                        if default
+                        else "UV 名称和各步 POINT 矩阵保留在图片坐标中；导入重建等价坐标链",
                         node.name,
                         "Vector",
                     )
@@ -335,7 +405,7 @@ class BlenderAdapter:
             result["metadata"]["color_to_float"] = color_to_float_context()
         for node in graph.nodes.values():
             result["nodes"].append(
-                self._read_node(node, schema, result["textures"], node.name in graph.uv_images)
+                self._read_node(node, schema, result["textures"], graph.uv_images.get(node.name))
             )
         return result
 
@@ -376,18 +446,18 @@ class BlenderAdapter:
         for port, port_rule in rule["inputs"].items():
             binding = port_rule["native"]
             if binding["kind"] == "resource":
-                value = self._read_image_resource(node.image, textures)
+                value = self._read_image_resource(node.image, textures, resolved_uv)
             else:
                 value = decode_value(
                     socket_value(find_socket(node.inputs, binding["id"])), port_rule
                 )
-                if resolved_uv and binding["id"] == "Vector":
-                    # 坐标链已确认等价于默认 UV，不把被连接覆盖的插口默认值当作变换。
+                if resolved_uv is not None and binding["id"] == "Vector":
+                    # 坐标链已保存于资源，不把被连接覆盖的插口默认值当作额外变换。
                     value = port_rule["default"]
             record["inputs"][port] = value
         return record
 
-    def _read_image_resource(self, image, textures):
+    def _read_image_resource(self, image, textures, coordinates=None):
         """验证外部图片，将路径与色彩解释加入资源表，返回纹理引用。"""
         if image is None:
             return None
@@ -403,7 +473,7 @@ class BlenderAdapter:
         textures[resource_id] = {
             "uri": str(path),
             "color_space": "Raw" if space == "Non-Color" else space,
-            "coordinates": {"kind": "uv", "set": ""},
+            "coordinates": coordinates or {"kind": "uv", "set": ""},
             "metadata": {},
         }
         return {"texture": resource_id}
@@ -422,7 +492,7 @@ class BlenderAdapter:
             material.use_nodes = True
             tree = material.node_tree
             tree.nodes.clear()
-            nodes = {}
+            nodes, image_coordinates = {}, []
             for record in data["nodes"]:
                 rule = schema["nodes"][record["type"]]
                 node = tree.nodes.new(rule["native"]["id"])
@@ -449,13 +519,15 @@ class BlenderAdapter:
                             else resource["color_space"]
                         )
                         node.image = image
-                        if resource["coordinates"] != {"kind": "uv", "set": ""}:
-                            raise ValidationError("首版仅支持默认 UV 集，不静默忽略坐标变换")
+                        image_coordinates.append((node, resource["coordinates"]))
                     elif value is not None:
                         find_socket(node.inputs, binding["id"]).default_value = encode_value(
                             value, port_rule
                         )
-            # 3. 恢复节点连接，并将核心指定的表面出口接到新材质输出。
+            # 3. 原生功能节点名称确定后再建坐标节点，避免辅助节点抢占协议 ID。
+            for node, coordinates in image_coordinates:
+                create_uv_coordinates(tree, node, coordinates)
+            # 4. 恢复节点连接，并将核心指定的表面出口接到新材质输出。
             for link in data["links"]:
                 source, target = link["from"], link["to"]
                 tree.links.new(
@@ -472,7 +544,7 @@ class BlenderAdapter:
             material.use_fake_user = True
             return material
         except Exception:
-            # 4. 任意一步失败只清理本次新增数据，保留源材质与源图片。
+            # 5. 任意一步失败只清理本次新增数据，保留源材质与源图片。
             bpy.data.materials.remove(material)
             for image in created_images:
                 if image.users == 0:

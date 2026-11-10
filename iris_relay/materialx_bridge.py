@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 import MaterialX as mx
 
 from .conversion import issue, status_for, transcode
+from .materialx_coordinates import check_target_coordinates, export_coordinates, import_coordinates
 from .model import Material, ValidationError
 
 # 这里只声明已核验的语义对应，不复制 MaterialX 的类型和默认值定义。
@@ -131,6 +132,12 @@ def python_value(port):
     value = port.getValue()
     if isinstance(value, (str, float, int, bool)):
         return value
+    if isinstance(value, (mx.Matrix33, mx.Matrix44)):
+        return [
+            value[row, column]
+            for row in range(value.numRows())
+            for column in range(value.numColumns())
+        ]
     return list(value)
 
 
@@ -286,8 +293,7 @@ def _create_export_input(core, doc, node, semantic_type, port, mx_port, value, t
         if value is None:
             raise ValidationError("图片节点缺少资源", "MATERIALX_RESOURCE_UNSUPPORTED")
         resource = textures[value["texture"]]
-        if resource["coordinates"] != {"kind": "uv", "set": ""}:
-            raise ValidationError("首版桥接仅支持默认 UV", "MATERIALX_RESOURCE_UNSUPPORTED")
+        export_coordinates(core, doc, node, resource["coordinates"], add_value)
         color = COLOR_TO_MX.get(resource["color_space"])
         if color is None:
             raise ValidationError("尚未核验该贴图色彩空间", "MATERIALX_COLORSPACE_UNSUPPORTED")
@@ -499,7 +505,8 @@ def to_semantic(core, doc, material_name, issues, bindings):
             visited.add(input_node.getNamePath())
         else:
             input_node = node
-        require_defaults(input_node, set(ports.values()))
+        supported = set(ports.values()) | ({"texcoord"} if semantic == "texture.image" else set())
+        require_defaults(input_node, supported)
         record = {"id": name, "type": semantic, "inputs": {}, "outputs": [output], "metadata": {}}
         data["nodes"].append(record)
         # 3. 逐项读取常量、图片与连接，显式还原颜色转向量的辅助节点。
@@ -521,7 +528,9 @@ def to_semantic(core, doc, material_name, issues, bindings):
                 data["textures"][resource_id] = {
                     "uri": value,
                     "color_space": COLOR_FROM_MX[color],
-                    "coordinates": {"kind": "uv", "set": ""},
+                    "coordinates": import_coordinates(
+                        input_node, visited, _read_input, require_defaults
+                    ),
                     "metadata": {},
                 }
                 value = {"texture": resource_id}
@@ -591,6 +600,7 @@ def convert_document(core, source, dictionary, target, material_name=None):
         # 2. 提取可转换部分，再按目标字典生成原生参数与连接。
         bindings = bindings_for(core, dictionary)
         semantic = to_semantic(core, doc, material_name, issues, bindings)
+        check_target_coordinates(semantic, dictionary)
         candidate = transcode(
             semantic, dictionary, encode=True, renderer=deepcopy(target), issues=issues
         )

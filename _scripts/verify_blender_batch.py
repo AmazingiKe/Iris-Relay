@@ -118,7 +118,7 @@ def import_all(args, service):
             case.update(compare_target_graph(expected, actual), reopened=True)
             write_json(args.out / (case["id"] + "-readback.json"), actual)
         except Exception as exc:
-            case.update(status="error", reopened=False, verification_error=str(exc))
+            case.update(status="error", reopened=False, verification_error=repr(exc))
         write_json(args.out / "summary.json", summary)
     return summary
 
@@ -136,9 +136,13 @@ def compare_target_graph(expected, actual):
         for name, value in node["inputs"].items():
             actual_value = found["inputs"][name]
             if isinstance(value, dict) and "texture" in value:
-                assert (
-                    actual["textures"][actual_value["texture"]]
-                    == expected["textures"][value["texture"]]
+                actual_resource = actual["textures"][actual_value["texture"]]
+                expected_resource = expected["textures"][value["texture"]]
+                assert equal(actual_resource, expected_resource), (
+                    node["id"],
+                    name,
+                    expected_resource,
+                    actual_resource,
                 )
             else:
                 assert equal(actual_value, value), (node["id"], name, value, actual_value)
