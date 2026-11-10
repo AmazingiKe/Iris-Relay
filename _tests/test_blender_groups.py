@@ -179,6 +179,11 @@ def test_vector_default_keeps_implicit_geometry_input_distinct():
     exit_port.default_value = [0, 0, 0]
     with pytest.raises(ValidationError, match="隐式几何"):
         _ = ExpandedGraph(root).node(targets[0]).inputs[0].default_value
+    graph = ExpandedGraph(root)
+    assert graph.resolve(graph.node(targets[0]).inputs[0], literal_defaults=True) == (
+        None,
+        [0, 0, 0],
+    )
 
 
 def test_passthrough_cycle_and_node_limit_are_reported():

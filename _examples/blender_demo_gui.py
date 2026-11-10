@@ -45,7 +45,12 @@ def main(repo_root=REPO_ROOT):
     if Path(ui.__file__).resolve() != expected:
         raise ValueError("导入路径与指定仓库不一致，请检查 Blender 中已有的 plugins 模块")
     ui.unregister()
-    for name in ("plugins.blender.controller", "plugins.blender.groups", "plugins.blender.adapter"):
+    for name in (
+        "plugins.blender.controller",
+        "plugins.blender.groups",
+        "plugins.blender.coordinates",
+        "plugins.blender.adapter",
+    ):
         if name in sys.modules:
             importlib.reload(sys.modules[name])
     ui = importlib.reload(ui)

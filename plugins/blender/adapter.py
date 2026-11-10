@@ -14,6 +14,7 @@ import bpy
 from iris_relay.model import Material, ValidationError
 from iris_relay.native import decode_value, describe, encode_value, identify
 
+from .coordinates import read_uv_coordinates
 from .groups import ExpandedGraph
 
 
@@ -111,50 +112,6 @@ def linked_source(socket, structural):
         seen.add(node.name)
         structural.add(node.name)
         socket = node.inputs[0]
-
-
-def read_uv_coordinates(socket, structural):
-    """读取 UV 来源与静态 POINT 变换，按应用顺序保留各步矩阵，不改变原图。"""
-    from mathutils import Euler, Matrix, Vector
-
-    seen, matrices = set(), []
-    while True:
-        source = linked_source(socket, structural)
-        node = source.node
-        if node.name in seen:
-            raise ValidationError("坐标链包含循环", "INVALID_LINK")
-        seen.add(node.name)
-        structural.add(node.name)
-        # 默认 UV 和按名称查询的 UV 都是几何属性；实例来源须另行定义。
-        if (
-            node.bl_idname in {"ShaderNodeTexCoord", "ShaderNodeUVMap"}
-            and source.identifier == "UV"
-        ):
-            if node.from_instancer:
-                raise ValidationError("尚不支持实例 UV", "UV_UNSUPPORTED")
-            result = {"kind": "uv", "set": getattr(node, "uv_map", "")}
-            if matrices:
-                result["transforms"] = list(reversed(matrices))
-            return result
-        # POINT 按缩放、旋转、平移处理；动态参数不能冻结成当前默认值。
-        if node.bl_idname == "ShaderNodeMapping" and node.vector_type == "POINT":
-            expected = {"Location": [0, 0, 0], "Rotation": [0, 0, 0], "Scale": [1, 1, 1]}
-            if not any(node.inputs[p].is_linked for p in expected):
-                values = {p: socket_value(node.inputs[p]) for p in expected}
-                if values != expected:
-                    matrix = Matrix.LocRotScale(
-                        Vector(values["Location"]),
-                        Euler(values["Rotation"], "XYZ"),
-                        Vector(values["Scale"]),
-                    )
-                    # Blender 使用列向量；协议遵循 MaterialX 的行向量矩阵约定。
-                    matrices.append([matrix[col][row] for row in range(4) for col in range(4)])
-                    if len(matrices) > 64:
-                        raise ValidationError("坐标变换链超过 64 层", "UV_UNSUPPORTED")
-                socket = node.inputs["Vector"]
-                continue
-        label = getattr(node, "diagnostic_name", node.name)
-        raise ValidationError(f"坐标链暂不支持节点或变换：{label}", "UV_UNSUPPORTED")
 
 
 def create_uv_coordinates(tree, image_node, coordinates):
@@ -386,9 +343,9 @@ class BlenderAdapter:
                     default = coordinates == {"kind": "uv", "set": ""}
                     self.note(
                         "DEFAULT_UV_RESOLVED" if default else "UV_COORDINATES_PRESERVED",
-                        "默认 UV、恒等 Mapping 与转接点已解析"
+                        "默认 UV 和恒等坐标表达式已解析"
                         if default
-                        else "UV 名称和各步 POINT 矩阵保留在图片坐标中；导入重建等价坐标链",
+                        else "UV 名称及静态表达式的各步矩阵保留于图片坐标；导入重建可编辑坐标链",
                         node.name,
                         "Vector",
                     )
@@ -403,7 +360,14 @@ class BlenderAdapter:
                     }
                 )
 
-        # 3. 未参与所选表面的节点只保留在源快照，明确列入诊断。
+        # 3. 矩阵参数不能冻结同时驱动材质属性的计算节点，否则回导会丢失共享依赖。
+        shared = sorted(set(active) & structural)
+        if shared:
+            raise ValidationError(
+                "坐标表达式同时驱动其他材质分支，尚不能拆开其共享连接：" + "、".join(shared),
+                "UV_SHARED_EXPRESSION_UNSUPPORTED",
+            )
+        # 4. 未参与所选表面的节点只保留在源快照，明确列入诊断。
         unused = [
             n.name
             for n in tree.nodes

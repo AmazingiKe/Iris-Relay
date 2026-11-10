@@ -120,8 +120,8 @@ def main():
         assert controller.check_material(adapter, service).status == "error"
         uv.from_instancer = False
         if mappings:
-            value = material.node_tree.nodes.new("ShaderNodeValue")
-            material.node_tree.links.new(value.outputs[0], mappings[0].inputs["Location"])
+            value = material.node_tree.nodes.new("ShaderNodeTexCoord")
+            material.node_tree.links.new(value.outputs["Generated"], mappings[0].inputs["Location"])
             assert controller.check_material(adapter, service).status == "error"
             material.node_tree.nodes.remove(value)
             mappings[0].vector_type = "TEXTURE"

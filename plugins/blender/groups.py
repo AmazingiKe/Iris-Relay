@@ -143,8 +143,8 @@ class ExpandedGraph:
                 "GROUP_SOCKET_TYPE_UNSUPPORTED",
             )
 
-    def resolve(self, socket):
-        """返回实际上游输出或实例默认值；迭代解析边界，检测接口旁路循环。"""
+    def resolve(self, socket, *, literal_defaults=False):
+        """解析边界；仅显式常量求值调用方可接收向量字面量，不能当成未连接端口。"""
         current, seen, interfaces = socket, set(), []
         while True:
             key = (tuple(current.node.source_group_path), current.node.name, current.identifier)
@@ -154,10 +154,13 @@ class ExpandedGraph:
             links = list(current.native.links)
             if not links:
                 if interfaces:
-                    self._same_type(current, socket)
+                    if not (
+                        literal_defaults and current.type == "VALUE" and socket.type == "VECTOR"
+                    ):
+                        self._same_type(current, socket)
                     for interface in interfaces:
                         self._same_type(current, interface)
-                    if socket.type not in {"VALUE", "RGBA"}:
+                    if socket.type not in {"VALUE", "RGBA"} and not literal_defaults:
                         raise ValidationError(
                             f"节点「{socket.node.diagnostic_name}」的组默认值需要显式常量节点，"
                             "不能替代目标端口的隐式几何输入",
