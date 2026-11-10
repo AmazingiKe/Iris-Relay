@@ -3,7 +3,7 @@
 from copy import deepcopy
 from uuid import uuid4
 
-from .model import ValidationError
+from .protocol import ValidationError
 
 
 def describe(service, renderer):
