@@ -46,6 +46,7 @@ class ImportPanel:
         )
         self.details = cmds.scrollField(editable=False, wordWrap=False, height=230, text="")
         cmds.button(label="复制当前报告", height=32, command=self.copy_report)
+        cmds.button(label="查看节点与共享参数", height=32, command=self.show_created_graph)
         cmds.button(
             label="将场景选中的 Arnold 材质导出为 .mtlx…", height=32, command=self.export_selected
         )
@@ -242,6 +243,65 @@ class ImportPanel:
         from PySide2.QtWidgets import QApplication
 
         QApplication.clipboard().setText(cmds.scrollField(self.details, query=True, text=True))
+
+    def show_created_graph(self, *_):
+        """打开独立节点编辑窗口，显示当前网络与仍然有效的原生发布参数。"""
+        for path in self.selected():
+            created = self.results.get(path, {}).get("created")
+            if created and cmds.objExists(created["material"]):
+                show_editable_graph(created)
+                return
+        cmds.text(self.status, edit=True, label="请先选择一份已导入且仍在场景中的材质。")
+
+
+def show_editable_graph(created):
+    """原生节点自动布局；参数控件直接绑定当前属性，不用缓存值重放计算图。"""
+    window = cmds.window(title="Iris Relay · 节点与共享参数", widthHeight=(1400, 850))
+    pane = cmds.paneLayout(parent=window, configuration="vertical2", paneSize=(1, 22, 100))
+    scroll = cmds.scrollLayout(parent=pane, childResizable=True)
+    column = cmds.columnLayout(parent=scroll, adjustableColumn=True, rowSpacing=6)
+    for group in created.get("containers", []):
+        if not cmds.objExists(group["node"]):
+            continue
+        label = cmds.getAttr(group["node"] + ".irisLabel")
+        frame = cmds.frameLayout(
+            parent=column, label=label, collapsable=True, marginWidth=8, marginHeight=8
+        )
+        contents = cmds.columnLayout(parent=frame, adjustableColumn=True)
+        for control in group["published"]:
+            if not cmds.objExists(control["plug"]):
+                continue
+            bound = cmds.container(
+                group["node"], query=True, publishName=True, publishAttr=control["plug"]
+            )
+            if bound == [control["alias"]]:
+                node = control["plug"].split(".")[0]
+                notes = (
+                    cmds.getAttr(node + ".notes")
+                    if cmds.attributeQuery("notes", node=node, exists=True)
+                    else control["alias"]
+                )
+                cmds.setParent(contents)
+                cmds.attrControlGrp(attribute=control["plug"], label=notes.split(" / ")[-1])
+    form = cmds.formLayout(parent=pane)
+    editor = cmds.nodeEditor(parent=form, addNewNodes=False, useAssets=False, showNamespace=False)
+    control = cmds.nodeEditor(editor, query=True, control=True)
+    cmds.formLayout(
+        form,
+        edit=True,
+        attachForm=[(control, side, 0) for side in ("top", "bottom", "left", "right")],
+    )
+    cmds.showWindow(window)
+    nodes = [created["material"]] + (
+        cmds.listHistory(created["material"], pruneDagObjects=True) or []
+    )
+    for group in created.get("containers", []):
+        if cmds.objExists(group["node"]):
+            nodes.extend(cmds.container(group["node"], query=True, nodeList=True) or [])
+    for node in sorted(set(nodes)):
+        cmds.nodeEditor(editor, edit=True, addNode=node)
+    cmds.nodeEditor(editor, edit=True, layout=True, frameAll=True)
+    return {"window": window, "editor": editor}
 
 
 def show():

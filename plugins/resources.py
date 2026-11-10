@@ -1,11 +1,148 @@
 """宿主共用的只读资源检查；文件通道与宿主扩展后的像素缓存通道分别处理。"""
 
+import hashlib
+import json
+import shutil
 import struct
 from pathlib import Path
 
+from iris_relay.native import request
 from iris_relay.protocol import ValidationError
 
 LIMIT = 1024 * 1024
+
+
+def image_format(path):
+    """依据文件魔数识别已核验的 RGBA 格式，不仅依赖扩展名。"""
+    with Path(path).open("rb") as stream:
+        header = stream.read(8)
+    if header == b"\x89PNG\r\n\x1a\n":
+        return "png"
+    if header[:4] == b"\x76\x2f\x31\x01":
+        return "exr"
+    return None
+
+
+def file_sha256(path):
+    """流式校验资源；兼容宿主 Python 3.7，不读取全部大贴图到内存。"""
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as stream:
+        for data in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(data)
+    return digest.hexdigest()
+
+
+def package_materialx(service, source, destination, *, relinks=None):
+    """复制为独立便携包；显式重定位缺图，不覆盖任何现有目录或源资源。"""
+    source = Path(source).expanduser().resolve()
+    destination = Path(destination).expanduser()
+    if not destination.is_absolute():
+        raise ValidationError("资源包输出目录须为绝对路径", "INVALID_PATH")
+    destination = destination.resolve()
+    if destination.exists():
+        raise FileExistsError(destination)
+    if not destination.parent.is_dir():
+        raise ValidationError("资源包父目录不存在", "INVALID_PATH")
+    document = source.read_text("utf-8-sig")
+    response = request(service, "materialx.resources", document=document)
+    if response["status"] == "error":
+        raise ValidationError("文档资源检查失败：" + response["error"]["message"])
+    relinks = relinks or {}
+    if not isinstance(relinks, dict):
+        raise ValidationError("贴图重定位须为 URI 到本机文件的显式映射")
+    planned = []
+    used_relinks = set()
+    # 1. 在创建输出前确认全部依赖；不访问网络或猜测同名资源。
+    for resource in response["result"]["resources"]:
+        replacement = next(
+            (key for key in (resource["resolved_uri"], resource["uri"]) if key in relinks), None
+        )
+        if replacement is not None:
+            path = Path(relinks[replacement]).expanduser().resolve()
+            used_relinks.add(replacement)
+        else:
+            path = Path(resource["resolved_uri"])
+            if not path.is_absolute():
+                path = source.parent / path
+            path = path.resolve()
+        if not path.is_file():
+            raise ValidationError(
+                "找不到贴图，请显式重定位：" + resource["resolved_uri"], "TEXTURE_MISSING"
+            )
+        digest = file_sha256(path)
+        relative = "textures/" + digest + path.suffix.lower()
+        planned.append(
+            dict(
+                resource,
+                source_file=str(path),
+                sha256=digest,
+                packaged_uri=relative,
+                relinked=replacement is not None,
+            )
+        )
+    if set(relinks) != used_relinks:
+        raise ValidationError("重定位映射包含未使用的 URI", "RESOURCE_RELINK_UNUSED")
+    created_files, created_directories = [], []
+    try:
+        destination.mkdir()
+        created_directories.append(destination)
+        textures = destination / "textures"
+        if planned:
+            textures.mkdir()
+            created_directories.append(textures)
+        copied = set()
+        for resource in planned:
+            target = destination / resource["packaged_uri"]
+            if target in copied:
+                continue
+            with target.open("xb") as output:
+                created_files.append(target)
+                with Path(resource["source_file"]).open("rb") as incoming:
+                    shutil.copyfileobj(incoming, output, 1024 * 1024)
+            if file_sha256(target) != resource["sha256"]:
+                raise ValidationError("贴图在复制期间改变，资源包已取消", "RESOURCE_CHANGED")
+            copied.add(target)
+        # 2. 改写由核心使用 SDK 完成；输出必须再次通过同一接口校验。
+        rewritten = request(
+            service,
+            "materialx.rewrite_resources",
+            document=document,
+            resources={
+                resource["path"]: {"expected_uri": resource["uri"], "uri": resource["packaged_uri"]}
+                for resource in planned
+            },
+        )
+        if rewritten["status"] == "error":
+            raise ValidationError("资源文档改写失败：" + rewritten["error"]["message"])
+        content = rewritten["result"]["document"]
+        validation = request(service, "materialx.validate", document=content)
+        if validation["status"] == "error":
+            raise ValidationError("资源包文档未通过最终校验", "MATERIALX_INVALID")
+        result = {
+            "schema_version": "1",
+            "document": source.name,
+            "resource_count": len(planned),
+            "copied_files": len(copied),
+            "source_sha256": hashlib.sha256(document.encode("utf-8")).hexdigest(),
+            "document_sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+            "resources": planned,
+            "appearance_verified": False,
+        }
+        for path, data in (
+            (destination / source.name, content),
+            (destination / "manifest.json", json.dumps(result, ensure_ascii=False, indent=2)),
+        ):
+            with path.open("x", encoding="utf-8", newline="\n") as stream:
+                created_files.append(path)
+                stream.write(data)
+        return result
+    except Exception:
+        # 仅处理排他创建成功后登记的路径，不递归删除，不触及其他现有文件。
+        for path in reversed(created_files):
+            path.unlink()
+        for path in reversed(created_directories):
+            path.rmdir()
+        raise
 
 
 def _cstring(data, offset):

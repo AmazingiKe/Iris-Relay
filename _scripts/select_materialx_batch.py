@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT))
 
 from iris_relay import RelayAPI  # noqa: E402
 from plugins.core import request  # noqa: E402
+from plugins.resources import image_format, image_header_channels  # noqa: E402
 
 
 def main():
@@ -22,6 +23,15 @@ def main():
     parser.add_argument("--documents", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--count", type=int, default=50)
+    parser.add_argument(
+        "--max-target-nodes", type=int, help="实机批次的单材质节点预算；不是转换能力上限"
+    )
+    parser.add_argument(
+        "--exclude-resource-extension",
+        action="append",
+        default=[],
+        help="显式排除已有宿主失败证据的资源后缀；在报告中单列筛选原因",
+    )
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=False)
     api = RelayAPI.from_directory(ROOT / "dictionaries")
@@ -45,6 +55,19 @@ def main():
             "targets": [],
         }
         graphs, features = {}, set()
+        excluded_files = [
+            item.get("value")
+            for item in root.iter("input")
+            if item.get("type") == "filename"
+            and item.get("value")
+            and Path(item.get("value")).suffix.lower() in args.exclude_resource_extension
+        ]
+        if excluded_files:
+            case["issues"].append(
+                {"code": "SELECTION_RESOURCE_FORMAT", "resources": excluded_files}
+            )
+            candidates.append(case)
+            continue
         for target in targets:
             response = request(api, "materialx.convert", document=text, target=target)
             payload = response.get("result") or {}
@@ -55,16 +78,25 @@ def main():
             case["targets"].append({"target": target, "status": response["status"]})
             if graph is None:
                 continue
+            if args.max_target_nodes and len(graph["nodes"]) > args.max_target_nodes:
+                case["issues"].append(
+                    {
+                        "code": "SELECTION_NODE_BUDGET",
+                        "nodes": len(graph["nodes"]),
+                        "limit": args.max_target_nodes,
+                    }
+                )
             for resource in graph["textures"].values():
-                if resource.get("metadata", {}).get("image_alpha", {}).get("channels", 3) not in (
-                    1,
-                    3,
-                ):
-                    case["issues"].append(
-                        {"code": "HOST_ALPHA_PENDING", "message": "当前宿主 Alpha 组合尚待实现"}
-                    )
-                if resource["coordinates"].get("transforms"):
-                    case["issues"].append({"code": "HOST_COORDINATES_PENDING"})
+                image = Path(resource["uri"])
+                if not image.is_file():
+                    case["issues"].append({"code": "TEXTURE_MISSING"})
+                    continue
+                description = resource.get("metadata", {}).get("image_alpha", {})
+                channels = image_header_channels(image)
+                if channels is not None and description.get("channels", channels) != channels:
+                    case["issues"].append({"code": "IMAGE_CHANNELS_MISMATCH"})
+                if channels == 4 and image_format(image) not in {"png", "exr"}:
+                    case["issues"].append({"code": "HOST_RGBA_FORMAT_UNVERIFIED"})
             graphs[target["host"]] = graph
         if len(graphs) == len(targets) and not case["issues"]:
             features = {n.tag for n in root if n.tag not in {"nodedef", "nodegraph"}}
@@ -97,6 +129,8 @@ def main():
         "candidates": candidates,
         "covered_features": sorted(covered),
         "targets": targets,
+        "max_target_nodes": args.max_target_nodes,
+        "excluded_resource_extensions": args.exclude_resource_extension,
     }
     (args.out / "selection.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"

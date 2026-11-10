@@ -5,6 +5,7 @@
 本模块只处理宿主数据，节点转换规则通过公开 describe / identify API 获取。
 """
 
+import json
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -17,6 +18,52 @@ from plugins.resources import image_header_channels
 
 from .coordinates import read_uv_coordinates
 from .groups import ExpandedGraph
+
+
+def read_property(node, binding):
+    """读取原生复合属性为协议数据；这里只保存配置，不实现渐变计算。"""
+    output = binding.get("properties", {}).get("output_socket")
+    if output:
+        value = socket_value(find_socket(node.outputs, output))
+        return decode_value(value, {"native": binding})
+    value = getattr(node, binding["id"])
+    if binding.get("codec") == "color_ramp":
+        return json.dumps(
+            {
+                "color_mode": value.color_mode,
+                "hue_interpolation": value.hue_interpolation,
+                "interpolation": value.interpolation,
+                "elements": [
+                    {"position": e.position, "color": list(e.color)} for e in value.elements
+                ],
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+    return value
+
+
+def write_property(node, binding, value):
+    """按核心已验证的配置创建原生复合属性；不从快照猜测节点功能。"""
+    output = binding.get("properties", {}).get("output_socket")
+    if output:
+        find_socket(node.outputs, output).default_value = encode_value(value, {"native": binding})
+        return
+    if binding.get("codec") != "color_ramp":
+        setattr(node, binding["id"], value)
+        return
+    data = json.loads(value)
+    ramp = getattr(node, binding["id"])
+    ramp.color_mode = data["color_mode"]
+    ramp.hue_interpolation = data["hue_interpolation"]
+    ramp.interpolation = data["interpolation"]
+    while len(ramp.elements) > 2:
+        ramp.elements.remove(ramp.elements[-1])
+    for index, record in enumerate(data["elements"]):
+        element = ramp.elements[index] if index < 2 else ramp.elements.new(record["position"])
+        element.position = record["position"]
+        element.color = record["color"]
 
 
 def renderer_ref():
@@ -250,13 +297,14 @@ def image_file_channels(filepath, size, modified):
 class BlenderAdapter:
     """宿主接入入口：读取源材质，或根据核心返回数据创建新材质。"""
 
-    def __init__(self, material, service, *, surface_only=False):
+    def __init__(self, material, service, *, surface_only=False, uv_context=None):
         """保存读取对象、公开服务和输出范围；不立即访问或修改材质。"""
         self.material = material
         self.service = service
         self.surface_only = surface_only
         self.read_issues = []
         self.source_snapshot = None
+        self.uv_context = uv_context
 
     def note(self, code, message, node=None, port=None, severity="info"):
         """收集宿主侧诊断，稍后由 controller 合并进完整报告。"""
@@ -423,6 +471,46 @@ class BlenderAdapter:
                 f"当前活动图有 {len(failures)} 个节点读取问题；" + str(failures[0]),
                 failures[0].code,
             )
+        records = {record["id"]: record for record in result["nodes"]}
+
+        def mapped(endpoint, direction):
+            """协议端口键可以不同于宿主插口 ID，连接必须使用公开绑定映射。"""
+            rule = schema["nodes"][records[endpoint["node"]]["type"]]
+            matches = [
+                key
+                for key, value in rule[direction].items()
+                if value["native"]["id"] == endpoint["socket"]
+            ]
+            if len(matches) != 1:
+                raise ValidationError(
+                    "字典未覆盖原生连接端口：" + endpoint["socket"], "UNSUPPORTED_SOCKET"
+                )
+            return {"node": endpoint["node"], "socket": matches[0]}
+
+        result["links"] = [
+            {"from": mapped(edge["from"], "outputs"), "to": mapped(edge["to"], "inputs")}
+            for edge in result["links"]
+        ]
+        result["output"] = mapped(result["output"], "outputs")
+        identities = {}
+        for name, node in graph.nodes.items():
+            saved = node.native.get("irisNodeId") if not node.scope.path else None
+            identities[name] = saved if isinstance(saved, str) and saved else name
+        if len(set(identities.values())) != len(identities):
+            self.note(
+                "NODE_ID_HINT_COLLISION",
+                "重复的节点身份提示已停用，使用当前原生名称区分节点",
+                severity="warning",
+            )
+            identities = {name: name for name in graph.nodes}
+        for record in result["nodes"]:
+            if identities[record["id"]] != record["id"]:
+                record["metadata"]["native_name"] = record["id"]
+                record["id"] = identities[record["id"]]
+        for edge in result["links"]:
+            for endpoint in edge.values():
+                endpoint["node"] = identities[endpoint["node"]]
+        result["output"]["node"] = identities[result["output"]["node"]]
         return result
 
     def _identify_node(self, node, schema):
@@ -459,12 +547,47 @@ class BlenderAdapter:
             "outputs": list(rule["outputs"]),
             "metadata": {},
         }
+        raw_editor = node.native.get("irisEditor")
+        editor = json.loads(raw_editor) if isinstance(raw_editor, str) else {}
+        editor.setdefault("source_label", editor.get("label", node.label or node.diagnostic_name))
+        editor["label"] = node.label or node.diagnostic_name
+        position = list(node.location)
+        parent = node.parent
+        frames = []
+        while parent is not None:
+            position = [position[i] + parent.location[i] for i in range(2)]
+            frames.insert(0, parent.label or parent.name)
+            parent = parent.parent
+        if frames or "group_path" in editor:
+            editor["group_path"] = frames
+        editor.update(source_position=position, generated=False)
+        record["metadata"]["editor"] = editor
         if node.source_group_path:
             record["metadata"]["source_group_path"] = node.source_group_path
+        if node.bl_idname == "ShaderNodeNormalMap" and node.uv_map:
+            owners = self.uv_context
+            if owners is None:
+                owners = []
+                for obj in bpy.data.objects:
+                    if not any(slot.material == self.material for slot in obj.material_slots):
+                        continue
+                    layers = getattr(obj.data, "uv_layers", [])
+                    owners.append(
+                        {
+                            "mesh": obj.data.name_full if obj.data else obj.name_full,
+                            "render_default": next(
+                                (layer.name for layer in layers if layer.active_render), None
+                            ),
+                            "uv_sets": [layer.name for layer in layers],
+                        }
+                    )
+            record["metadata"]["uv_binding"] = {"name": node.uv_map, "owners": owners}
         for port, port_rule in rule["inputs"].items():
             binding = port_rule["native"]
             if binding["kind"] == "resource":
                 value = self._read_image_resource(node.image, textures, resolved_uv)
+            elif binding["kind"] == "property":
+                value = read_property(node, binding)
             else:
                 value = decode_value(
                     socket_value(find_socket(node.inputs, binding["id"])), port_rule
@@ -524,6 +647,14 @@ class BlenderAdapter:
                 rule = schema["nodes"][record["type"]]
                 node = tree.nodes.new(rule["native"]["id"])
                 node.name = record["id"]
+                if node.name != record["id"]:
+                    node["irisNodeId"] = record["id"]
+                editor = record.get("metadata", {}).get("editor", {})
+                if editor:
+                    node.label = editor.get("label", record["id"])
+                    node["irisEditor"] = json.dumps(editor, ensure_ascii=False)
+                    if "position" in editor:
+                        node.location = editor["position"]
                 nodes[record["id"]] = node
                 for prop, value in rule["native"].get("properties", {}).items():
                     setattr(node, prop, value)
@@ -559,6 +690,8 @@ class BlenderAdapter:
                         )
                         node.image = image
                         image_coordinates.append((node, resource["coordinates"]))
+                    elif binding["kind"] == "property":
+                        write_property(node, binding, value)
                     elif value is not None:
                         find_socket(node.inputs, binding["id"]).default_value = encode_value(
                             value, port_rule
@@ -566,12 +699,32 @@ class BlenderAdapter:
             # 3. 原生功能节点名称确定后再建坐标节点，避免辅助节点抢占协议 ID。
             for node, coordinates in image_coordinates:
                 create_uv_coordinates(tree, node, coordinates)
+            for index, group in enumerate(
+                data.get("metadata", {}).get("editor", {}).get("groups", [])
+            ):
+                frame = tree.nodes.new("NodeFrame")
+                frame.name = "Iris_Function_" + str(index)
+                frame.label = group["label"]
+                for identifier in group["nodes"]:
+                    node = nodes[identifier]
+                    position = node.location.copy()
+                    node.parent = frame
+                    node.location = position
             # 4. 恢复节点连接，并将核心指定的表面出口接到新材质输出。
+            records = {record["id"]: record for record in data["nodes"]}
             for link in data["links"]:
                 source, target = link["from"], link["to"]
+                source_record = records[source["node"]]
+                target_record = records[target["node"]]
+                source_binding = schema["nodes"][source_record["type"]]["outputs"][
+                    source["socket"]
+                ]["native"]
+                target_binding = schema["nodes"][target_record["type"]]["inputs"][target["socket"]][
+                    "native"
+                ]
                 tree.links.new(
-                    find_socket(nodes[source["node"]].outputs, source["socket"]),
-                    find_socket(nodes[target["node"]].inputs, target["socket"]),
+                    find_socket(nodes[source["node"]].outputs, source_binding["id"]),
+                    find_socket(nodes[target["node"]].inputs, target_binding["id"]),
                 )
             output = tree.nodes.new("ShaderNodeOutputMaterial")
             endpoint = data["output"]

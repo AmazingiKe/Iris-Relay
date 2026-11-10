@@ -5,6 +5,14 @@ import pytest
 from plugins.cinema4d.adapter import json_value
 
 
+def test_reflected_native_vector2_keeps_both_components():
+    class UnknownDataType:
+        x = 0.25
+        y = -0.5
+
+    assert json_value(UnknownDataType()) == [0.25, -0.5]
+
+
 @pytest.mark.parametrize("literal, expected", [("false", False), ("true", True)])
 def test_maxon_bool_uses_value_representation(literal, expected):
     class Bool:

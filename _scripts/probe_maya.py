@@ -34,6 +34,8 @@ def main():
         "file",
         "aiCompare",
         "aiSwitchRgba",
+        "aiUvTransform",
+        "aiPow",
     ]:
         try:
             node = cmds.createNode(kind)

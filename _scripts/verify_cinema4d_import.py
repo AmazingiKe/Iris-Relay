@@ -11,6 +11,37 @@ sys.path.insert(0, str(ROOT))
 
 
 def verify(adapter, expected, name):
+    """先独立核对真实分组，再在私有副本核对所有计算节点和边。"""
+    import c4d
+
+    from plugins.cinema4d.adapter import SPACE, Cinema4DAdapter, child_nodes, flattened_copy
+
+    material = next(m for m in adapter.document.GetMaterials() if m.GetName() == name)
+    graph = material.GetNodeMaterialReference().GetGraph(SPACE)
+    groups = [n for n in child_nodes(graph.GetViewRoot()) if child_nodes(n)]
+    if not groups:
+        return verify_flat(adapter, expected, name)
+    plans = expected.get("metadata", {}).get("editor", {}).get("groups", [])
+    required = {
+        "iris_function_" + str(i): g
+        for i, g in enumerate(plans)
+        if set(g["nodes"]) - {c["node"] for c in g["controls"]}
+    }
+    assert len(groups) == len(required)
+    for group in groups:
+        plan = required[str(group.GetId())]
+        actual = {str(n.GetId()) for n in child_nodes(group)}
+        assert set(plan["nodes"]) - {c["node"] for c in plan["controls"]} <= actual
+    staging, cloned, origins = flattened_copy(adapter.document, material)
+    try:
+        result = verify_flat(Cinema4DAdapter(staging, adapter.service), expected, name, origins)
+        result["native_function_groups"] = len(groups)
+        return result
+    finally:
+        c4d.documents.KillDocument(staging)
+
+
+def verify_flat(adapter, expected, name, origins=None):
     """独立读取实际图；不依赖源 Blender 快照或创建时的节点引用。"""
     import maxon
 
@@ -27,12 +58,31 @@ def verify(adapter, expected, name):
     material = next(m for m in adapter.document.GetMaterials() if m.GetName() == name)
     assert implementation_hints(material) == {n["id"]: n["type"] for n in expected["nodes"]}
     graph = material.GetNodeMaterialReference().GetGraph(SPACE)
+    origins = origins or {}
+
+    def node_identifier(node):
+        """副本重分配的 SDK ID 对齐当前原生组内身份，不读取参数缓存。"""
+        return origins.get(str(node.GetId()), {}).get("id", str(node.GetId()))
+
     nodes = {
-        str(n.GetId()): n
+        node_identifier(n): n
         for n in graph.GetViewRoot().GetChildren()
         if n.GetKind() == maxon.NODE_KIND.NODE
     }
-    assert set(nodes) == {n["id"] for n in expected["nodes"]} | {"material_output"}
+    projected = {}
+    records = {n["id"]: n for n in expected["nodes"]}
+    for edge in expected["links"]:
+        start = edge["from"]
+        native = adapter.profile["nodes"][records[start["node"]]["type"]]["outputs"][
+            start["socket"]
+        ]["native"]
+        spec = native.get("properties", {}).get("output_projection")
+        if spec:
+            helper = start["node"] + "__" + start["socket"] + "_projection"
+            projected[helper] = (start["node"], spec)
+    assert set(nodes) == {n["id"] for n in expected["nodes"]} | {"material_output"} | set(projected)
+    for helper, (_, spec) in projected.items():
+        assert str(nodes[helper].GetValue(maxon.nodes.AssetId)[0]) == spec["asset"]
     connected = {(e["to"]["node"], e["to"]["socket"]) for e in expected["links"]}
     count, images = 0, 0
     records = {n["id"]: n for n in expected["nodes"]}
@@ -60,6 +110,10 @@ def verify(adapter, expected, name):
                     == resource["coordinates"]["set"]
                 )
                 images += 1
+                plan = resource.get("metadata", {}).get("native_uv_target")
+                if plan:
+                    for key, identifier in native["properties"]["uv_sampler"].items():
+                        assert equal(json_value(port(node, identifier).GetPortValue()), plan[key])
             else:
                 assert equal(
                     json_value(port(node, native["id"]).GetPortValue()),
@@ -76,6 +130,15 @@ def verify(adapter, expected, name):
             "native"
         ]["id"]
         expected_connections.add((start["node"], a, end["node"], b))
+        native = adapter.profile["nodes"][records[start["node"]]["type"]]["outputs"][
+            start["socket"]
+        ]["native"]
+        spec = native.get("properties", {}).get("output_projection")
+        if spec:
+            expected_connections.remove((start["node"], a, end["node"], b))
+            helper = start["node"] + "__" + start["socket"] + "_projection"
+            expected_connections.add((start["node"], spec["source"], helper, spec["input"]))
+            expected_connections.add((helper, a, end["node"], b))
     output = expected["output"]
     a = adapter.profile["nodes"][records[output["node"]]["type"]]["outputs"][output["socket"]][
         "native"
@@ -90,7 +153,7 @@ def verify(adapter, expected, name):
             for origin, _ in socket.GetConnections(maxon.PORT_DIR.INPUT):
                 actual_connections.add(
                     (
-                        str(origin.GetParent().GetParent().GetId()),
+                        node_identifier(origin.GetParent().GetParent()),
                         str(origin.GetId()),
                         name,
                         str(socket.GetId()),

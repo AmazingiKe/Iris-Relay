@@ -8,6 +8,7 @@ from pathlib import Path
 
 from iris_relay.native import decode_value, describe, encode_value, identify
 from iris_relay.protocol import ValidationError
+from plugins.resources import image_format
 
 
 def renderer_ref():
@@ -59,6 +60,8 @@ def set_value(plug, value):
         cmds.setAttr(plug, value, type="string")
     elif kind in {"float2", "double2", "float3", "double3"}:
         cmds.setAttr(plug, *value, type=kind)
+    elif kind == "matrix":
+        cmds.setAttr(plug, *value, type="matrix")
     else:
         cmds.setAttr(plug, value)
     actual = cmds.getAttr(plug)
@@ -100,16 +103,26 @@ class MayaAdapter:
                 self.channels[key] = arnold.AiTextureGetNumChannels(str(path))
             actual = self.channels[key]
             expected = resource.get("metadata", {}).get("image_alpha", {}).get("channels")
+            if actual == 4 and expected is None:
+                raise ValidationError(
+                    "四通道图片缺少明确 Alpha 解释，不能猜测原生关联行为",
+                    "MAYA_IMAGE_ALPHA_REQUIRED",
+                )
             if actual not in self.profile["texture_image_channels"] or (
                 expected is not None and expected != actual
             ):
                 raise ValidationError(
-                    "图片通道暂不支持或与文档不同"
-                    f"（仅核验 1/3 通道；文件={actual}，文档={expected}）：" + str(path),
+                    f"图片通道暂不支持或与文档不同（文件={actual}，文档={expected}）：" + str(path),
                     "MAYA_IMAGE_CHANNELS_UNSUPPORTED",
                 )
-            if resource["coordinates"].get("transforms"):
-                raise ValidationError("Maya 暂未实现坐标矩阵还原", "MAYA_UV_UNSUPPORTED")
+            if actual == 4 and image_format(path) not in self.profile["texture_alpha_behavior"]:
+                raise ValidationError(
+                    "Maya 尚未核验此 RGBA 文件格式", "MAYA_IMAGE_FORMAT_UNSUPPORTED"
+                )
+            if actual == 4 and image_format(path) == "exr" and resource["color_space"] != "Raw":
+                raise ValidationError(
+                    "RGBA EXR 的非 Raw 色彩采样尚未通过探测", "MAYA_IMAGE_COLORSPACE_UNSUPPORTED"
+                )
         for link in material["links"]:
             record = next(n for n in material["nodes"] if n["id"] == link["to"]["node"])
             rule = self.profile["nodes"][record["type"]]["inputs"][link["to"]["socket"]]
@@ -153,7 +166,7 @@ class MayaAdapter:
 
         self.preflight(material)
         before = cmds.ls(selection=True, long=True) or []
-        created, nodes = [], {}
+        created, nodes, sampled, wrappers = [], {}, {}, {}
         cmds.undoInfo(openChunk=True, chunkName="Iris Relay 导入材质")
         try:
             # 1. 创建原生节点并写入已由核心确定的属性和输入。
@@ -170,6 +183,13 @@ class MayaAdapter:
                 nodes[record["id"]] = node
                 cmds.addAttr(node, longName="irisImplementation", dataType="string")
                 set_value(node + ".irisImplementation", record["type"])
+                editor = record.get("metadata", {}).get("editor", {})
+                if editor:
+                    cmds.addAttr(node, longName="irisEditor", dataType="string")
+                    set_value(node + ".irisEditor", json.dumps(editor, ensure_ascii=False))
+                    if not cmds.attributeQuery("notes", node=node, exists=True):
+                        cmds.addAttr(node, longName="notes", dataType="string")
+                    set_value(node + ".notes", editor.get("label", record["id"]))
                 for attr, value in rule["native"].get("properties", {}).items():
                     set_value(node + "." + attr, value)
                 for port, value in record["inputs"].items():
@@ -186,6 +206,15 @@ class MayaAdapter:
                         set_value(node + ".irisResource", json.dumps(resource, ensure_ascii=False))
                     else:
                         set_value(node + "." + binding["native"]["id"], encoded(value, binding))
+                for port, value in record["inputs"].items():
+                    binding = rule["inputs"][port]
+                    if binding["type"] == "texture" and value is not None:
+                        resource = material["textures"][value["texture"]]
+                        outputs, helpers = self.create_sampling_wrappers(
+                            node, resource, binding["native"], created
+                        )
+                        sampled[record["id"]] = outputs
+                        wrappers[record["id"]] = helpers
             # 2. 恢复每条连接和共享上游；不使用源快照、不自动绑定对象。
             records = {n["id"]: n for n in material["nodes"]}
             for link in material["links"]:
@@ -196,7 +225,10 @@ class MayaAdapter:
                 target_rule = self.profile["nodes"][records[end["node"]]["type"]]["inputs"][
                     end["socket"]
                 ]
-                source = nodes[start["node"]] + "." + source_rule["native"]["id"]
+                source = sampled.get(start["node"], {}).get(
+                    source_rule["semantic"],
+                    nodes[start["node"]] + "." + source_rule["native"]["id"],
+                )
                 for destination in self.destination_plugs(nodes[end["node"]], target_rule):
                     cmds.connectAttr(source, destination)
             output = material["output"]
@@ -211,11 +243,14 @@ class MayaAdapter:
             cmds.connectAttr(surface + "." + rule["native"]["id"], group + ".surfaceShader")
             cmds.addAttr(surface, longName="irisMaterialName", dataType="string")
             set_value(surface + ".irisMaterialName", material["name"])
+            containers = self.create_editing_groups(material, nodes, wrappers, created, prefix)
             return {
                 "material": surface,
                 "shading_group": group,
                 "nodes": nodes,
                 "created_nodes": created,
+                "resource_wrappers": wrappers,
+                "containers": containers,
             }
         except Exception:
             surviving = [node for node in created if cmds.objExists(node)]
@@ -226,12 +261,177 @@ class MayaAdapter:
             cmds.select(before, replace=True) if before else cmds.select(clear=True)
             cmds.undoInfo(closeChunk=True)
 
+    def create_editing_groups(self, material, nodes, wrappers, created, prefix):
+        """创建原生容器并发布实际控制属性；不改变着色连线和共享计算。"""
+        from maya import cmds
+
+        result = []
+        for index, group in enumerate(
+            material.get("metadata", {}).get("editor", {}).get("groups", [])
+        ):
+            container = cmds.container(name=prefix + "_Function_" + str(index))
+            created.append(container)
+            members = [nodes[key] for key in group["nodes"]]
+            for key in group["nodes"]:
+                members.extend(wrappers.get(key, []))
+            cmds.container(container, edit=True, addNode=members, force=True)
+            cmds.addAttr(container, longName="irisLabel", dataType="string")
+            set_value(container + ".irisLabel", group["label"])
+            published = []
+            for control_index, control in enumerate(group["controls"]):
+                record = next(n for n in material["nodes"] if n["id"] == control["node"])
+                binding = self.profile["nodes"][record["type"]]["inputs"][control["port"]]
+                plug = nodes[control["node"]] + "." + binding["native"]["id"]
+                label = re.sub(r"[^A-Za-z0-9_]", "_", control["label"])
+                label = (
+                    "parameter_" + str(control_index)
+                    if not label or not label[0].isalpha()
+                    else label
+                )
+                alias = label + "_" + str(control_index)
+                cmds.container(container, edit=True, publishAndBind=[plug, alias])
+                published.append(
+                    {"alias": alias, "plug": plug, "node": control["node"], "port": control["port"]}
+                )
+            result.append(
+                {
+                    "node": container,
+                    "label": group["label"],
+                    "members": members,
+                    "published": published,
+                }
+            )
+        return result
+
+    def create_sampling_wrappers(self, node, resource, native, created):
+        """用原生 UV 上下文节点逐步保留矩阵；颜色和 Alpha 共用完全相同的上下文。"""
+        from maya import cmds
+
+        matrices = resource["coordinates"].get("transforms", [])
+        if not matrices:
+            return {}, []
+        spec = native.get("properties", {}).get("coordinate_wrapper")
+        if not spec:
+            raise ValidationError("缺少已核验的原生坐标绑定", "MAYA_UV_UNSUPPORTED")
+        rule = next(
+            r for r in self.profile["nodes"].values() if r["native"]["id"] == cmds.nodeType(node)
+        )
+        outputs = {p["semantic"]: node + "." + p["native"]["id"] for p in rule["outputs"].values()}
+        set_value(node + "." + native["uv_id"], "")
+        helpers = []
+        for index in reversed(range(len(matrices))):
+            helper = cmds.shadingNode(
+                spec["asset"], asUtility=True, name=node + "_UV_" + str(index)
+            )
+            created.append(helper)
+            helpers.insert(0, helper)
+            for key, value in spec["fixed"].items():
+                set_value(helper + "." + key, value)
+            set_value(helper + "." + spec["matrix"], matrices[index])
+            set_value(
+                helper + "." + spec["uv"], resource["coordinates"]["set"] if index == 0 else ""
+            )
+            for semantic, attribute in spec["inputs"].items():
+                cmds.connectAttr(outputs[semantic], helper + "." + attribute)
+            outputs = {
+                semantic: helper + "." + attribute
+                for semantic, attribute in spec["outputs"].items()
+            }
+        return outputs, helpers
+
+    def sampling_origin(self, plug, contexts):
+        """核验当前 UV 包装链后返回真实图片输出，任何不受支持的配置或分叉均阻断。"""
+        from maya import cmds
+
+        image_rule = next(
+            r for r in self.profile["nodes"].values() if r["semantic"] == "texture.image"
+        )
+        resource_binding = next(p for p in image_rule["inputs"].values() if p["type"] == "texture")[
+            "native"
+        ]
+        spec = resource_binding.get("properties", {}).get("coordinate_wrapper")
+        original, matrices, helpers, uv = plug, [], [], None
+        while spec and cmds.nodeType(plug.split(".", 1)[0]) == spec["asset"]:
+            node, attribute = plug.split(".", 1)
+            semantics = [key for key, value in spec["outputs"].items() if value == attribute]
+            if len(semantics) != 1 or node in helpers:
+                raise ValidationError("未知或循环的 UV 上下文输出", "MAYA_UV_UNSUPPORTED")
+            for key, value in spec["fixed"].items():
+                if not equal(self.read_value(node + "." + key), value):
+                    raise ValidationError(
+                        "UV 上下文含未支持参数：" + node + "." + key, "MAYA_UV_UNSUPPORTED"
+                    )
+            connections = (
+                cmds.listConnections(
+                    node, source=True, destination=False, plugs=True, connections=True
+                )
+                or []
+            )
+            destinations = set(connections[::2])
+            if destinations != {node + "." + value for value in spec["inputs"].values()}:
+                raise ValidationError("UV 上下文含缺失或额外输入连接", "MAYA_UV_UNSUPPORTED")
+            sources = {
+                key: cmds.connectionInfo(node + "." + value, sourceFromDestination=True)
+                for key, value in spec["inputs"].items()
+            }
+            source_nodes = {value.split(".", 1)[0] for value in sources.values()}
+            if len(source_nodes) != 1:
+                raise ValidationError("UV 的颜色与 Alpha 来自不同采样", "MAYA_UV_UNSUPPORTED")
+            upstream = next(iter(source_nodes))
+            if cmds.nodeType(upstream) == spec["asset"]:
+                expected = spec["outputs"]
+            elif cmds.nodeType(upstream) == image_rule["native"]["id"]:
+                expected = {
+                    value["semantic"]: value["native"]["id"]
+                    for value in image_rule["outputs"].values()
+                }
+            else:
+                expected = {}
+            if any(sources[key] != upstream + "." + expected.get(key, "") for key in sources):
+                raise ValidationError("UV 包装链没有完整传递图片通道", "MAYA_UV_UNSUPPORTED")
+            name = cmds.getAttr(node + "." + spec["uv"])
+            if helpers and name:
+                raise ValidationError(
+                    "嵌套 UV 上下文重新选择命名集，尚未支持", "MAYA_UV_UNSUPPORTED"
+                )
+            if uv is None:
+                uv = name
+            matrices.append(self.read_value(node + "." + spec["matrix"]))
+            helpers.append(node)
+            plug = sources[semantics[0]]
+        node, attribute = plug.split(".", 1)
+        if cmds.nodeType(node) == image_rule["native"]["id"]:
+            image_uv = cmds.getAttr(node + "." + resource_binding["uv_id"])
+            if helpers and image_uv:
+                raise ValidationError("图片覆盖了外层 UV 上下文", "MAYA_UV_UNSUPPORTED")
+            coordinates = {"kind": "uv", "set": uv if helpers else image_uv}
+            if matrices:
+                coordinates["transforms"] = matrices
+            if node in contexts and not equal(contexts[node]["coordinates"], coordinates):
+                raise ValidationError(
+                    "同一图片的输出使用不同坐标上下文", "MAYA_SPLIT_SAMPLING_CONTEXT_UNSUPPORTED"
+                )
+            contexts[node] = {"coordinates": coordinates, "helpers": helpers}
+        return plug if helpers else original
+
     def read_material(self, surface):
         """读取当前原生上游图；提示须经核心核验，未知节点或多余连接明确阻断。"""
         from maya import cmds
 
         if not cmds.objExists(surface) or cmds.nodeType(surface) != "aiStandardSurface":
             raise ValidationError("请选择 aiStandardSurface 表面节点", "MAYA_SURFACE_UNSUPPORTED")
+        for group in (
+            cmds.listConnections(
+                surface + ".outColor", source=False, destination=True, type="shadingEngine"
+            )
+            or []
+        ):
+            for attribute in ("volumeShader", "displacementShader"):
+                if cmds.connectionInfo(group + "." + attribute, sourceFromDestination=True):
+                    raise ValidationError(
+                        "材质含未支持的体积或位移出口：" + group + "." + attribute,
+                        "MAYA_OUTPUT_UNSUPPORTED",
+                    )
         data = {
             "schema_version": "1",
             "renderer": self.target,
@@ -244,7 +444,7 @@ class MayaAdapter:
         }
         if cmds.attributeQuery("irisMaterialName", node=surface, exists=True):
             data["name"] = cmds.getAttr(surface + ".irisMaterialName")
-        pending, rules, origins = [surface], {}, []
+        pending, rules, origins, contexts = [surface], {}, [], {}
         # 1. 按当前连线遍历，读取当前属性，不用导入时的文档或材质快照。
         while pending:
             node = pending.pop()
@@ -263,7 +463,14 @@ class MayaAdapter:
                 for key in rule["native"].get("properties", {})
             }
             values = {key: self.read_value(node + "." + key) for key in properties}
-            match = identify(self.service, self.target, native_id, values, hint)
+            match = identify(
+                self.service,
+                self.target,
+                native_id,
+                values,
+                hint,
+                prefer_source_default=hint is None,
+            )
             rule = self.profile["nodes"][match["implementation"]]
             rules[node] = rule
             if cmds.getAttr(node + ".nodeState") != 0:
@@ -277,11 +484,32 @@ class MayaAdapter:
                 "outputs": list(rule["outputs"]),
                 "metadata": {},
             }
+            editor = (
+                json.loads(cmds.getAttr(node + ".irisEditor"))
+                if cmds.attributeQuery("irisEditor", node=node, exists=True)
+                else {}
+            )
+            if cmds.attributeQuery("notes", node=node, exists=True):
+                label = cmds.getAttr(node + ".notes")
+                if label:
+                    editor["label"] = label
+            editor.setdefault("label", node)
+            container = cmds.container(query=True, findContainer=[node])
+            if container:
+                editor["group_path"] = [
+                    cmds.getAttr(container + ".irisLabel")
+                    if cmds.attributeQuery("irisLabel", node=container, exists=True)
+                    else container
+                ]
+            elif "group_path" in editor:
+                editor["group_path"] = []
+            editor["generated"] = False
+            record["metadata"]["editor"] = editor
             consumed = set()
             for name, binding in rule["inputs"].items():
                 native = binding["native"]
                 if binding["type"] == "texture":
-                    resource = self.read_resource(node, native)
+                    resource = self.read_resource(node, native, contexts.get(node))
                     key = "image_" + str(len(data["textures"]))
                     data["textures"][key] = resource
                     record["inputs"][name] = {"texture": key}
@@ -298,8 +526,9 @@ class MayaAdapter:
                         )
                     for plug in destinations:
                         consumed.add(cmds.connectionInfo(plug, getExactDestination=True))
-                    origins.append((sources[0], {"node": node, "socket": name}))
-                    pending.append(sources[0].split(".", 1)[0])
+                    source = self.sampling_origin(sources[0], contexts)
+                    origins.append((source, {"node": node, "socket": name}))
+                    pending.append(source.split(".", 1)[0])
                     record["inputs"][name] = deepcopy(binding.get("default"))
                 else:
                     value = self.read_value(node + "." + native["id"])
@@ -363,7 +592,7 @@ class MayaAdapter:
             return list(value)
         return value
 
-    def read_resource(self, node, native):
+    def read_resource(self, node, native, context=None):
         """读取当前图片文件、通道、色彩和 UV；附加审计属性不作为资源真值。"""
         import arnold
 
@@ -374,12 +603,25 @@ class MayaAdapter:
             raise ValidationError("图片不存在：" + str(path), "TEXTURE_MISSING")
         channels = arnold.AiTextureGetNumChannels(str(path))
         if channels not in self.profile["texture_image_channels"]:
-            raise ValidationError(
-                "Maya 图片导出目前只核验 1/3 通道", "MAYA_IMAGE_CHANNELS_UNSUPPORTED"
-            )
+            raise ValidationError("Maya 图片通道尚未核验", "MAYA_IMAGE_CHANNELS_UNSUPPORTED")
+        description = {
+            "mode": "CHANNEL_PACKED" if channels == 4 else "STRAIGHT",
+            "channels": channels,
+        }
+        kind = image_format(path)
+        if channels == 4:
+            behavior = self.profile["texture_alpha_behavior"].get(kind)
+            if behavior is None:
+                raise ValidationError(
+                    "Maya 尚未核验此 RGBA 文件格式", "MAYA_IMAGE_FORMAT_UNSUPPORTED"
+                )
+            if behavior == "premultiplied":
+                description["association"] = "premultiplied"
         return {
             "uri": path.resolve().as_posix(),
             "color_space": cmds.getAttr(node + "." + native["colorspace_id"]),
-            "coordinates": {"kind": "uv", "set": cmds.getAttr(node + "." + native["uv_id"])},
-            "metadata": {"image_alpha": {"mode": "STRAIGHT", "channels": channels}},
+            "coordinates": deepcopy(context["coordinates"])
+            if context
+            else {"kind": "uv", "set": cmds.getAttr(node + "." + native["uv_id"])},
+            "metadata": {"image_alpha": description, "image_format": kind},
         }

@@ -37,7 +37,35 @@ def verify(adapter, material, created):
                 resource = material["textures"][value["texture"]]
                 assert cmds.getAttr(node + "." + native["id"]) == resource["uri"]
                 assert cmds.getAttr(node + "." + native["colorspace_id"]) == resource["color_space"]
-                assert cmds.getAttr(node + "." + native["uv_id"]) == resource["coordinates"]["set"]
+                helpers = created.get("resource_wrappers", {}).get(record["id"], [])
+                matrices = resource["coordinates"].get("transforms", [])
+                assert len(helpers) == len(matrices)
+                assert cmds.getAttr(node + "." + native["uv_id"]) == (
+                    "" if helpers else resource["coordinates"]["set"]
+                )
+                if helpers:
+                    spec = native["properties"]["coordinate_wrapper"]
+                    previous = {
+                        p["semantic"]: node + "." + p["native"]["id"]
+                        for p in rule["outputs"].values()
+                    }
+                    for index in reversed(range(len(helpers))):
+                        helper = helpers[index]
+                        assert cmds.nodeType(helper) == spec["asset"]
+                        assert equal(
+                            adapter.read_value(helper + "." + spec["matrix"]), matrices[index]
+                        )
+                        assert cmds.getAttr(helper + "." + spec["uv"]) == (
+                            resource["coordinates"]["set"] if index == 0 else ""
+                        )
+                        for key, value in spec["fixed"].items():
+                            assert equal(adapter.read_value(helper + "." + key), value)
+                        for semantic, attribute in spec["inputs"].items():
+                            assert cmds.isConnected(previous[semantic], helper + "." + attribute)
+                        previous = {
+                            semantic: helper + "." + attribute
+                            for semantic, attribute in spec["outputs"].items()
+                        }
                 resources += 1
             else:
                 expected = encoded(value, binding)
@@ -55,6 +83,12 @@ def verify(adapter, material, created):
             target["socket"]
         ]
         start = nodes[source["node"]] + "." + source_rule["native"]["id"]
+        helpers = created.get("resource_wrappers", {}).get(source["node"], [])
+        if helpers:
+            rule = adapter.profile["nodes"][records[source["node"]]["type"]]
+            resource_binding = next(p for p in rule["inputs"].values() if p["type"] == "texture")
+            spec = resource_binding["native"]["properties"]["coordinate_wrapper"]
+            start = helpers[0] + "." + spec["outputs"][source_rule["semantic"]]
         for end in adapter.destination_plugs(nodes[target["node"]], target_rule):
             assert cmds.isConnected(start, end), (start, end)
     output = material["output"]
@@ -63,12 +97,30 @@ def verify(adapter, material, created):
         nodes[output["node"]] + "." + rule["native"]["id"],
         created["shading_group"] + ".surfaceShader",
     )
+    for group in created.get("containers", []):
+        assert set(cmds.container(group["node"], query=True, nodeList=True)) == set(
+            group["members"]
+        )
+        published = cmds.container(group["node"], query=True, publishName=True) or []
+        expected_names = set()
+        for control in group["published"]:
+            expected_names.add(control["alias"])
+            node, attribute = control["plug"].split(".")
+            children = cmds.attributeQuery(attribute, node=node, listChildren=True) or []
+            expected_names.update(control["alias"] + child[len(attribute) :] for child in children)
+            binding = cmds.container(
+                group["node"], query=True, publishName=True, publishAttr=control["plug"]
+            )
+            assert binding == [control["alias"]], (binding, control)
+        assert set(published) == expected_names, (published, group)
     return {
         "nodes": len(nodes),
         "inputs": count,
         "links": len(material["links"]) + 1,
         "images": resources,
         "target_graph_verified": True,
+        "native_function_groups": len(created.get("containers", [])),
+        "published_controls": sum(len(g["published"]) for g in created.get("containers", [])),
     }
 
 
@@ -119,9 +171,33 @@ def verify_transactions(adapter, material, existing):
     assert cmds.ls(selection=True) == [sentinel]
     assert cmds.sets(existing["shading_group"], query=True) == members
     assert cmds.sets(shape, isMember=existing["shading_group"])
+    group_creator = adapter.create_editing_groups
+
+    def fail_after_groups(*args):
+        """晚期失败必须清理已发布接口及容器，而不影响用户现有图。"""
+        group_creator(*args)
+        raise RuntimeError("事务验证：模拟分组完成后的失败")
+
+    adapter.create_editing_groups = fail_after_groups
+    try:
+        try:
+            adapter.create_material(material)
+        except RuntimeError as exc:
+            assert "事务验证" in str(exc)
+        else:
+            raise AssertionError("晚期失败注入未生效")
+    finally:
+        adapter.create_editing_groups = group_creator
+    assert set(cmds.ls()) == before
     cmds.delete(sentinel)
     cmds.select(selection, replace=True) if selection else cmds.select(clear=True)
-    return {"undo": True, "redo": True, "partial_failure_cleanup": True, "binding_preserved": True}
+    return {
+        "undo": True,
+        "redo": True,
+        "partial_failure_cleanup": True,
+        "group_failure_cleanup": True,
+        "binding_preserved": True,
+    }
 
 
 def verify_live_read(adapter, expected, created):
@@ -256,6 +332,33 @@ def main():
             save(case["id"] + "-export.json", exported)
             assert exported["saved_path"], exported
             case["native_reexported"] = True
+            controls = [
+                c
+                for g in result["created"].get("containers", [])
+                for c in g["published"]
+                if isinstance(cmds.getAttr(c["plug"]), (int, float))
+            ]
+            if controls:
+                from plugins.maya.adapter import set_value
+
+                control = controls[0]
+                original = cmds.getAttr(control["plug"])
+                modified = 0.47 if abs(original - 0.47) > 0.01 else 0.31
+                set_value(control["plug"], modified)
+                live = adapter.read_material(result["created"]["material"])
+                record = next(n for n in live["nodes"] if n["id"] == control["plug"].split(".")[0])
+                assert abs(record["inputs"][control["port"]] - modified) < 2e-6
+                (export_directory / "edited").mkdir(exist_ok=True)
+                changed = controller.export_material(
+                    adapter,
+                    service,
+                    result["created"]["material"],
+                    (export_directory / "edited") / (case["id"] + "-edited.mtlx"),
+                    accept_warnings=True,
+                )
+                assert changed["saved_path"], changed
+                set_value(control["plug"], original)
+                case["published_control_edit_verified"] = True
     if len(successful) < args.require_success:
         raise RuntimeError("成功材质数量未达到要求：" + str(len(successful)))
     summary.update(

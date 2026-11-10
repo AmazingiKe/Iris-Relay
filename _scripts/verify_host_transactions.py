@@ -109,6 +109,20 @@ def cinema_checks(service, args):
             host.set_value = original
         assert len(calls) == 2 and failed["status"] == "error" and failed["created"] is None
         assert [m.GetName() for m in document.GetMaterials()] == before
+        original_groups = adapter.create_editing_groups
+
+        def fail_after_groups(*values):
+            """验证分组完成后的失败也只影响私有准备材质。"""
+            original_groups(*values)
+            raise RuntimeError("注入分组后的原生失败")
+
+        adapter.create_editing_groups = fail_after_groups
+        try:
+            failed = import_material(adapter, service, path, adapter.target, accept_warnings=True)
+        finally:
+            adapter.create_editing_groups = original_groups
+        assert failed["status"] == "error" and failed["created"] is None
+        assert [m.GetName() for m in document.GetMaterials()] == before
         assert tag.GetMaterial() == existing
         assert document.GetActiveMaterial() == existing
         assert adapter.context() == context
@@ -116,6 +130,7 @@ def cinema_checks(service, args):
             "undo": True,
             "redo": True,
             "partial_failure_cleanup": True,
+            "group_failure_cleanup": True,
             "binding_preserved": True,
             "selection_preserved": True,
             "context_preserved": True,

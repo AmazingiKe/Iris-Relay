@@ -70,17 +70,34 @@ def export_all(args, service):
             raise RuntimeError("材质缓存与指定清单不一致，不能沿用旧编号")
         materials = [by_name[c["name"]] for c in manifest]
     print(json.dumps({"loaded_materials": len(materials)}, ensure_ascii=False), flush=True)
+    context = None
+    if getattr(args, "uv_context", None):
+        context = json.loads(args.uv_context.read_text("utf-8"))
+        if set(context["materials"]) != {m.name_full for m in materials}:
+            raise RuntimeError("UV 网格上下文与本次材质清单不一致")
+        summary_context = context["source_sha256"]
+    else:
+        summary_context = None
     if args.material_cache:
         if args.material_cache.exists():
             raise FileExistsError(args.material_cache)
         bpy.data.libraries.write(
             str(args.material_cache), set(materials), path_remap="ABSOLUTE", fake_user=True
         )
-    summary = {"source": str(args.source), "version": bpy.app.version_string, "cases": []}
+    summary = {
+        "source": str(args.source),
+        "version": bpy.app.version_string,
+        "cases": [],
+        "uv_context_source_sha256": summary_context,
+    }
     for index, material in enumerate(materials):
         case_id = f"material_{index:04d}"
         path = args.out / (case_id + ".mtlx")
-        adapter = BlenderAdapter(material, service)
+        adapter = BlenderAdapter(
+            material,
+            service,
+            uv_context=context["materials"][material.name_full] if context else None,
+        )
         result = controller.export_material(adapter, service, path, accept_warnings=True)
         write_json(args.out / (case_id + ".json"), asdict(result))
         case = {
@@ -192,6 +209,7 @@ def main():
     mode.add_argument("--documents", type=Path)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--material-cache", type=Path, help="另存仅含材质依赖的测试缓存")
+    parser.add_argument("--uv-context", type=Path, help="原始完整场景的只读 UV 绑定探测记录")
     parser.add_argument(
         "--id-manifest", type=Path, help="按旧全量清单保持材质编号；须与缓存名称完全一致"
     )

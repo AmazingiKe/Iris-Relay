@@ -33,8 +33,12 @@ def json_value(value):
         if hasattr(value, "a"):
             result.append(float(value.a))
         return result
-    if hasattr(value, "x") and hasattr(value, "y") and hasattr(value, "z"):
-        return [float(value.x), float(value.y), float(value.z)]
+    if hasattr(value, "x") and hasattr(value, "y"):
+        return (
+            [float(value.x), float(value.y), float(value.z)]
+            if hasattr(value, "z")
+            else [float(value.x), float(value.y)]
+        )
     return {"native_type": name, "unreadable": True}
 
 
