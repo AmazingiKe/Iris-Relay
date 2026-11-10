@@ -143,4 +143,4 @@ uv run --extra dev ruff format --check iris_relay _tests _examples _scripts plug
 - [ADR-0005：MaterialX 材质图核心与自定义节点扩展](_docs/adr/0005-MaterialX材质图核心与自定义节点扩展.md)
 - [协作与开发约定](AGENTS.md)
 
-下一步扩展真实材质导出与节点覆盖，建立固定场景的渲染对照基线，再训练和验证联合校正。当前核心支持字典声明的图连接，但非恒等变换遇到贴图连接时仍会阻断，尚不自动插入变换节点。
+下一步继续扩展真实材质导出与节点覆盖；渲染对照及神经联合校正留待后续阶段。MaterialX 桥接已显式处理颜色转亮度、标量转灰度颜色，以及受限的图片 Alpha 模式和通道；其他缩放、反相等连接仍会阻断。图片双输出、资源探测及跨宿主限制见 [Alpha 说明](_docs/materialx-core.md#图片-alpha-与透明度连接)。

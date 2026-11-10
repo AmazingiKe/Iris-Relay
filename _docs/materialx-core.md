@@ -75,7 +75,7 @@ GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶�
 | MaterialX | 既有字典语义 | 限制 |
 | --- | --- | --- |
 | `standard_surface`，默认版本 1.0.1 | `surface.standard` | 已映射基础参数；其他参数仅允许官方默认值，非默认或连接阻断 |
-| `image`，color3 | `texture.image` | 非空外部路径、默认采样；UV 能力按目标检查，见下文；文件输入明确 `raw` 或 `srgb_texture`；不处理 Alpha |
+| `image`，color3／color4 及显式辅助运算 | `texture.image` | 非空外部路径、默认采样；文件输入明确 `raw` 或 `srgb_texture`；UV 和 Alpha 能力按目标检查，见下文 |
 | `normalmap`，float scale | `normal.tangent` | 颜色连接须显式 `convert(color3→vector3)`；几何法线／切线使用默认值 |
 | `bump`，vector3 | `bump.height` | 标量高度；高度幅度和空间导数只作近似对应 |
 | `extract`，color3→float | `channel.red` | 仅 index=0 |
@@ -101,6 +101,23 @@ GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶�
 旧 `convert` 继续使用旧语义链路；新路径显式使用 `materialx.export`／`materialx.convert`。Maya Arnold 的原生读取和字典尚未实现，不应把 C4DtoA 字典套用到 Maya。当前不会生成 USD、自动训练网络或证明外观一致。
 
 ## 验证与复现
+
+### 图片 Alpha 与透明度连接
+
+图片资源可携带 `metadata.image_alpha: {"mode":"STRAIGHT","channels":4}`。模式为 `STRAIGHT`、`PREMUL`、`CHANNEL_PACKED` 或 `NONE`，通道描述为 1、3、4；缺省仍按旧 RGB 桥接处理，但不能据此猜测 Alpha 输出。
+Blender 在临时 Image 中探测解码色彩模式，读取源 Image 的 Alpha 模式，不加载或改变源 Image 的像素缓存。`Image.channels` 常为缓存中的 4 通道，RGB 文件也不例外；因此按 `depth` 和浮点类型确定解码通道。灰度加 Alpha 的双通道 PNG、未保存的像素修改和未支持的图片类型明确阻断。
+
+导出使用官方节点，无私有 NodeDef：RGBA 通过 `image(color4)` 与 `extract(index=3)` 分别提供颜色与 Alpha；无 Alpha 的文件或 `NONE` 模式用 `constant(float,1)` 表达 Alpha。灰度颜色通过 `image(color3) → extract(index=0) → convert(float→color3)` 明确复制到 RGB，保留颜色管理；不能以 `image(float)` 替代颜色采样。MaterialX 的自动颜色变换只接受 color3／color4，依据为 [1.39.5 着色图实现](https://github.com/AcademySoftwareFoundation/MaterialX/blob/v1.39.5/source/MaterialXGenShader/ShaderGraph.cpp)。
+
+非数据 RGBA 的 STRAIGHT 模式且 Alpha 未使用时补 `premult`；PREMUL 模式且 Alpha 使用时补 `unpremult`。其他组合不补关联运算。颜色取舍依据 [Cycles 图片节点](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/scene/shader_nodes.cpp)及[图片加载与预乘处理](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/util/image_metadata.cpp)。不同加载器的预乘、颜色转换和过滤顺序仍可能不同，报告保留 `ALPHA_FILTERING_APPROXIMATION`，不宣称透明边缘外观一致。
+
+字典声明的 `scalar_to_color` 连接现在显式写为 `convert(float→color3)`；Blender 反向只在目标输入确实要求该规则且标准图提供对应转换时还原标量连接。非灰度颜色不能直接压成 Alpha，其他缩放／反相连接仍阻断。
+
+XML 的 `iris_alpha_mode`、`iris_image_channels`、`iris_alpha_used` 及辅助节点来源／角色属性用于还原原生解释和合并同一图片的两个输出。回导会核验实际标准节点、常量及连线；修改运算或错误标记不会被忽略。计算本身由标准节点表达，附加属性不执行着色。当前原生合并只识别这一规范组合；任意外部 RGBA 图或丢失这些属性的图尚不保证可以转回原生图片，不能将此能力表述为所有 MaterialX 图片图的导入支持。
+
+目标字典通过 `texture_alpha_modes` 声明原生模式读写能力。Blender 已声明四种模式；C4D 两套字典尚未声明，带该资源解释的新文档会明确阻断，不能沿用旧 RGB 文档的兼容结论。旧文档和旧 API 不因新增字段自动获得 Alpha 支持。
+
+独立夹具入口为 `_scripts/verify_blender_alpha.py -- --out "新夹具目录"`，随后交给 `verify_blender_batch.py --documents` 在另一 Blender 中还原、保存重开。夹具覆盖灰度／RGB／RGBA、四种模式、两种色彩解释和 Alpha 使用／未使用的 48 种组合，以及同一图片共享输出、源数据保护和失败清理。详细运行证据见 [A1 记录](a1-materialx-roundtrip.md)。
 
 ### UV 与静态 Mapping
 

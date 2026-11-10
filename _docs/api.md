@@ -109,6 +109,8 @@ response = api.handle({
 
 每项贴图描述包含 `uri`、`color_space`、`coordinates` 对象，可含 `metadata`。旧 `convert` 保留这些描述，不读取贴图像素、不自动转换色彩空间、不下载资源，也不更改资源路径。真实适配器须根据共同约定解析这些信息。示例使用的 `memory://reference/albedo` 只代表参考资源，并无附带图像文件。
 
+`materialx.export`／`materialx.convert` 另解释可选的 `metadata.image_alpha: {"mode":"STRAIGHT","channels":4}`：模式限定为 `STRAIGHT`、`PREMUL`、`CHANNEL_PACKED`、`NONE`，通道限定为整数 1、3、4。源适配器提供实际观测，核心不读像素猜测；目标字典须用可选 `texture_alpha_modes` 列表声明支持的模式。缺省字段仍采用旧 RGB 行为，使用 Alpha 输出时必须补充明确描述。标准图和原生还原边界见 [图片 Alpha](materialx-core.md#图片-alpha-与透明度连接)。
+
 `materialx.export`／`materialx.convert` 另解析受限 UV 描述：`{"kind":"uv","set":"UV名称或空字符串","transforms":[矩阵1,矩阵2]}`。`transforms` 可省略；每个矩阵为按 MaterialX 行向量约定展平的 16 个有限数值，按列表顺序应用。只支持仿射矩阵，数量最多 64。命名 UV 和变换的目标能力由字典的可选 `texture_coordinates` 声明，缺省只接受默认 UV；目前 `transforms` 能力取值为 `none` 或 `trs`。实际标准节点及宿主限制见 [MaterialX 坐标说明](materialx-core.md#uv-与静态-mapping)。
 
 源图中未列出的已知输入由源字典默认值补全。源图含未知输入或输出时阻断转换。目标端增加了源端没有的语义时，使用目标字典默认值并发出 `TARGET_DEFAULT` 警告；目标端丢失源语义则阻断。
@@ -126,7 +128,7 @@ API 接受有限数值；JSON 文件拒绝重复键、NaN 和 Infinity，单次 
 - 新真实字典声明 `semantic_schema_version: "1"`，加载时按核心集中契约校验功能名、端口名、类型、可空性和必要端口。`native.*` 专用输入只允许显式声明 `omit_if_default`；未声明语义版本的旧协议示例保留兼容，不作为标准定义。
 - 输入规则包含 `semantic`、`type`、`default`，可指定 `range`、`transform`、`adjustable`、`nullable`、`omit_if_default`、`inactive_when`；输出规则包含 `semantic`、`type`。节点和端口可包含 `native`；节点可通过 `approximation` 声明近似。
 - `transform` 白名单包含 `identity`、用于浮点值的 `one_minus`、`{"op":"scale","factor":非零有限数值}` 及 `scalar_to_color`。后者将标量展开为三个相等的颜色分量，逆变换只接受灰度颜色。默认值和范围描述原生参数域，解码后进入语义域，编码时逆变换回目标原生域。
-- 非恒等变换遇到连接时返回阻断报告，不将单个数值操作误当作整张贴图变换。
+- 旧 `convert` 的非恒等变换遇到连接时返回阻断报告。MaterialX 桥接另支持将 `scalar_to_color` 连接显式展开为标准转换节点，并在目标适配规则匹配时还原；缩放与反相等连接仍阻断。
 
 `native` 含实际 `id`（字符串或整数 code），可选 `label`、`properties`、`kind`、`codec`、`colorspace_id`、`uv_id`。`kind` 为 `socket`／`property`／`resource`；`codec` 白名单为 `identity`／`rgb`／`srgb`／`bool`／`normal`／`texture`／`gray`。`gray` 仅将标量读写为相等的三个分量，读取非灰度三通道时拒绝，不做亮度或通道猜测。这些是声明式宿主读写信息，不可携带执行代码。数值编码由宿主适配层的公开辅助函数处理，语义变换只由核心处理。
 
