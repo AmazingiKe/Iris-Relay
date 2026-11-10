@@ -395,6 +395,9 @@ def build(catalog):
         profile["nodes"][shader_key + ".ggx_burley"] = legacy
         add_blender_principled_variants(profile, catalog, shader_key)
         add_blender_weighted_sum(profile, catalog)
+    else:
+        profile["version"] = "0.3.1"
+        add_c4d_weighted_sum(profile, catalog)
     return profile
 
 
@@ -468,6 +471,55 @@ def add_blender_weighted_sum(profile, catalog):
         "Blender 5.2.3 DOT_PRODUCT 实机端口核验；"
         "https://github.com/blender/blender/blob/v5.2.3/"
         "source/blender/nodes/shader/nodes/node_shader_vector_math.cc"
+    )
+
+
+def add_c4d_weighted_sum(profile, catalog):
+    """将实机点积端口绑定到已有 RGB 加权求和契约，系数按向量数据原样保留。"""
+    engine = catalog["renderer"]["id"]
+    key = RS + "rsmathdotvector" if engine == "redshift" else "dot"
+    observed = catalog["nodes"][key]
+    if observed["status"] != "instantiated":
+        raise ValueError(f"点积节点缺少宿主创建证据：{key}")
+    ports = {p["id"].rsplit(".", 1)[-1]: p for p in observed["inputs"]}
+    outputs = {p["id"].rsplit(".", 1)[-1]: p for p in observed["outputs"]}
+    output = outputs["out" if engine == "redshift" else "0"]
+    rule = {
+        "semantic": "color.weighted_sum",
+        "native": {
+            "id": observed.get("code", key),
+            "label": observed["label"],
+            "properties": {},
+        },
+        "inputs": {},
+        "outputs": {
+            output["id"]: {
+                "semantic": "value",
+                "type": "float",
+                "native": {
+                    "id": output.get("code", output["id"]),
+                    "kind": "socket",
+                    "codec": "identity",
+                },
+            }
+        },
+    }
+    if engine == "redshift":
+        operation = ports["math_op"]
+        rule["native"]["properties"][operation["id"]] = operation["default"]
+    for name, semantic, datatype in (("input1", "color", "color"), ("input2", "weights", "vector")):
+        observed_port = ports[name]
+        port = infer_rule(observed_port, engine, semantic)
+        # 端口实机类型为 vector；RGB 仅作分量解释，不能套用颜色 UI 的 sRGB 编码。
+        if port["native"]["codec"] != "identity":
+            raise ValueError(f"点积端口不是原始向量：{key}.{name}")
+        port["type"] = datatype
+        port.pop("adjustable", None)
+        rule["inputs"][observed_port["id"]] = port
+    profile["nodes"][key] = rule
+    profile["evidence"]["weighted_sum"] = (
+        "本版本 C4D 实机点积节点及输入输出端口核验；"
+        "RGB 与权重按原始向量分量写入，输出为未归一化点积。"
     )
 
 

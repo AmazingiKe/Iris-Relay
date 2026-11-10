@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "id": "cinema4d.arnold.native",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "semantic_schema_version": "1",
   "description": "真实原生绑定；标准表面、图片、切线法线、高度凹凸与显式 R 通道提取。其余节点见探测目录。",
   "renderer": {
@@ -24,7 +24,8 @@
       "color_management": 0,
       "color_profile": 0,
       "linear_workflow": 1
-    }
+    },
+    "weighted_sum": "本版本 C4D 实机点积节点及输入输出端口核验；RGB 与权重按原始向量分量写入，输出为未归一化点积。"
   },
   "nodes": {
     "standard_surface": {
@@ -1407,6 +1408,57 @@
           },
           "omit_if_default": false,
           "adjustable": true
+        }
+      },
+      "outputs": {
+        "0": {
+          "semantic": "value",
+          "type": "float",
+          "native": {
+            "id": 0,
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "dot": {
+      "semantic": "color.weighted_sum",
+      "native": {
+        "id": 193489676,
+        "label": "dot",
+        "properties": {}
+      },
+      "inputs": {
+        "input1": {
+          "semantic": "color",
+          "type": "color",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": 729976059,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        },
+        "input2": {
+          "semantic": "weights",
+          "type": "vector",
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "native": {
+            "id": 729976060,
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
         }
       },
       "outputs": {

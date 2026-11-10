@@ -176,11 +176,12 @@ def probe():
                             "datatype": did[0].dtype,
                         }
                 inputs = []
-                # 此内置节点无独立资源头文件，使用实机动态描述记录参数和枚举。
-                if name == "rgb_to_float" and not parameters:
+                # 这些内置节点无独立资源头文件，使用实机动态描述记录参数和枚举。
+                runtime_labels = {"rgb_to_float": {"Input", "Mode"}, "dot": {"Input1", "Input2"}}
+                if name in runtime_labels and not parameters:
                     for bc, did, _group in node.GetDescription(c4d.DESCFLAGS_DESC_0):
                         label = bc.GetString(c4d.DESC_NAME)
-                        if did.GetDepth() != 1 or label not in {"Input", "Mode"}:
+                        if did.GetDepth() != 1 or label not in runtime_labels[name]:
                             continue
                         param_code = did[0].id
                         entry = {

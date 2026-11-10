@@ -1862,7 +1862,32 @@
       "code": 193489676,
       "label": "dot",
       "status": "instantiated",
-      "inputs": [],
+      "inputs": [
+        {
+          "id": "input1",
+          "code": 729976059,
+          "label": "Input1",
+          "datatype": 23,
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "evidence": "runtime_description"
+        },
+        {
+          "id": "input2",
+          "code": 729976060,
+          "label": "Input2",
+          "datatype": 23,
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "evidence": "runtime_description"
+        }
+      ],
       "outputs": [
         {
           "id": "0",

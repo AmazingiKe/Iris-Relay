@@ -111,13 +111,64 @@ def test_unsupported_forms_keep_source_and_block(change):
     assert response["result"]["source"] == xml
 
 
+@pytest.mark.parametrize("engine", ["arnold", "redshift"])
+@pytest.mark.parametrize("coefficients", [[0.2126, 0.7152, 0.0722], [-0.1, 0.8, 0.3]])
+def test_c4d_targets_preserve_weighted_sum_and_reexport(engine, coefficients):
+    """C4D 目标使用显式点积；文档权重和贴图连接经过再导出仍可回到 Blender。"""
+    _, source, document, luma = editable_document()
+    luma.getInput("lumacoeffs").setValueString(", ".join(map(str, coefficients)))
+    target_profile = next(
+        json.loads(path.read_text("utf-8"))
+        for path in (ROOT / "dictionaries").glob("*.json")
+        if engine in path.name
+    )
+    response = convert_document(
+        source, mx.writeToXmlString(document), target=renderer(target_profile)
+    )
+    assert response["status"] == "warning", response
+    material = response["result"]["material"]
+    weighted = next(
+        n
+        for n in material["nodes"]
+        if target_profile["nodes"][n["type"]]["semantic"] == "color.weighted_sum"
+    )
+    rule = target_profile["nodes"][weighted["type"]]
+    weights = next(k for k, p in rule["inputs"].items() if p["semantic"] == "weights")
+    color = next(k for k, p in rule["inputs"].items() if p["semantic"] == "color")
+    assert weighted["inputs"][weights] == pytest.approx(coefficients)
+    assert rule["inputs"][weights]["native"]["codec"] == "identity"
+    assert rule["inputs"][color]["native"]["codec"] == "identity"
+    assert any(
+        link["to"] == {"node": weighted["id"], "socket": color} for link in material["links"]
+    )
+    exported = export(target_profile, material)
+    assert exported["status"] == "warning", exported
+    returned = convert_document(source, exported["result"]["document"])
+    assert returned["status"] == "warning", returned
+    restored = next(
+        n for n in returned["result"]["material"]["nodes"] if n["type"].endswith(".dot_product")
+    )
+    assert restored["inputs"]["Vector_001"] == pytest.approx(coefficients)
+
+
 def test_target_without_weighted_sum_binding_is_blocked():
     _, source, document, _ = editable_document()
     target_profile = json.loads(
         (ROOT / "dictionaries/cinema4d-redshift-2025.3.0.json").read_text("utf-8")
     )
-    response = convert_document(
-        source, mx.writeToXmlString(document), target=renderer(target_profile)
+    target_profile["nodes"] = {
+        k: n for k, n in target_profile["nodes"].items() if n["semantic"] != "color.weighted_sum"
+    }
+    response = RelayAPI([target_profile]).handle(
+        {
+            "api_version": "1",
+            "request_id": "missing-binding",
+            "operation": "materialx.convert",
+            "payload": {
+                "document": mx.writeToXmlString(document),
+                "target": renderer(target_profile),
+            },
+        }
     )
     assert response["status"] == "error"
     assert response["result"]["material"] is None
