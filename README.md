@@ -61,7 +61,7 @@ python -m venv .venv
 
 GUI 按需加载核心；重复运行入口会重新加载宿主模块、清空输入和诊断。关闭 Blender 后不会自动启用。需要在当前会话移除界面时，在 Blender Python 控制台执行 `from plugins.blender import ui; ui.unregister()`。
 
-当前受已实现功能及精确版本字典限制。读取所选表面的上游图，解析转接点、整理框、默认／命名 UV 及静态 POINT Mapping 序列；坐标通过标准 MaterialX 几何属性和矩阵节点导出，Blender 导入后重建可编辑链路。未参与表面的节点有信息提示并保留顶层源快照。参与表面的未知节点、节点组、动态坐标变换、其他坐标来源、未支持的参数或连接仍会阻断。Blender 旧 Principled `GGX + BURLEY` 配置已加入识别；关闭 SSS 时未连接的 SSS 辅助值按字典条件报告为未启用。具体范围见[原生字典文档](_docs/native-dictionaries.md)。
+当前受已实现功能及精确版本字典限制。读取所选表面的上游图，解析转接点、整理框、默认／命名 UV 及静态 POINT Mapping 序列；坐标通过标准 MaterialX 几何属性和矩阵节点导出，Blender 导入后重建可编辑链路。节点组按实例只读展开，保留输入覆盖值和连线，回导创建可编辑功能节点；组层级、布局及接口限制见[节点组说明](_docs/materialx-core.md#blender-节点组)。未参与表面的节点有信息提示并保留顶层源快照。参与表面的未知节点、动态坐标变换、其他坐标来源、未支持的参数或连接仍会阻断。Blender 旧 Principled `GGX + BURLEY` 配置已加入识别；关闭 SSS 时未连接的 SSS 辅助值按字典条件报告为未启用。具体范围见[原生字典文档](_docs/native-dictionaries.md)。
 
 颜色接粗糙度等标量输入时，由宿主读取当前工作空间的亮度系数，核心按字典规则生成显式 MaterialX `luminance → extract`，不猜测 R 通道。目前只核验 Linear Rec.709；缺失或不支持的色彩上下文会阻断。此链可通过 `materialx.convert` 转回 Blender 的 `Vector Math / DOT_PRODUCT`，保留文档中的三个常量系数；GUI 和独立脚本共用该 API。位移和渲染外观仍未验证。
 

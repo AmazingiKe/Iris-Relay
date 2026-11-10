@@ -68,7 +68,7 @@ Blender 导出新增一项受限规则：字典明确声明颜色到标量连接
 
 依据为 Blender 5.2.3 的 [隐式转换实现](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/convert.h)、[工作空间 XYZ 矩阵](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/util/colorspace.cpp)及 [RGB → Y 初始化](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/scene/shader.cpp)。适配器通过当前 OCIO 配置读取 ACES AP0 → 工作空间的矩阵，并按该版本 Cycles 的 XYZ D65 常量求出系数，不更改色彩设置。
 
-GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶层节点、属性、输入、图片引用和连接保留于完整报告的 `source_snapshot`。该快照用于诊断，不是递归节点组备份，也不会嵌入 `.mtlx`；原 `.blend` 始终保留。未连接活动表面的节点有信息提示；动态坐标链、体积、活动图中的未知节点和节点组仍阻断。静态 POINT 与命名 UV 的范围见下文。
+GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶层节点、属性、输入、图片引用和连接保留于完整报告的 `source_snapshot`。该快照用于诊断，不是递归节点组备份，也不会嵌入 `.mtlx`；原 `.blend` 始终保留。未连接活动表面的节点有信息提示；动态坐标链、体积和活动图中的未知节点仍阻断。节点组、静态 POINT 与命名 UV 的范围见下文。
 
 文档可保存的范围大于当前目标可转换的范围。桥接支持三套字典共有的六类功能：
 
@@ -101,6 +101,16 @@ GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶�
 旧 `convert` 继续使用旧语义链路；新路径显式使用 `materialx.export`／`materialx.convert`。Maya Arnold 的原生读取和字典尚未实现，不应把 C4DtoA 字典套用到 Maya。当前不会生成 USD、自动训练网络或证明外观一致。
 
 ## 验证与复现
+
+### Blender 节点组
+
+读取层按组实例展开活动表面上游的节点，不复制、修改或调用解除编组操作。接口按 Blender 的稳定 `identifier` 对应；多个实例即使共用一个组定义，也分别保留输入覆盖值、连接及内部节点身份。支持嵌套组、接口旁路、共享输出、组内图片与整个表面位于组内的情形，最终功能仍须满足核心字典及 MaterialX 桥接的能力范围。
+
+展开后的原生记录用 `metadata.source_group_path` 保存组实例和内部节点的来源路径；该信息用于报告追踪。标准 `.mtlx` 保存实际计算节点与连接，回导只依赖文档和引用资源，创建可编辑功能节点。当前不重建 Blender 原组层级、布局或共用组数据块，不把展开称为原始界面的逐项复制；报告包含 `NODE_GROUPS_EXPANDED`。
+
+缺失或空的组定义、非唯一活动输出、静音节点、递归与接口循环明确阻断。组边界尚未显式表达的类型转换不会在展开时消失。只有同类型浮点／颜色常量可以直接传入目标默认值；常量向量连接与图片的默认 UV、表面的隐式法线不同，因此未支持的常量向量接口返回 `GROUP_DEFAULT_UNSUPPORTED`。组内未知节点仍按其实际类型报告。限制为 64 层和 20,000 个读取节点。
+
+验证入口 `_scripts/verify_blender_groups.py -- --out "新夹具目录"` 创建共享／嵌套数学组、命名 UV 驱动的组内图片双输出及组内表面。先按手工预期核对实例输入与连线，再通过 `verify_blender_batch.py --documents` 在另一个 Blender 中导入、保存重开。测试同时检查原材质及全部组定义保持不变；具体全量结果见 [A1 记录](a1-materialx-roundtrip.md)。接口标识依据为 [Blender NodeTreeInterfaceSocket API](https://docs.blender.org/api/5.1/bpy.types.NodeTreeInterfaceSocket.html)，实际行为在本机 5.2.3 核验。
 
 ### 图片 Alpha 与透明度连接
 
