@@ -145,15 +145,16 @@ def test_incomplete_or_ambiguous_groups_fail_without_guessing(problem):
         _ = ExpandedGraph(root).node(targets[0]).inputs[0].is_linked
 
 
-def test_group_input_conversion_does_not_disappear():
+def test_group_input_conversion_remains_visible_on_resolved_edge():
     root, _, groups, targets, _ = fixture()
     source = node(root, "Color")
     source.outputs[0].type = "RGBA"
     link(source.outputs[0], groups[0].inputs[0])
     graph = ExpandedGraph(root)
     internal = graph.node(targets[0]).inputs[0].links[0].from_socket.node
-    with pytest.raises(ValidationError, match="类型"):
-        _ = internal.inputs[0].is_linked
+    incoming = internal.inputs[0].links[0].from_socket
+    assert incoming.node is graph.node(source)
+    assert incoming.type == "RGBA" and internal.inputs[0].type == "VALUE"
 
 
 def test_limits_stop_expansion_before_unbounded_instances():
@@ -207,5 +208,57 @@ def test_reroute_does_not_hide_group_boundary_cast():
     link(source.outputs[0], reroute.inputs[0])
     exit_port.links.clear()
     link(reroute.outputs[0], exit_port)
+    incoming = ExpandedGraph(root).node(targets[0]).inputs[0].links[0].from_socket
+    assert incoming.node.native is source and incoming.type == "RGBA"
+    assert targets[0].inputs[0].type == "VALUE"
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_interface_conversion_roundtrip_cannot_be_removed(reverse):
+    root, definition, groups, targets, source = fixture()
+    original, middle = ("VALUE", "RGBA") if reverse else ("RGBA", "VALUE")
+    source.outputs[0].type = targets[0].inputs[0].type = original
+    groups[0].outputs[0].type = definition.nodes[-1].inputs[0].type = middle
     with pytest.raises(ValidationError, match="类型"):
         _ = ExpandedGraph(root).node(targets[0]).inputs[0].is_linked
+
+
+def test_single_output_boundary_cast_keeps_source_identity_for_core_conversion():
+    root, _, _, targets, source = fixture()
+    source.outputs[0].type = "RGBA"
+    graph = ExpandedGraph(root)
+    socket = graph.node(targets[0]).inputs[0]
+    incoming = socket.links[0].from_socket
+    assert incoming.node.native is source and incoming.type == "RGBA"
+    assert socket.type == "VALUE"
+    assert incoming.node.source_group_path == ["Group 0", "Multiply"]
+
+
+def test_scalar_group_default_is_read_as_gray_with_opaque_alpha():
+    root, _, _, targets, source = fixture()
+    source.inputs[0].type = "RGBA"
+    graph = ExpandedGraph(root)
+    views = [graph.node(t).inputs[0].links[0].from_socket.node for t in targets]
+    assert [v.inputs[0].default_value for v in views] == [[2, 2, 2, 1], [3, 3, 3, 1]]
+    assert all(not v.inputs[0].is_linked for v in views)
+    assert source.inputs[0].default_value == 0.5
+
+
+def test_scalar_output_default_is_converted_only_once():
+    root, definition, _, targets, _ = fixture()
+    output = definition.nodes[-1].inputs[0]
+    output.links.clear()
+    output.default_value = 0.73
+    targets[0].inputs[0].type = "RGBA"
+    value = ExpandedGraph(root).node(targets[0]).inputs[0].default_value
+    assert value == [0.73, 0.73, 0.73, 1]
+
+
+def test_default_value_with_intermediate_color_cast_is_not_collapsed():
+    root, definition, groups, targets, _ = fixture()
+    output = definition.nodes[-1].inputs[0]
+    output.links.clear()
+    link(definition.nodes[0].outputs[0], output)
+    output.type = groups[0].outputs[0].type = "RGBA"
+    with pytest.raises(ValidationError, match="类型"):
+        _ = ExpandedGraph(root).node(targets[0]).inputs[0].default_value

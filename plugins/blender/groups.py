@@ -135,7 +135,7 @@ class ExpandedGraph:
 
     @staticmethod
     def _same_type(left, right):
-        """组边界上的隐式类型转换不能在展开时悄悄消失。"""
+        """同一组接口的内外声明必须一致；常量端口仍不隐式改写类型。"""
         if left.type != right.type:
             raise ValidationError(
                 f"节点「{right.node.diagnostic_name}」的组接口含尚未显式表达的类型转换："
@@ -143,9 +143,24 @@ class ExpandedGraph:
                 "GROUP_SOCKET_TYPE_UNSUPPORTED",
             )
 
+    @staticmethod
+    def _link_types(path):
+        """只将一次类型转换留在真实端点连接上，多次转换必须保留中间步骤。"""
+        types = []
+        for port in reversed(path):
+            if not types or port.type != types[-1]:
+                types.append(port.type)
+        if len(types) > 2:
+            raise ValidationError(
+                f"节点「{path[0].node.diagnostic_name}」的组接口包含多次类型转换，"
+                "不能直接连接端点：" + " → ".join(types),
+                "GROUP_SOCKET_TYPE_UNSUPPORTED",
+            )
+
     def resolve(self, socket, *, literal_defaults=False):
         """解析边界；仅显式常量求值调用方可接收向量字面量，不能当成未连接端口。"""
         current, seen, interfaces = socket, set(), []
+        type_path = [socket]
         while True:
             key = (tuple(current.node.source_group_path), current.node.name, current.identifier)
             if key in seen:
@@ -153,20 +168,25 @@ class ExpandedGraph:
             seen.add(key)
             links = list(current.native.links)
             if not links:
+                value = _value(current.native)
                 if interfaces:
-                    if not (
+                    self._link_types([*type_path, current])
+                    scalar_color = current.type == "VALUE" and socket.type == "RGBA"
+                    scalar_vector = (
                         literal_defaults and current.type == "VALUE" and socket.type == "VECTOR"
-                    ):
+                    )
+                    if not (scalar_color or scalar_vector):
                         self._same_type(current, socket)
-                    for interface in interfaces:
-                        self._same_type(current, interface)
                     if socket.type not in {"VALUE", "RGBA"} and not literal_defaults:
                         raise ValidationError(
                             f"节点「{socket.node.diagnostic_name}」的组默认值需要显式常量节点，"
                             "不能替代目标端口的隐式几何输入",
                             "GROUP_DEFAULT_UNSUPPORTED",
                         )
-                return None, _value(current.native)
+                    # 原生浮点常量接颜色端口时复制到 RGB，Alpha 为 1，不使用颜色默认值。
+                    if scalar_color:
+                        value = [value, value, value, 1.0]
+                return None, value
             if len(links) != 1 or not links[0].is_valid:
                 raise ValidationError("节点组连接无效或没有唯一来源", "INVALID_LINK")
             raw = links[0].from_socket
@@ -174,9 +194,8 @@ class ExpandedGraph:
             source = upstream.outputs.by_identifier(raw.identifier)
             if upstream.mute:
                 raise ValidationError(f"暂不转换静音节点：{upstream.name}", "MUTED_NODE")
-            # 进入和离开接口时，其声明类型必须和实际连接一致。
-            if current.node.bl_idname in {"NodeGroupOutput", "ShaderNodeGroup"}:
-                self._same_type(source, current)
+            # 保留沿途类型序列；一次转换可移到最终连接，由核心决定是否支持并显式表达。
+            type_path.append(source)
             if upstream.bl_idname == "ShaderNodeGroup":
                 scope = self._scope(upstream)
                 outputs = [
@@ -200,9 +219,10 @@ class ExpandedGraph:
                 if not upstream.scope.path:
                     self.root_reroutes.add(upstream.name)
                 current = upstream.inputs[0]
+                self._same_type(source, current)
                 if not current.native.links:
                     raise ValidationError("转接点缺少唯一输入", "INVALID_LINK")
             else:
-                for interface in interfaces:
-                    self._same_type(source, interface)
+                if interfaces:
+                    self._link_types(type_path)
                 return source, None
