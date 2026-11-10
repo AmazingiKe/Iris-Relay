@@ -120,6 +120,15 @@ C4D 两套字典尚未声明命名 UV 或矩阵能力，相关文档在调用宿
 
 ## 复现实机验证
 
+2026-11-10 Cycles 字典内容版本升为 `0.3.7`，补充完整颜色反相 `ShaderNodeInvert`，直接引用官方 `ND_invert_color3`。
+仅当原生 `Fac=1` 且未连接时成立；MaterialX 的 `amount` 是被减数，不是原生混合系数，因此部分反相和非默认 `amount` 明确阻断。
+三组真实常量／图片／节点组夹具完成独立 Blender 保存重开，核对 112 个输入、14 条连接；C4D 尚未增加相应绑定。
+原生端口与默认值来自本版本探测目录，运算依据为 [Blender 反相源码](https://github.com/blender/blender/blob/v5.2.3/source/blender/gpu/shaders/material/gpu_shader_material_invert.glsl)；详细测试和剩余范围见 [A1 记录](a1-materialx-roundtrip.md)。
+
+同轮扩展 Blender 静态 UV 读取，支持常量数学、Combine XYZ、向量加减乘／缩放和五种 Vector Rotate 模式，输出仍使用既有标准矩阵图与 `texture_coordinates` 能力声明。
+这项扩展没有给 C4D 声明新增坐标能力，也没有把常量求值器中的 Math 模式全部登记为通用着色节点支持；函数节点绑定与静态坐标读取须分别判断。
+回导重建可编辑 Mapping，源常量计算子图、组结构及共享坐标节点身份未重建；动画和跨材质分支的共享依赖不能冻结，见[坐标边界](materialx-core.md#uv-与静态-mapping)。
+
 2026-11-10 Cycles 字典内容版本升为 `0.3.6`，新增 `texture_alpha_modes` 四种原生模式声明。Blender 读取 `Image.alpha_mode` 和文件解码通道，创建目标图片时核对实际通道并恢复模式；Color、Alpha 仍来自同一 `ShaderNodeTexImage`。探测使用临时 Image，随即释放，缓存按文件路径、大小和修改时间区分。原生模式和端口由 48 组独立夹具核验；C4D 两套字典尚无该声明，不将新图片资源解释静默丢弃。标准组合、近似警告及限制见 [Alpha 说明](materialx-core.md#图片-alpha-与透明度连接)。
 
 2026-11-10 Cycles 字典内容版本升为 `0.3.3`，根据 `A1.blend` 实机读取补充五种 Principled 历史配置。宿主版本仍为 5.2.3，目标默认实现保持不变；识别历史 SSS 模式不代表支持活动 SSS。全量盘点与分项证据见 [A1 材质批量往返验证](a1-materialx-roundtrip.md)。

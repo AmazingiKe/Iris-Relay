@@ -62,9 +62,9 @@ uv run python _examples/materialx_demo.py --out .local/materialx-demo-新编号
 
 Blender 导出新增一项受限规则：字典明确声明颜色到标量连接使用场景线性亮度时，宿主提供实际系数，核心通过官方 `ND_luminance_color3` 与 `ND_extract_color3(index=0)` 显式表达。它不把 RGB 直接当 R，也不使用 MaterialX 的默认亮度系数替代 Blender 上下文。目前只核验 Linear Rec.709；其他上下文拒绝。
 
-该亮度链现可转入 Blender 5.2.3：保留文档的常量 `lumacoeffs`，用 `ShaderNodeVectorMath / DOT_PRODUCT` 计算 `R*w0 + G*w1 + B*w2`。不读取目标场景的默认亮度系数，也不自动归一化；输入省略系数时使用官方 NodeDef 默认值。再次导出时表示为 `convert(color3→vector3) → dotproduct(vector3)`。这是对受限字典桥接的一项补充，标准节点定义仍来自 SDK。
+该亮度链可转入 Blender 5.2.3：保留文档的常量 `lumacoeffs`，用 `ShaderNodeVectorMath / DOT_PRODUCT` 计算 `R*w0 + G*w1 + B*w2`。不读取目标场景的默认亮度系数，也不自动归一化；输入省略系数时使用官方 NodeDef 默认值。再次导出时表示为 `convert(color3→vector3) → dotproduct(vector3)`。这是对受限字典桥接的一项补充，标准节点定义仍来自 SDK。
 
-当前只接受上述 `extract(index=0)` 组合和规范点积形式；动态系数、亮度颜色输出参与其他计算或未支持的向量来源会阻断。Redshift／Arnold 尚无此功能绑定，转到这些目标会保留源文档并报告缺失能力。公式依据为 MaterialX 1.39.5 的 [luminance 实现](https://github.com/AcademySoftwareFoundation/MaterialX/blob/v1.39.5/libraries/stdlib/genglsl/mx_luminance_color3.glsl)，原生端口依据为 [Blender Vector Math 实现](https://github.com/blender/blender/blob/v5.2.3/source/blender/nodes/shader/nodes/node_shader_vector_math.cc)及本机保存重开验证。
+当前只接受上述 `extract(index=0)` 组合和规范点积形式；动态系数、亮度颜色输出参与其他计算或未支持的向量来源会阻断。Redshift／Arnold 现已补充加权求和绑定，具体版本与宿主证据见[原生字典文档](native-dictionaries.md)。公式依据为 MaterialX 1.39.5 的 [luminance 实现](https://github.com/AcademySoftwareFoundation/MaterialX/blob/v1.39.5/libraries/stdlib/genglsl/mx_luminance_color3.glsl)，原生端口依据为 [Blender Vector Math 实现](https://github.com/blender/blender/blob/v5.2.3/source/blender/nodes/shader/nodes/node_shader_vector_math.cc)及本机保存重开验证。
 
 依据为 Blender 5.2.3 的 [隐式转换实现](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/convert.h)、[工作空间 XYZ 矩阵](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/util/colorspace.cpp)及 [RGB → Y 初始化](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/scene/shader.cpp)。适配器通过当前 OCIO 配置读取 ACES AP0 → 工作空间的矩阵，并按该版本 Cycles 的 XYZ D65 常量求出系数，不更改色彩设置。
 
@@ -93,6 +93,11 @@ GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶�
 这些节点可与既有表面、图片和亮度链连接，也可承接自定义子图展开后的同类标准节点。没有目标绑定的标准节点仍阻断；Arnold 尚无这三个标量绑定。
 直接绑定首版只接受单个、已支持数据类型的输出；不会因引用 NodeDef 就自动实现全部官方库、任意多输出节点或专有节点。
 
+Blender 字典 `0.3.7` 增加 `ShaderNodeInvert → materialx.ND_invert_color3`，保留颜色输入及共享输出，允许后接显式亮度链。
+仅支持未连接且等于 1 的 `Fac`；部分反相、连接系数，以及 MaterialX 非默认 `amount` 仍阻断。
+Blender 的 RGB 运算为 `mix(color, 1-color, Fac)`，MaterialX 则为 `amount-in`，二者参数不能直接对应。依据为 [Blender 5.2.3 反相实现](https://github.com/blender/blender/blob/v5.2.3/source/blender/gpu/shaders/material/gpu_shader_material_invert.glsl)与 [MaterialX 1.39.5 标准实现](https://github.com/AcademySoftwareFoundation/MaterialX/blob/v1.39.5/libraries/stdlib/genglsl/stdlib_genglsl_impl.mtlx)。
+`_scripts/verify_blender_invert.py` 覆盖常量、图片及组内反相；三份文档完成独立 Blender 保存重开，核对 112 个输入、14 条连接。C4D 两套字典尚无该反相绑定，三份均明确阻断。
+
 独立宿主夹具由 `_scripts/verify_blender_math.py -- --out "新目录"` 导出，再分别交给 `verify_blender_batch.py --documents` 和 `verify_materialx_targets.py --documents` 回读。
 三组夹具含负数、非对称输入、共享输出，Blender 和 Redshift 均完成保存重开核对；钳制模式及未支持运算继续阻断。未做渲染对照。
 
@@ -109,6 +114,8 @@ GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶�
 展开后的原生记录用 `metadata.source_group_path` 保存组实例和内部节点的来源路径；该信息用于报告追踪。标准 `.mtlx` 保存实际计算节点与连接，回导只依赖文档和引用资源，创建可编辑功能节点。当前不重建 Blender 原组层级、布局或共用组数据块，不把展开称为原始界面的逐项复制；报告包含 `NODE_GROUPS_EXPANDED`。
 
 缺失或空的组定义、非唯一活动输出、静音节点、递归与接口循环明确阻断。组边界尚未显式表达的类型转换不会在展开时消失。只有同类型浮点／颜色常量可以直接传入目标默认值；常量向量连接与图片的默认 UV、表面的隐式法线不同，因此未支持的常量向量接口返回 `GROUP_DEFAULT_UNSUPPORTED`。组内未知节点仍按其实际类型报告。限制为 64 层和 20,000 个读取节点。
+
+静态坐标求值器可显式读取组向量字面量，并作为常量参与后续运算；这不会放宽普通功能节点对隐式几何输入的限制。最终图片坐标仍须追溯到受支持的 UV 来源。
 
 验证入口 `_scripts/verify_blender_groups.py -- --out "新夹具目录"` 创建共享／嵌套数学组、命名 UV 驱动的组内图片双输出及组内表面。先按手工预期核对实例输入与连线，再通过 `verify_blender_batch.py --documents` 在另一个 Blender 中导入、保存重开。测试同时检查原材质及全部组定义保持不变；具体全量结果见 [A1 记录](a1-materialx-roundtrip.md)。接口标识依据为 [Blender NodeTreeInterfaceSocket API](https://docs.blender.org/api/5.1/bpy.types.NodeTreeInterfaceSocket.html)，实际行为在本机 5.2.3 核验。
 
@@ -141,6 +148,19 @@ XML 的 `iris_alpha_mode`、`iris_image_channels`、`iris_alpha_used` 及辅助�
 
 Blender 回读创建 UV 和可编辑 Mapping 节点，不依赖原生源图快照。矩阵的分解不保证还原原来的欧拉角数值，但必须重建同一变换；节点名称、布局、恒等节点和多个图片之间的共享坐标节点身份不作为该桥接的保留项。
 命名 UV 保留属性名称，目标几何体需提供对应 UV；本轮不创建或修改几何体。
+
+读取层还支持 UV 与静态常量组成的仿射表达式：Vector Math 的加、减、逐分量乘和 SCALE，以及 Vector Rotate 的轴角、X／Y／Z 轴、XYZ 欧拉旋转，含旋转中心和反向选项。
+常量分支支持 Value、Combine XYZ、Math 加减乘及角度／弧度转换；读取原生钳制开关和 float→vector 广播，不按节点组名称推断行为。
+每个仿射操作保留为独立矩阵，源常量计算节点折算为矩阵参数；回导创建可编辑 Mapping，不重建原来的常量计算图或图片间共享坐标节点身份。
+旋转顺序、非单位轴和零轴处理依据 [Blender 5.2.3 Vector Rotate 实现](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/vector_rotate.h)，广播依据[原生类型转换](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/convert.h)。
+
+坐标所在节点树或组实例祖先节点树含 Action、驱动或 NLA 时返回 `UV_DYNAMIC_UNSUPPORTED`；当前按整棵涉及的树检查，即使动画驱动其他分支也会保守阻断。
+同一计算节点同时驱动图片坐标和其他材质分支时返回 `UV_SHARED_EXPRESSION_UNSUPPORTED`，避免仅冻结坐标一侧而拆开共享依赖。
+两个 UV 场之间的运算、未知节点和不支持的类型转换仍阻断；不能用常量图片坐标冒充默认 UV。
+
+`_scripts/verify_blender_uv_expressions.py` 覆盖五种旋转模式的正反向、每组两个实例、非均匀／负缩放与中文 UV，先独立核对 60 个采样点，再导出给批量回读入口。
+10 份文档完成独立 Blender 创建、保存重开，核对 360 个输入及 30 条功能连接，坐标另按矩阵核对；动画及共享依赖负例也通过。
+C4D 两端因未声明命名 UV／矩阵能力而各阻断 10 份，尚无这条坐标链的跨宿主还原证据。
 
 坐标夹具覆盖中文 UV 名称、连续变换、非均匀与负缩放、三个采样点、共享坐标输入、失败清理及源图／图片保护。
 运行 `_scripts/verify_blender_coordinates.py -- --out "新夹具目录"` 后，将该目录交给下面的独立回读脚本；三份文档已通过创建、保存重开和 108 个输入、9 条功能连接核对。坐标节点连接由读回资源矩阵与来源名称另行核对，不计入这 9 条功能连接。
