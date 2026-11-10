@@ -415,6 +415,9 @@ def build(catalog):
         if engine == "redshift":
             profile["version"] = "0.3.2"
             add_redshift_standard_math(profile, catalog)
+            from _scripts.build_redshift_dictionary import extend
+
+            extend(profile, catalog)
     return profile
 
 

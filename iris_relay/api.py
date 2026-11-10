@@ -89,6 +89,7 @@ class RelayAPI:
                         "materialx.validate",
                         "materialx.normalize",
                         "materialx.export",
+                        "materialx.preserve",
                         "materialx.convert",
                     ],
                     "semantic_schema_version": "1",
@@ -113,6 +114,12 @@ class RelayAPI:
                 dictionary = self._registry.get(material.data["renderer"])
                 result = export_material(core, material, dictionary)
                 status = status_for(result["report"]["issues"])
+            elif operation == "materialx.preserve":
+                from .materialx_preserve import preserve_snapshot
+
+                fields(payload, {"snapshot"})
+                result = preserve_snapshot(self._mx, payload["snapshot"])
+                status = status_for(result["report"]["issues"])
             elif operation == "materialx.convert":
                 core = self._mx
                 from .materialx_bridge import convert_document
@@ -132,9 +139,11 @@ class RelayAPI:
                 result = describe_semantics()
                 status = "ok"
             elif operation == "identify":
-                fields(payload, {"renderer", "native_id", "properties"})
+                fields(payload, {"renderer", "native_id", "properties"}, {"implementation_hint"})
                 dictionary = self._registry.get(renderer_ref(payload["renderer"]))
-                result = dictionary.identify(payload["native_id"], payload["properties"])
+                result = dictionary.identify(
+                    payload["native_id"], payload["properties"], payload.get("implementation_hint")
+                )
                 status = "ok"
             elif operation == "describe":
                 fields(payload, {"renderer"})

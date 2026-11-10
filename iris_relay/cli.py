@@ -9,14 +9,46 @@ from .api import RelayAPI
 from .model import MAX_JSON_BYTES, ValidationError, load_json, parse_json
 
 
+def serve_stream(api, source, destination):
+    """逐行服务同一公开 API；业务错误不终止后续请求，超大帧立即结束会话。"""
+    while True:
+        line = source.readline(MAX_JSON_BYTES + 1)
+        if not line:
+            return 0
+        try:
+            if len(line) > MAX_JSON_BYTES or not line.endswith(b"\n"):
+                return 2
+            response = api.handle(parse_json(line))
+        except ValidationError as exc:
+            response = {
+                "api_version": "1",
+                "request_id": None,
+                "status": "error",
+                "result": None,
+                "error": {"code": exc.code, "message": str(exc)},
+            }
+        content = json.dumps(response, ensure_ascii=False, allow_nan=False).encode("utf-8") + b"\n"
+        if len(content) > MAX_JSON_BYTES:
+            return 2
+        destination.write(content)
+        destination.flush()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Iris Relay 统一材质转换 API（JSON 传输）")
     parser.add_argument("--dictionaries", required=True, help="渲染器字典目录")
+    parser.add_argument("--stream", action="store_true", help="会话内使用有界 JSON 行协议")
     parser.add_argument("--request", default="-", help="UTF-8 请求文件；- 表示标准输入")
     parser.add_argument(
         "--output", default="-", help="UTF-8 响应文件；- 表示标准输出，不覆盖已有文件"
     )
     args = parser.parse_args(argv)
+    if args.stream:
+        if args.request != "-" or args.output != "-":
+            parser.error("--stream 只支持标准输入输出")
+        return serve_stream(
+            RelayAPI.from_directory(args.dictionaries), sys.stdin.buffer, sys.stdout.buffer
+        )
     try:
         request = (
             parse_json(sys.stdin.buffer.read(MAX_JSON_BYTES + 1))

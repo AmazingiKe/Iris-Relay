@@ -122,13 +122,13 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.ambientocclusion.reflective",
           "label": "reflective",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.ambientocclusion.invert",
           "label": "invert",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -140,13 +140,13 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.ambientocclusion.occlusioninalpha",
           "label": "occlusioninalpha",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.ambientocclusion.sameobjectonly",
           "label": "sameobjectonly",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -210,13 +210,13 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.no_diffuse_bump",
           "label": "no_diffuse_bump",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.refr_translucency",
           "label": "refr_translucency",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -272,7 +272,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.no_refl0_bump",
           "label": "no_refl0_bump",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -326,7 +326,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.refl_is_metal",
           "label": "refl_is_metal",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -402,7 +402,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.no_refl1_bump",
           "label": "no_refl1_bump",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -490,19 +490,19 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.no_refr_bump",
           "label": "no_refr_bump",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.thin_walled",
           "label": "thin_walled",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.do_refractive_caustics",
           "label": "do_refractive_caustics",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -514,7 +514,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.refr_falloff_on",
           "label": "refr_falloff_on",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -526,7 +526,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.refr_falloff_color_on",
           "label": "refr_falloff_color_on",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -542,7 +542,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.ao_on",
           "label": "ao_on",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -590,7 +590,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.ao_invert",
           "label": "ao_invert",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -616,7 +616,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.depth_override",
           "label": "depth_override",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -628,7 +628,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.refl_hl_only",
           "label": "refl_hl_only",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -640,7 +640,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.refl_enablecutoff",
           "label": "refl_enablecutoff",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -658,7 +658,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.refr_enablecutoff",
           "label": "refr_enablecutoff",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -704,7 +704,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.architectural.additional_bump_mode",
           "label": "additional_bump_mode",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -906,7 +906,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.brick.bricktexturerandom",
           "label": "bricktexturerandom",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -918,7 +918,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.brick.bricktextureflip",
           "label": "bricktextureflip",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -1029,7 +1029,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.brick.brickalttexturerandom",
           "label": "brickalttexturerandom",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -1041,7 +1041,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.brick.brickalttextureflip",
           "label": "brickalttextureflip",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -1182,7 +1182,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.brick.gaptextureflip",
           "label": "gaptextureflip",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -1236,7 +1236,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.brick.dirtenable",
           "label": "dirtenable",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -1683,19 +1683,19 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.brick.dirttextureflip",
           "label": "dirttextureflip",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.brick.dirttexturemultiplywithgradient",
           "label": "dirttexturemultiplywithgradient",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.brick.dirttexturealphainvert",
           "label": "dirttexturealphainvert",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -1824,7 +1824,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.bumpblender.additive",
           "label": "additive",
-          "default": true,
+          "default": false,
           "compound": false
         }
       ],
@@ -1903,19 +1903,19 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.unbiasednormalmap",
           "label": "unbiasednormalmap",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.flipy",
           "label": "flipy",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.legacynormalmap",
           "label": "legacynormalmap",
-          "default": true,
+          "default": false,
           "compound": false
         }
       ],
@@ -2113,7 +2113,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.cameramap.per_pixel_match",
           "label": "per_pixel_match",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -2125,13 +2125,13 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.cameramap.applyexposurecompensation",
           "label": "applyexposurecompensation",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.cameramap.alphareplaceenable",
           "label": "alphareplaceenable",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -2143,7 +2143,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.cameramap.reflection_is_environment",
           "label": "reflection_is_environment",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -2261,7 +2261,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.carpaint.spec_norefl",
           "label": "spec_norefl",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -2313,7 +2313,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.carpaint.flake_norefl",
           "label": "flake_norefl",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -2413,7 +2413,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.carpaint.depth_override",
           "label": "depth_override",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -2425,7 +2425,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.carpaint.refl_enablecutoff",
           "label": "refl_enablecutoff",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -2437,19 +2437,19 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.carpaint.no_baselayer_bump",
           "label": "no_baselayer_bump",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.carpaint.no_clearcoat_bump",
           "label": "no_clearcoat_bump",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.carpaint.additional_bump_mode",
           "label": "additional_bump_mode",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -2614,7 +2614,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.contour.alphamaskenable",
           "label": "alphamaskenable",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -2668,7 +2668,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.contour.backfacingenable",
           "label": "backfacingenable",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -2769,7 +2769,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.curvature.sameobjectonly",
           "label": "sameobjectonly",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -2823,13 +2823,13 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.curvature.clampenable",
           "label": "clampenable",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.curvature.clampexpand",
           "label": "clampexpand",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -2977,7 +2977,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.displacementblender.additive",
           "label": "additive",
-          "default": true,
+          "default": false,
           "compound": false
         }
       ],
@@ -3020,7 +3020,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.distance.normalizetorange",
           "label": "normalizetorange",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -3048,7 +3048,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.distance.includebackside",
           "label": "includebackside",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -3075,7 +3075,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.distance.enableinterior",
           "label": "enableinterior",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -3385,7 +3385,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.environment.giaffectsmatteshadow",
           "label": "giaffectsmatteshadow",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -3400,7 +3400,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.environment.alphareplaceenable",
           "label": "alphareplaceenable",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -3412,7 +3412,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.environment.backplateenabled",
           "label": "backplateenabled",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -3526,7 +3526,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.environment.applyexposurecompensation",
           "label": "applyexposurecompensation",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -4217,7 +4217,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.hair.irefl_norefl",
           "label": "irefl_norefl",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -4301,7 +4301,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.hair.refl_norefl",
           "label": "refl_norefl",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -4313,7 +4313,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.hair.applyfresnel",
           "label": "applyfresnel",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -4347,7 +4347,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.hair.depth_override",
           "label": "depth_override",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -4359,7 +4359,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.hair.refl_enablecutoff",
           "label": "refl_enablecutoff",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -4377,7 +4377,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.hair.trans_enablecutoff",
           "label": "trans_enablecutoff",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -4395,7 +4395,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.hair.shavecompatibility",
           "label": "shavecompatibility",
-          "default": true,
+          "default": false,
           "compound": false
         }
       ],
@@ -4562,7 +4562,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.hair2.depth_override",
           "label": "depth_override",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -4680,7 +4680,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.incandescent.applyexposurecompensation",
           "label": "applyexposurecompensation",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -4698,13 +4698,13 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.incandescent.transparentshadows",
           "label": "transparentshadows",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.incandescent.additive_blend",
           "label": "additive_blend",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -5004,7 +5004,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.light.usealpha",
           "label": "usealpha",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -5208,7 +5208,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.light_dome.alphareplaceenable",
           "label": "alphareplaceenable",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -5220,7 +5220,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.light_dome.backplateenabled",
           "label": "backplateenabled",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -5316,7 +5316,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.light_dome.applyexposurecompensation",
           "label": "applyexposurecompensation",
-          "default": true,
+          "default": false,
           "compound": false
         }
       ],
@@ -5554,7 +5554,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.light_portal.reverse",
           "label": "reverse",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -5571,19 +5571,19 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.light_portal.visible",
           "label": "visible",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.light_portal.emit_direct_photons",
           "label": "emit_direct_photons",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.light_portal.mia_compatibility",
           "label": "mia_compatibility",
-          "default": true,
+          "default": false,
           "compound": false
         }
       ],
@@ -5892,7 +5892,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.material.refr_thin_walled",
           "label": "refr_thin_walled",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6190,7 +6190,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.material.depth_override",
           "label": "depth_override",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6202,7 +6202,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.material.refl_enablecutoff",
           "label": "refl_enablecutoff",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6226,7 +6226,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.material.refr_enablecutoff",
           "label": "refr_enablecutoff",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6268,7 +6268,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.material.refl_isglossiness",
           "label": "refl_isglossiness",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6286,7 +6286,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.material.coat_isglossiness",
           "label": "coat_isglossiness",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6304,19 +6304,19 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.material.sheen_isglossiness",
           "label": "sheen_isglossiness",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.material.refr_isglossiness",
           "label": "refr_isglossiness",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.material.decoupleiorfromroughness",
           "label": "decoupleiorfromroughness",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6346,7 +6346,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.material.overallaffectsemission",
           "label": "overallaffectsemission",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6417,7 +6417,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.materialblender.additivemode1",
           "label": "additivemode1",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6439,7 +6439,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.materialblender.additivemode2",
           "label": "additivemode2",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6461,7 +6461,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.materialblender.additivemode3",
           "label": "additivemode3",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6483,7 +6483,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.materialblender.additivemode4",
           "label": "additivemode4",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6505,7 +6505,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.materialblender.additivemode5",
           "label": "additivemode5",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6527,7 +6527,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.materialblender.additivemode6",
           "label": "additivemode6",
-          "default": true,
+          "default": false,
           "compound": false
         }
       ],
@@ -6595,7 +6595,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.matteshadow.backgroundisenv",
           "label": "backgroundisenv",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6628,7 +6628,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.matteshadow.catch_diffuse",
           "label": "catch_diffuse",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6695,7 +6695,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.matteshadow.refl_enabled",
           "label": "refl_enabled",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6736,7 +6736,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.matteshadow.refl_fog_enable",
           "label": "refl_fog_enable",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6748,7 +6748,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.matteshadow.ao_on",
           "label": "ao_on",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6857,7 +6857,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.maxonnoise.absolute",
           "label": "absolute",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -6992,7 +6992,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.normalmap.unbiasednormalmap",
           "label": "unbiasednormalmap",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -7082,7 +7082,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.normalmap.flipy",
           "label": "flipy",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -7106,13 +7106,13 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.normalmap.alt_x",
           "label": "alt_x",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.normalmap.alt_y",
           "label": "alt_y",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -7157,7 +7157,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.normalmap.legacynormalmap",
           "label": "legacynormalmap",
-          "default": true,
+          "default": false,
           "compound": false
         }
       ],
@@ -7428,7 +7428,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.pavement.contrastgraininput",
           "label": "contrastgraininput",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -7570,7 +7570,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.physicalsky.usenonphysicalintensity",
           "label": "usenonphysicalintensity",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -7701,7 +7701,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.physicalsky.forcealphatozero",
           "label": "forcealphatozero",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -7749,7 +7749,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.physicalsky.use_background",
           "label": "use_background",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -7821,7 +7821,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.physicalsky.mia_compatibility",
           "label": "mia_compatibility",
-          "default": true,
+          "default": false,
           "compound": false
         }
       ],
@@ -7859,7 +7859,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.physicalsun.usenonphysicalintensity",
           "label": "usenonphysicalintensity",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -7983,7 +7983,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.physicalsun.mia_compatibility",
           "label": "mia_compatibility",
-          "default": true,
+          "default": false,
           "compound": false
         }
       ],
@@ -8080,7 +8080,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.randomizedcolorswitch.incoljitterenabled",
           "label": "incoljitterenabled",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -8230,7 +8230,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.randomizedmaterialswitch.incoljitterenabled",
           "label": "incoljitterenabled",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -8319,7 +8319,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rayswitch.cameraswitchfrontback",
           "label": "cameraswitchfrontback",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -8347,13 +8347,13 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rayswitch.reflectionswitch",
           "label": "reflectionswitch",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rayswitch.reflectionswitchfrontback",
           "label": "reflectionswitchfrontback",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -8381,13 +8381,13 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rayswitch.refractionswitch",
           "label": "refractionswitch",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rayswitch.refractionswitchfrontback",
           "label": "refractionswitchfrontback",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -8415,13 +8415,13 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rayswitch.giswitch",
           "label": "giswitch",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rayswitch.giswitchfrontback",
           "label": "giswitchfrontback",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -8481,7 +8481,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.roundcorners.sameobjectonly",
           "label": "sameobjectonly",
-          "default": true,
+          "default": false,
           "compound": false
         }
       ],
@@ -8669,7 +8669,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorcorrection.xsimode",
           "label": "xsimode",
-          "default": true,
+          "default": false,
           "compound": false
         }
       ],
@@ -8695,7 +8695,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorlayer.advanced_mode",
           "label": "advanced_mode",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -8759,7 +8759,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorlayer.layer2_enable",
           "label": "layer2_enable",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -8800,7 +8800,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorlayer.layer3_enable",
           "label": "layer3_enable",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -8841,7 +8841,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorlayer.layer4_enable",
           "label": "layer4_enable",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -8882,7 +8882,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorlayer.layer5_enable",
           "label": "layer5_enable",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -8923,7 +8923,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorlayer.layer6_enable",
           "label": "layer6_enable",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -8964,7 +8964,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorlayer.layer7_enable",
           "label": "layer7_enable",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -9178,7 +9178,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorrange.applytoalpha",
           "label": "applytoalpha",
-          "default": true,
+          "default": false,
           "compound": false
         }
       ],
@@ -9248,7 +9248,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rshairposition.outputtou",
           "label": "outputtou",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -9260,7 +9260,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rshairposition.outputtow",
           "label": "outputtow",
-          "default": true,
+          "default": false,
           "compound": false
         }
       ],
@@ -9360,7 +9360,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathabscolor.applytoalpha",
           "label": "applytoalpha",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -9670,7 +9670,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathbiascolor.applytoalpha",
           "label": "applytoalpha",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -10004,7 +10004,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathexpcolor.applytoalpha",
           "label": "applytoalpha",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -10228,7 +10228,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathgaincolor.applytoalpha",
           "label": "applytoalpha",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -10365,7 +10365,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathinvcolor.applytoalpha",
           "label": "applytoalpha",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -11667,7 +11667,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathsubcolor.applytoalpha",
           "label": "applytoalpha",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -11799,7 +11799,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rsnoise.color_invert",
           "label": "color_invert",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -12011,7 +12011,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rsramp.inputinvert",
           "label": "inputinvert",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -12212,7 +12212,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.rsscalarramp.inputinvert",
           "label": "inputinvert",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -12869,7 +12869,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.skin.no_diffuse_bump",
           "label": "no_diffuse_bump",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -13079,19 +13079,19 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.skin.no_refl_bump",
           "label": "no_refl_bump",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.skin.refl_hl_only",
           "label": "refl_hl_only",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.skin.depth_override",
           "label": "depth_override",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -13103,7 +13103,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.skin.refl_enablecutoff",
           "label": "refl_enablecutoff",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -13115,7 +13115,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.skin.additional_bump_mode",
           "label": "additional_bump_mode",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -13634,7 +13634,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_thin_walled",
           "label": "refr_thin_walled",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -13656,13 +13656,13 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.overallaffectsemission",
           "label": "overallaffectsemission",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.depth_override",
           "label": "depth_override",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -13674,7 +13674,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_enablecutoff",
           "label": "refl_enablecutoff",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -13692,7 +13692,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_enablecutoff",
           "label": "refr_enablecutoff",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -13734,7 +13734,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_isglossiness",
           "label": "refl_isglossiness",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -13764,7 +13764,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_isglossiness",
           "label": "refr_isglossiness",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -13782,7 +13782,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_legacy_light_sampling",
           "label": "refr_legacy_light_sampling",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -13800,7 +13800,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_isglossiness",
           "label": "sheen_isglossiness",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -13818,7 +13818,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_isglossiness",
           "label": "coat_isglossiness",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -14601,7 +14601,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.subsurfacescatter.no_diffuse_bump",
           "label": "no_diffuse_bump",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -14651,7 +14651,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.subsurfacescatter.singlescatter_on",
           "label": "singlescatter_on",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -14669,7 +14669,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.subsurfacescatter.ss_overridecoeffs",
           "label": "ss_overridecoeffs",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -14731,7 +14731,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.subsurfacescatter.no_refl_bump",
           "label": "no_refl_bump",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -14767,7 +14767,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.subsurfacescatter.depth_override",
           "label": "depth_override",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -14785,7 +14785,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.subsurfacescatter.refl_hl_only",
           "label": "refl_hl_only",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -14797,7 +14797,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.subsurfacescatter.refl_enablecutoff",
           "label": "refl_enablecutoff",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -14815,7 +14815,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.subsurfacescatter.refr_enablecutoff",
           "label": "refr_enablecutoff",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -14827,7 +14827,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.subsurfacescatter.additional_bump_mode",
           "label": "additional_bump_mode",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -14948,13 +14948,13 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.mirroru",
           "label": "mirroru",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.mirrorv",
           "label": "mirrorv",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -15028,7 +15028,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.alpha_is_luminance",
           "label": "alpha_is_luminance",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -15051,7 +15051,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.filter_bicubic",
           "label": "filter_bicubic",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -15069,7 +15069,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tone_map_enable",
           "label": "tone_map_enable",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -15141,7 +15141,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.tiles.inrandomizecolor",
           "label": "inrandomizecolor",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -15585,7 +15585,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.toonmaterial.depth_override",
           "label": "depth_override",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {
@@ -15597,7 +15597,7 @@
         {
           "id": "com.redshift3d.redshift4c4d.nodes.core.toonmaterial.refl_enablecutoff",
           "label": "refl_enablecutoff",
-          "default": true,
+          "default": false,
           "compound": false
         },
         {

@@ -2,7 +2,7 @@
   "schema_version": "1",
   "semantic_schema_version": "1",
   "id": "maya.arnold.native",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Maya 2022 可编辑 Arnold 材质导入；结构核验，不代表外观等价。",
   "renderer": {
     "id": "arnold",
@@ -32,12 +32,121 @@
     "CHANNEL_PACKED",
     "NONE"
   ],
+  "texture_image_channels": [
+    1,
+    3
+  ],
   "nodes": {
     "standard_surface": {
       "semantic": "surface.standard",
       "native": {
         "id": "aiStandardSurface",
-        "properties": {}
+        "properties": {
+          "aiEnableMatte": false,
+          "aiMatteColor": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "aiMatteColorA": 0.0,
+          "base": 1.0,
+          "transmission": 0.0,
+          "transmissionColor": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "transmissionDepth": 0.0,
+          "transmissionScatter": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "transmissionScatterAnisotropy": 0.0,
+          "transmissionDispersion": 0.0,
+          "transmissionExtraRoughness": 0.0,
+          "transmitAovs": false,
+          "subsurface": 0.0,
+          "subsurfaceColor": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "subsurfaceRadius": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "subsurfaceScale": 1.0,
+          "subsurfaceAnisotropy": 0.0,
+          "subsurfaceType": 1,
+          "thinWalled": false,
+          "tangent": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "coatAnisotropy": 0.0,
+          "coatRotation": 0.0,
+          "coatAffectColor": 0.0,
+          "coatAffectRoughness": 0.0,
+          "thinFilmThickness": 0.0,
+          "thinFilmIOR": 1.5,
+          "caustics": false,
+          "internalReflections": true,
+          "exitToBackground": false,
+          "indirectDiffuse": 1.0,
+          "indirectSpecular": 1.0,
+          "dielectricPriority": 0,
+          "aovId1": "",
+          "id1": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "aovId2": "",
+          "id2": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "aovId3": "",
+          "id3": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "aovId4": "",
+          "id4": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "aovId5": "",
+          "id5": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "aovId6": "",
+          "id6": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "aovId7": "",
+          "id7": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "aovId8": "",
+          "id8": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       },
       "inputs": {
         "baseColor": {
@@ -192,7 +301,14 @@
           "native": {
             "id": "coatNormal",
             "kind": "socket",
-            "codec": "identity"
+            "codec": "normal",
+            "properties": {
+              "implicit_value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
           },
           "default": null,
           "nullable": true
@@ -203,7 +319,14 @@
           "native": {
             "id": "normalCamera",
             "kind": "socket",
-            "codec": "identity"
+            "codec": "normal",
+            "properties": {
+              "implicit_value": [
+                1.0,
+                1.0,
+                1.0
+              ]
+            }
           },
           "default": null,
           "nullable": true
@@ -301,7 +424,43 @@
         "properties": {
           "autoTx": false,
           "ignoreColorSpaceFileRules": true,
-          "singleChannel": false
+          "singleChannel": false,
+          "filter": 3,
+          "mipmapBias": 0,
+          "startChannel": 0,
+          "swrap": 0,
+          "twrap": 0,
+          "sscale": 1.0,
+          "tscale": 1.0,
+          "sflip": false,
+          "tflip": false,
+          "soffset": 0.0,
+          "toffset": 0.0,
+          "swapSt": false,
+          "uvcoords": [
+            0.0,
+            0.0
+          ],
+          "multiply": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "ignoreMissingTextures": false,
+          "missingTextureColorA": 1.0,
+          "missingTextureColor": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "aiUserOptions": "",
+          "useFrameExtension": false,
+          "frame": 0.0
         }
       },
       "inputs": {
@@ -345,7 +504,21 @@
         "id": "aiNormalMap",
         "properties": {
           "tangentSpace": true,
-          "colorToSigned": true
+          "colorToSigned": true,
+          "tangent": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "normal": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "order": 0,
+          "invertX": false,
+          "invertY": false,
+          "invertZ": false
         }
       },
       "inputs": {
@@ -391,7 +564,13 @@
       "semantic": "bump.height",
       "native": {
         "id": "aiBump2d",
-        "properties": {}
+        "properties": {
+          "normal": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       },
       "inputs": {
         "height": {
@@ -516,7 +695,12 @@
       "semantic": "materialx.ND_add_float",
       "native": {
         "id": "aiAdd",
-        "properties": {}
+        "properties": {
+          "input1G": 0.0,
+          "input1B": 0.0,
+          "input2G": 0.0,
+          "input2B": 0.0
+        }
       },
       "inputs": {
         "in1": {
@@ -556,7 +740,12 @@
       "semantic": "materialx.ND_subtract_float",
       "native": {
         "id": "aiSubtract",
-        "properties": {}
+        "properties": {
+          "input1G": 0.0,
+          "input1B": 0.0,
+          "input2G": 0.0,
+          "input2B": 0.0
+        }
       },
       "inputs": {
         "in1": {
@@ -596,7 +785,12 @@
       "semantic": "materialx.ND_multiply_float",
       "native": {
         "id": "aiMultiply",
-        "properties": {}
+        "properties": {
+          "input1G": 1.0,
+          "input1B": 1.0,
+          "input2G": 1.0,
+          "input2B": 1.0
+        }
       },
       "inputs": {
         "in1": {
@@ -636,7 +830,12 @@
       "semantic": "materialx.ND_divide_float",
       "native": {
         "id": "aiDivide",
-        "properties": {}
+        "properties": {
+          "input1G": 1.0,
+          "input1B": 1.0,
+          "input2G": 1.0,
+          "input2B": 1.0
+        }
       },
       "inputs": {
         "in1": {
@@ -676,7 +875,12 @@
       "semantic": "materialx.ND_min_float",
       "native": {
         "id": "aiMin",
-        "properties": {}
+        "properties": {
+          "input1G": 0.0,
+          "input1B": 0.0,
+          "input2G": 0.0,
+          "input2B": 0.0
+        }
       },
       "inputs": {
         "in1": {
@@ -716,7 +920,12 @@
       "semantic": "materialx.ND_max_float",
       "native": {
         "id": "aiMax",
-        "properties": {}
+        "properties": {
+          "input1G": 0.0,
+          "input1B": 0.0,
+          "input2G": 0.0,
+          "input2B": 0.0
+        }
       },
       "inputs": {
         "in1": {
@@ -790,7 +999,19 @@
       "native": {
         "id": "aiClamp",
         "properties": {
-          "mode": 0
+          "mode": 0,
+          "inputG": 0.0,
+          "inputB": 0.0,
+          "minColor": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "maxColor": [
+            1.0,
+            1.0,
+            1.0
+          ]
         }
       },
       "inputs": {
@@ -842,7 +1063,11 @@
       "native": {
         "id": "condition",
         "properties": {
-          "operation": 0
+          "operation": 0,
+          "colorIfTrueG": 0.0,
+          "colorIfTrueB": 0.0,
+          "colorIfFalseG": 1.0,
+          "colorIfFalseB": 1.0
         }
       },
       "inputs": {
@@ -974,7 +1199,11 @@
       "native": {
         "id": "condition",
         "properties": {
-          "operation": 2
+          "operation": 2,
+          "colorIfTrueG": 0.0,
+          "colorIfTrueB": 0.0,
+          "colorIfFalseG": 1.0,
+          "colorIfFalseB": 1.0
         }
       },
       "inputs": {
@@ -1105,7 +1334,9 @@
       "semantic": "materialx.ND_combine3_color3",
       "native": {
         "id": "aiFloatToRgba",
-        "properties": {}
+        "properties": {
+          "a": 1.0
+        }
       },
       "inputs": {
         "in1": {
@@ -1155,7 +1386,9 @@
       "semantic": "materialx.ND_mix_color3",
       "native": {
         "id": "blendColors",
-        "properties": {}
+        "properties": {
+          "renderPassMode": 1
+        }
       },
       "inputs": {
         "fg": {

@@ -109,8 +109,10 @@ class Dictionary:
                 "semantic_schema_version",
                 "materialx_export",
                 "materialx_extensions",
+                "materialx_lowerings",
                 "texture_coordinates",
                 "texture_alpha_modes",
+                "texture_image_channels",
             },
         )
         if value["schema_version"] != "1":
@@ -121,6 +123,32 @@ class Dictionary:
             text(value["description"], "字典说明")
         if "evidence" in value and not isinstance(value["evidence"], dict):
             raise ValidationError("字典依据必须为对象")
+        if "texture_image_channels" in value:
+            channels = value["texture_image_channels"]
+            if (
+                not isinstance(channels, list)
+                or not channels
+                or any(type(c) is not int or c not in {1, 3, 4} for c in channels)
+                or len(set(channels)) != len(channels)
+            ):
+                raise ValidationError("图片通道能力必须为不重复的 1/3/4 列表")
+        if "materialx_lowerings" in value:
+            rules = value["materialx_lowerings"]
+            if not isinstance(rules, dict):
+                raise ValidationError("组合规则必须为对象")
+            for name, choices in rules.items():
+                text(name, "组合规则的官方定义")
+                if not isinstance(choices, list) or not choices or len(choices) > 32:
+                    raise ValidationError("每个组合规则需要 1 至 32 个候选")
+                for choice in choices:
+                    fields(choice, {"when", "replacement"})
+                    text(choice["replacement"], "组合规则的替换定义")
+                    if not isinstance(choice["when"], dict):
+                        raise ValidationError("组合规则的常量条件必须为对象")
+                    for key, expected in choice["when"].items():
+                        text(key, "组合规则的输入")
+                        if type(expected) not in (float, int, str, bool):
+                            raise ValidationError("组合规则只接受标量常量条件")
         if "materialx_export" in value:
             rules = fields(value["materialx_export"], {"color_to_float"})
             if rules["color_to_float"] != "scene_linear_luminance":
@@ -292,7 +320,8 @@ class Dictionary:
             )
         return candidates[0] if candidates else None
 
-    def identify(self, native_id, properties):
+    def identify(self, native_id, properties, implementation_hint=None):
+        """依据当前原生证据识别；可选提示只在匹配实现内消解宿主投影歧义。"""
         if type(native_id) not in (str, int) or native_id == "":
             raise ValidationError("原生节点 ID 必须为非空字符串或整数")
         if not isinstance(properties, dict):
@@ -312,6 +341,12 @@ class Dictionary:
                 for k, v in rule["native"].get("properties", {}).items()
             )
         ]
+        if implementation_hint is not None:
+            if not isinstance(implementation_hint, str) or implementation_hint not in {
+                key for key, _ in matches
+            }:
+                raise ValidationError("实现提示与当前原生类型或配置不符", "NATIVE_HINT_MISMATCH")
+            matches = [entry for entry in matches if entry[0] == implementation_hint]
         if not matches:
             raise ValidationError(
                 f"原生节点配置未支持或缺失：{native_id}", "UNSUPPORTED_NODE_CONFIGURATION"

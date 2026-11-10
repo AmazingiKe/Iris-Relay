@@ -15,7 +15,7 @@ def build(catalog):
         "schema_version": "1",
         "semantic_schema_version": "1",
         "id": "maya.arnold.native",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "description": "Maya 2022 可编辑 Arnold 材质导入；结构核验，不代表外观等价。",
         "renderer": {"id": "arnold", "versions": [catalog["renderer"]["version"]]},
         "host": {"id": "maya", "versions": [catalog["host"]["version"]], "node_system": "mtoa"},
@@ -26,6 +26,7 @@ def build(catalog):
         },
         "texture_coordinates": {"named_uv": True, "transforms": "none"},
         "texture_alpha_modes": ["STRAIGHT", "PREMUL", "CHANNEL_PACKED", "NONE"],
+        "texture_image_channels": [1, 3],
         "nodes": {},
     }
 
@@ -38,9 +39,51 @@ def build(catalog):
         for name in properties or {}:
             assert name in attrs, (native, name)
         output.pop("default", None)
+        guarded = dict(properties or {})
+        # 未映射的着色输入必须仍为实机默认值；否则读回不能冒充完整支持。
+        covered = {p["native"]["id"] for p in inputs.values()} | set(guarded)
+        for p in inputs.values():
+            covered.update(p["native"].get(k) for k in ("colorspace_id", "uv_id"))
+        parents = {
+            attrs[name].get("parent", [None])[0]
+            for name in covered
+            if name in attrs and attrs[name].get("parent")
+        }
+        ignored = {
+            "caching",
+            "frozen",
+            "isHistoricallyInteresting",
+            "nodeState",
+            "binMembership",
+            "workingSpace",
+            "colorManagementEnabled",
+            "colorManagementConfigFileEnabled",
+            "colorManagementConfigFilePath",
+            "colorProfile",
+            "hardwareColor",
+        }
+        for name, observed in attrs.items():
+            parent = observed.get("parent") or []
+            if (
+                name in covered
+                or name in ignored
+                or not observed.get("writable", False)
+                or any(p in covered for p in parent)
+                or name in parents
+            ):
+                continue
+            value = observed["value"]
+            if isinstance(value, list) and len(value) == 1 and isinstance(value[0], list):
+                value = value[0]
+            if value is None or (isinstance(value, list) and len(value) not in (2, 3)):
+                continue
+            if parent and not any(p in parents for p in parent):
+                # 未覆盖的完整复合端口在父项保存，避免同时覆盖父项和子项。
+                continue
+            guarded[name] = value
         rule = {
             "semantic": semantic,
-            "native": {"id": native, "properties": properties or {}},
+            "native": {"id": native, "properties": guarded},
             "inputs": inputs,
             "outputs": {output["semantic"]: output},
         }
@@ -99,6 +142,12 @@ def build(catalog):
             inputs[native]["range"] = [0, 1]
         if datatype == "vector":
             inputs[native]["nullable"] = True
+            inputs[native]["native"]["codec"] = "normal"
+            inputs[native]["native"]["properties"] = {
+                "implicit_value": catalog["nodes"]["aiStandardSurface"]["attributes"][native][
+                    "value"
+                ][0]
+            }
     node(
         "standard_surface",
         "aiStandardSurface",

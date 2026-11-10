@@ -208,6 +208,16 @@ def check_target_alpha(material, dictionary):
     supported = dictionary.data.get("texture_alpha_modes", [])
     for resource in material["textures"].values():
         description = alpha_description(resource)
+        channels = dictionary.data.get("texture_image_channels")
+        if (
+            description is not None
+            and channels is not None
+            and description["channels"] not in channels
+        ):
+            raise ValidationError(
+                "目标尚未核验图片通道数：" + str(description["channels"]),
+                "MATERIALX_RESOURCE_UNSUPPORTED",
+            )
         if description is not None and description["mode"] not in supported:
             raise ValidationError(
                 "目标未声明该图片 Alpha 模式的原生读写能力", "MATERIALX_RESOURCE_UNSUPPORTED"

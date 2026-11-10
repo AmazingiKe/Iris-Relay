@@ -6,29 +6,41 @@ from uuid import uuid4
 from .protocol import ValidationError
 
 
-def describe(service, renderer):
+def request(service, operation, **payload):
+    """核对统一响应版本与请求 ID，宿主不能应用跨请求或未知状态的数据。"""
+    identifier = str(uuid4())
     response = service.handle(
         {
             "api_version": "1",
-            "request_id": str(uuid4()),
-            "operation": "describe",
-            "payload": {"renderer": renderer},
+            "request_id": identifier,
+            "operation": operation,
+            "payload": payload,
         }
     )
+    if (
+        not isinstance(response, dict)
+        or response.get("api_version") != "1"
+        or response.get("request_id") != identifier
+        or response.get("status") not in {"ok", "warning", "error"}
+    ):
+        raise ValidationError("核心响应协议或请求 ID 不匹配", "INVALID_RESPONSE")
+    return response
+
+
+def describe(service, renderer):
+    """取得公开字典；协议身份校验后才返回可用于原生读写的绑定。"""
+    response = request(service, "describe", renderer=renderer)
     if response["status"] != "ok":
         raise ValidationError(response["error"]["message"])
     return response["result"]["dictionary"]
 
 
-def identify(service, renderer, native_id, properties):
-    response = service.handle(
-        {
-            "api_version": "1",
-            "request_id": str(uuid4()),
-            "operation": "identify",
-            "payload": {"renderer": renderer, "native_id": native_id, "properties": properties},
-        }
-    )
+def identify(service, renderer, native_id, properties, implementation_hint=None):
+    """请求核心识别当前宿主证据；提示不能替代原生类型与配置。"""
+    payload = {"renderer": renderer, "native_id": native_id, "properties": properties}
+    if implementation_hint is not None:
+        payload["implementation_hint"] = implementation_hint
+    response = request(service, "identify", **payload)
     if response["status"] != "ok":
         raise ValidationError(response["error"]["message"], response["error"]["code"])
     return response["result"]
@@ -54,7 +66,8 @@ def decode_value(value, rule):
     if codec == "srgb":
         return [v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in value]
     if codec == "normal":
-        return None if value is None or list(value) == [0, 0, 0] else list(value)
+        implicit = rule.get("native", {}).get("properties", {}).get("implicit_value", [0, 0, 0])
+        return None if value is None or list(value) == implicit else list(value)
     if codec == "bool":
         return bool(value)
     return deepcopy(value)
@@ -71,3 +84,21 @@ def encode_value(value, rule):
     if codec == "srgb":
         return [12.92 * v if v <= 0.0031308 else 1.055 * v ** (1 / 2.4) - 0.055 for v in value]
     return deepcopy(value)
+
+
+def resource_color_space(value, rule, *, encode=True):
+    """按资源端口的声明映射逻辑色彩名称与原生 ID；未知名称不回退到 Auto。"""
+    mapping = rule.get("native", {}).get("properties", {}).get("color_spaces")
+    if mapping is None:
+        return value
+    if not isinstance(mapping, dict) or any(
+        not isinstance(k, str) or not isinstance(v, str) for k, v in mapping.items()
+    ):
+        raise ValidationError("资源色彩绑定必须为字符串映射")
+    if not encode:
+        if len(set(mapping.values())) != len(mapping):
+            raise ValidationError("资源色彩绑定反向映射不唯一")
+        mapping = {v: k for k, v in mapping.items()}
+    if value not in mapping:
+        raise ValidationError("字典尚未核验图片色彩名称：" + str(value), "COLORSPACE_UNSUPPORTED")
+    return mapping[value]

@@ -1,5 +1,7 @@
 """统一材质图协议及校验，不读取或修改 DCC 场景。"""
 
+from __future__ import annotations
+
 from collections import deque
 from copy import deepcopy
 from dataclasses import dataclass
@@ -50,7 +52,7 @@ class Material:
     data: dict
 
     @classmethod
-    def parse(cls, value: Any) -> "Material":
+    def parse(cls, value: Any) -> Material:
         json_value(value)
         fields(
             value,

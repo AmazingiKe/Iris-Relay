@@ -21,6 +21,7 @@ from .materialx_images import (
     alpha_warning,
     check_target_alpha,
 )
+from .materialx_lowerings import apply_lowerings
 from .model import Material, ValidationError
 
 # 这里只声明已核验的语义对应，不复制 MaterialX 的类型和默认值定义。
@@ -687,10 +688,18 @@ def convert_document(core, source, dictionary, target, material_name=None):
         issues.extend(core.inspect(doc))
         if status_for(issues) == "error":
             return result
+        if doc.getAttribute("iris_preservation_only") == "true":
+            issues.append(
+                issue(
+                    "MATERIALX_PRESERVED_ONLY", "文档仅保存原生结构；须补齐语义和目标规则后才能转换"
+                )
+            )
+            return result
         # 2. 提取可转换部分，再按目标字典生成原生参数与连接。
         extensions = load_extensions(core, dictionary)
         bindings = bindings_for(core, dictionary, extensions)
         preserve = preserved_extensions(doc, extensions, bindings)
+        preserve = apply_lowerings(core, doc, dictionary, extensions, bindings, preserve, issues)
         scalar_inputs = set()
         for semantic_type in {rule["semantic"] for rule in dictionary.nodes.values()}:
             try:

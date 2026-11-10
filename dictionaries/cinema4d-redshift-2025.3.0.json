@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "id": "cinema4d.redshift.native",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "semantic_schema_version": "1",
   "description": "真实原生绑定；标准表面、图片、切线法线、高度凹凸与显式 R 通道提取。其余节点见探测目录。",
   "renderer": {
@@ -25,7 +25,8 @@
       "color_profile": 0,
       "linear_workflow": 1
     },
-    "weighted_sum": "本版本 C4D 实机点积节点及输入输出端口核验；RGB 与权重按原始向量分量写入，输出为未归一化点积。"
+    "weighted_sum": "本版本 C4D 实机点积节点及输入输出端口核验；RGB 与权重按原始向量分量写入，输出为未归一化点积。",
+    "standard_graph_lowering": "C4D 2025.3.2 / Redshift 2025.3.0 实机资产与端口；比较边界按 Sign(0)=1 展开。https://help.maxon.net/r3d/cinema/en-us/Content/html/Math%2BScalar%2BShaders.html"
   },
   "nodes": {
     "com.redshift3d.redshift4c4d.nodes.core.standardmaterial": {
@@ -653,7 +654,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_thin_walled": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_thin_walled",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_thin_walled",
             "kind": "socket",
@@ -691,7 +692,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.overallaffectsemission": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.overallaffectsemission",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.overallaffectsemission",
             "kind": "socket",
@@ -702,7 +703,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.depth_override": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.depth_override",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.depth_override",
             "kind": "socket",
@@ -724,7 +725,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_enablecutoff": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_enablecutoff",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_enablecutoff",
             "kind": "socket",
@@ -757,7 +758,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_enablecutoff": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_enablecutoff",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_enablecutoff",
             "kind": "socket",
@@ -834,7 +835,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_isglossiness": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_isglossiness",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refl_isglossiness",
             "kind": "socket",
@@ -889,7 +890,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_isglossiness": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_isglossiness",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_isglossiness",
             "kind": "socket",
@@ -922,7 +923,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_legacy_light_sampling": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_legacy_light_sampling",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.refr_legacy_light_sampling",
             "kind": "socket",
@@ -955,7 +956,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_isglossiness": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_isglossiness",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.sheen_isglossiness",
             "kind": "socket",
@@ -988,7 +989,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_isglossiness": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_isglossiness",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.standardmaterial.coat_isglossiness",
             "kind": "socket",
@@ -1059,7 +1060,12 @@
       "native": {
         "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler",
         "label": "texturesampler",
-        "properties": {}
+        "properties": {
+          "com.redshift3d.redshift4c4d.nodes.core.texturesampler.mirroru": false,
+          "com.redshift3d.redshift4c4d.nodes.core.texturesampler.mirrorv": false,
+          "com.redshift3d.redshift4c4d.nodes.core.texturesampler.alpha_is_luminance": false,
+          "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tone_map_enable": false
+        }
       },
       "inputs": {
         "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/path": {
@@ -1071,7 +1077,13 @@
             "kind": "resource",
             "codec": "texture",
             "colorspace_id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/colorspace",
-            "uv_id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tspace_id"
+            "uv_id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tspace_id",
+            "properties": {
+              "color_spaces": {
+                "Raw": "RS_INPUT_COLORSPACE_RAW",
+                "sRGB": "RS_INPUT_COLORSPACE_SRGB"
+              }
+            }
           }
         },
         "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tex0/frameend": {
@@ -1204,28 +1216,6 @@
           },
           "omit_if_default": true
         },
-        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.mirroru": {
-          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.mirroru",
-          "type": "bool",
-          "default": true,
-          "native": {
-            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.mirroru",
-            "kind": "socket",
-            "codec": "identity"
-          },
-          "omit_if_default": true
-        },
-        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.mirrorv": {
-          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.mirrorv",
-          "type": "bool",
-          "default": true,
-          "native": {
-            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.mirrorv",
-            "kind": "socket",
-            "codec": "identity"
-          },
-          "omit_if_default": true
-        },
         "com.redshift3d.redshift4c4d.nodes.core.texturesampler.wrapu": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.wrapu",
           "type": "bool",
@@ -1311,17 +1301,6 @@
           },
           "omit_if_default": true
         },
-        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.alpha_is_luminance": {
-          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.alpha_is_luminance",
-          "type": "bool",
-          "default": true,
-          "native": {
-            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.alpha_is_luminance",
-            "kind": "socket",
-            "codec": "identity"
-          },
-          "omit_if_default": true
-        },
         "com.redshift3d.redshift4c4d.nodes.core.texturesampler.invalid_color": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.invalid_color",
           "type": "color4",
@@ -1352,7 +1331,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.texturesampler.filter_bicubic": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.filter_bicubic",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.filter_bicubic",
             "kind": "socket",
@@ -1377,17 +1356,6 @@
           "default": 0.0,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.mip_bias",
-            "kind": "socket",
-            "codec": "identity"
-          },
-          "omit_if_default": true
-        },
-        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tone_map_enable": {
-          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.tone_map_enable",
-          "type": "bool",
-          "default": true,
-          "native": {
-            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.tone_map_enable",
             "kind": "socket",
             "codec": "identity"
           },
@@ -1523,7 +1491,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.bumpmap.unbiasednormalmap": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.unbiasednormalmap",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.unbiasednormalmap",
             "kind": "socket",
@@ -1534,7 +1502,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.bumpmap.flipy": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.flipy",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.flipy",
             "kind": "socket",
@@ -1545,7 +1513,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.bumpmap.legacynormalmap": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.legacynormalmap",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.legacynormalmap",
             "kind": "socket",
@@ -1669,7 +1637,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.bumpmap.unbiasednormalmap": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.unbiasednormalmap",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.unbiasednormalmap",
             "kind": "socket",
@@ -1680,7 +1648,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.bumpmap.flipy": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.flipy",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.flipy",
             "kind": "socket",
@@ -1691,7 +1659,7 @@
         "com.redshift3d.redshift4c4d.nodes.core.bumpmap.legacynormalmap": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.bumpmap.legacynormalmap",
           "type": "bool",
-          "default": true,
+          "default": false,
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap.legacynormalmap",
             "kind": "socket",
@@ -1936,6 +1904,596 @@
           }
         }
       }
+    },
+    "ND_divide_float": {
+      "semantic": "materialx.ND_divide_float",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathdiv",
+        "properties": {
+          "com.redshift3d.redshift4c4d.nodes.core.rsmathdiv.math_op": 6
+        }
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathdiv.input1",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathdiv.input2",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathdiv.out",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ND_min_float": {
+      "semantic": "materialx.ND_min_float",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmin",
+        "properties": {
+          "com.redshift3d.redshift4c4d.nodes.core.rsmathmin.math_op": 1
+        }
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmin.input1",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmin.input2",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmin.out",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ND_max_float": {
+      "semantic": "materialx.ND_max_float",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmax",
+        "properties": {
+          "com.redshift3d.redshift4c4d.nodes.core.rsmathmax.math_op": 2
+        }
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmax.input1",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmax.input2",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmax.out",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ND_floor_float": {
+      "semantic": "materialx.ND_floor_float",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathfloor",
+        "properties": {
+          "com.redshift3d.redshift4c4d.nodes.core.rsmathfloor.math_op": 14
+        }
+      },
+      "inputs": {
+        "in": {
+          "semantic": "in",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathfloor.input",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathfloor.out",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ND_iris_rs_sign_float": {
+      "semantic": "materialx.ND_iris_rs_sign_float",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathsign",
+        "properties": {
+          "com.redshift3d.redshift4c4d.nodes.core.rsmathsign.math_op": 18
+        }
+      },
+      "inputs": {
+        "in": {
+          "semantic": "in",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathsign.input",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathsign.out",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ND_mix_float": {
+      "semantic": "materialx.ND_mix_float",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmix",
+        "properties": {
+          "com.redshift3d.redshift4c4d.nodes.core.rsmathmix.math_op": 16
+        }
+      },
+      "inputs": {
+        "fg": {
+          "semantic": "fg",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmix.input2",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        },
+        "bg": {
+          "semantic": "bg",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmix.input1",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        },
+        "mix": {
+          "semantic": "mix",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmix.mixamount",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmix.out",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ND_mix_color3": {
+      "semantic": "materialx.ND_mix_color3",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rscolormix",
+        "properties": {}
+      },
+      "inputs": {
+        "fg": {
+          "semantic": "fg",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolormix.input2",
+            "kind": "socket",
+            "codec": "rgb"
+          }
+        },
+        "bg": {
+          "semantic": "bg",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolormix.input1",
+            "kind": "socket",
+            "codec": "rgb"
+          }
+        },
+        "mix": {
+          "semantic": "mix",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolormix.mixamount",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolormix.outcolor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ND_combine3_color3": {
+      "semantic": "materialx.ND_combine3_color3",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rscolormaker",
+        "properties": {
+          "com.redshift3d.redshift4c4d.nodes.core.rscolormaker.alpha": 1
+        }
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolormaker.red",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolormaker.green",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        },
+        "in3": {
+          "semantic": "in3",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolormaker.blue",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolormaker.outcolor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ND_constant_color3": {
+      "semantic": "materialx.ND_constant_color3",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorconstant",
+        "properties": {}
+      },
+      "inputs": {
+        "value": {
+          "semantic": "value",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorconstant.color",
+            "kind": "socket",
+            "codec": "rgb"
+          }
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorconstant.outcolor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ND_constant_float": {
+      "semantic": "materialx.ND_constant_float",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathadd",
+        "properties": {
+          "com.redshift3d.redshift4c4d.nodes.core.rsmathadd.math_op": 3,
+          "com.redshift3d.redshift4c4d.nodes.core.rsmathadd.input2": 0
+        }
+      },
+      "inputs": {
+        "value": {
+          "semantic": "value",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathadd.input1",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathadd.out",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ND_iris_rs_extract_r": {
+      "semantic": "materialx.ND_iris_rs_extract_r",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter",
+        "properties": {}
+      },
+      "inputs": {
+        "in": {
+          "semantic": "in",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter.input",
+            "kind": "socket",
+            "codec": "rgb"
+          }
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter.outr",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ND_iris_rs_extract_g": {
+      "semantic": "materialx.ND_iris_rs_extract_g",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter",
+        "properties": {}
+      },
+      "inputs": {
+        "in": {
+          "semantic": "in",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter.input",
+            "kind": "socket",
+            "codec": "rgb"
+          }
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter.outg",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ND_iris_rs_extract_b": {
+      "semantic": "materialx.ND_iris_rs_extract_b",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter",
+        "properties": {}
+      },
+      "inputs": {
+        "in": {
+          "semantic": "in",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter.input",
+            "kind": "socket",
+            "codec": "rgb"
+          }
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter.outb",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
     }
-  }
+  },
+  "materialx_extensions": "<?xml version=\"1.0\"?>\n<materialx version=\"1.39\">\n  <nodedef name=\"ND_iris_rs_sign_float\" node=\"iris_rs_sign_float\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"in\" type=\"float\" value=\"0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_sign_float\" nodedef=\"ND_iris_rs_sign_float\">\n    <ifgreatereq name=\"ifgreatereq\" type=\"float\" nodedef=\"ND_ifgreatereq_float\">\n      <input name=\"value1\" type=\"float\" interfacename=\"in\" />\n      <input name=\"value2\" type=\"float\" value=\"0\" />\n      <input name=\"in1\" type=\"float\" value=\"1\" />\n      <input name=\"in2\" type=\"float\" value=\"-1\" />\n    </ifgreatereq>\n    <output name=\"out\" type=\"float\" nodename=\"ifgreatereq\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_extract_r\" node=\"iris_rs_extract_r\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"in\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_extract_r\" nodedef=\"ND_iris_rs_extract_r\">\n    <extract name=\"extract\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in\" />\n      <input name=\"index\" type=\"integer\" value=\"0\" />\n    </extract>\n    <output name=\"out\" type=\"float\" nodename=\"extract\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_extract_g\" node=\"iris_rs_extract_g\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"in\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_extract_g\" nodedef=\"ND_iris_rs_extract_g\">\n    <extract name=\"extract\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in\" />\n      <input name=\"index\" type=\"integer\" value=\"1\" />\n    </extract>\n    <output name=\"out\" type=\"float\" nodename=\"extract\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_extract_b\" node=\"iris_rs_extract_b\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"in\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_extract_b\" nodedef=\"ND_iris_rs_extract_b\">\n    <extract name=\"extract\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in\" />\n      <input name=\"index\" type=\"integer\" value=\"2\" />\n    </extract>\n    <output name=\"out\" type=\"float\" nodename=\"extract\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_ifequal_float\" node=\"iris_rs_lower_ifequal_float\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"value1\" type=\"float\" value=\"0.0\" />\n    <input name=\"value2\" type=\"float\" value=\"0.0\" />\n    <input name=\"in1\" type=\"float\" value=\"0.0\" />\n    <input name=\"in2\" type=\"float\" value=\"0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_ifequal_float\" nodedef=\"ND_iris_rs_lower_ifequal_float\">\n    <subtract name=\"subtract\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" interfacename=\"value1\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"value2\" />\n    </subtract>\n    <subtract name=\"subtract2\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" value=\"0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"subtract\" />\n    </subtract>\n    <iris_rs_sign_float name=\"iris_rs_sign_float\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract\" />\n    </iris_rs_sign_float>\n    <iris_rs_sign_float name=\"iris_rs_sign_float2\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract2\" />\n    </iris_rs_sign_float>\n    <add name=\"add\" type=\"float\" nodedef=\"ND_add_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"iris_rs_sign_float\" />\n      <input name=\"in2\" type=\"float\" nodename=\"iris_rs_sign_float2\" />\n    </add>\n    <multiply name=\"multiply\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"add\" />\n      <input name=\"in2\" type=\"float\" value=\"0.5\" />\n    </multiply>\n    <mix name=\"mix\" type=\"float\" nodedef=\"ND_mix_float\">\n      <input name=\"fg\" type=\"float\" interfacename=\"in1\" />\n      <input name=\"bg\" type=\"float\" interfacename=\"in2\" />\n      <input name=\"mix\" type=\"float\" nodename=\"multiply\" />\n    </mix>\n    <output name=\"out\" type=\"float\" nodename=\"mix\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_ifequal_color3\" node=\"iris_rs_lower_ifequal_color3\">\n    <output name=\"out\" type=\"color3\" />\n    <input name=\"value1\" type=\"float\" value=\"0.0\" />\n    <input name=\"value2\" type=\"float\" value=\"0.0\" />\n    <input name=\"in1\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n    <input name=\"in2\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_ifequal_color3\" nodedef=\"ND_iris_rs_lower_ifequal_color3\">\n    <subtract name=\"subtract\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" interfacename=\"value1\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"value2\" />\n    </subtract>\n    <subtract name=\"subtract2\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" value=\"0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"subtract\" />\n    </subtract>\n    <iris_rs_sign_float name=\"iris_rs_sign_float\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract\" />\n    </iris_rs_sign_float>\n    <iris_rs_sign_float name=\"iris_rs_sign_float2\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract2\" />\n    </iris_rs_sign_float>\n    <add name=\"add\" type=\"float\" nodedef=\"ND_add_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"iris_rs_sign_float\" />\n      <input name=\"in2\" type=\"float\" nodename=\"iris_rs_sign_float2\" />\n    </add>\n    <multiply name=\"multiply\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"add\" />\n      <input name=\"in2\" type=\"float\" value=\"0.5\" />\n    </multiply>\n    <mix name=\"mix\" type=\"color3\" nodedef=\"ND_mix_color3\">\n      <input name=\"fg\" type=\"color3\" interfacename=\"in1\" />\n      <input name=\"bg\" type=\"color3\" interfacename=\"in2\" />\n      <input name=\"mix\" type=\"float\" nodename=\"multiply\" />\n    </mix>\n    <output name=\"out\" type=\"color3\" nodename=\"mix\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_ifgreater_float\" node=\"iris_rs_lower_ifgreater_float\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"value1\" type=\"float\" value=\"1.0\" />\n    <input name=\"value2\" type=\"float\" value=\"0.0\" />\n    <input name=\"in1\" type=\"float\" value=\"0.0\" />\n    <input name=\"in2\" type=\"float\" value=\"0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_ifgreater_float\" nodedef=\"ND_iris_rs_lower_ifgreater_float\">\n    <subtract name=\"subtract\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" interfacename=\"value2\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"value1\" />\n    </subtract>\n    <iris_rs_sign_float name=\"iris_rs_sign_float\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract\" />\n    </iris_rs_sign_float>\n    <subtract name=\"subtract2\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" value=\"1\" />\n      <input name=\"in2\" type=\"float\" nodename=\"iris_rs_sign_float\" />\n    </subtract>\n    <multiply name=\"multiply\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"subtract2\" />\n      <input name=\"in2\" type=\"float\" value=\"0.5\" />\n    </multiply>\n    <mix name=\"mix\" type=\"float\" nodedef=\"ND_mix_float\">\n      <input name=\"fg\" type=\"float\" interfacename=\"in1\" />\n      <input name=\"bg\" type=\"float\" interfacename=\"in2\" />\n      <input name=\"mix\" type=\"float\" nodename=\"multiply\" />\n    </mix>\n    <output name=\"out\" type=\"float\" nodename=\"mix\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_ifgreater_color3\" node=\"iris_rs_lower_ifgreater_color3\">\n    <output name=\"out\" type=\"color3\" />\n    <input name=\"value1\" type=\"float\" value=\"1.0\" />\n    <input name=\"value2\" type=\"float\" value=\"0.0\" />\n    <input name=\"in1\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n    <input name=\"in2\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_ifgreater_color3\" nodedef=\"ND_iris_rs_lower_ifgreater_color3\">\n    <subtract name=\"subtract\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" interfacename=\"value2\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"value1\" />\n    </subtract>\n    <iris_rs_sign_float name=\"iris_rs_sign_float\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract\" />\n    </iris_rs_sign_float>\n    <subtract name=\"subtract2\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" value=\"1\" />\n      <input name=\"in2\" type=\"float\" nodename=\"iris_rs_sign_float\" />\n    </subtract>\n    <multiply name=\"multiply\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"subtract2\" />\n      <input name=\"in2\" type=\"float\" value=\"0.5\" />\n    </multiply>\n    <mix name=\"mix\" type=\"color3\" nodedef=\"ND_mix_color3\">\n      <input name=\"fg\" type=\"color3\" interfacename=\"in1\" />\n      <input name=\"bg\" type=\"color3\" interfacename=\"in2\" />\n      <input name=\"mix\" type=\"float\" nodename=\"multiply\" />\n    </mix>\n    <output name=\"out\" type=\"color3\" nodename=\"mix\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_clamp_float\" node=\"iris_rs_lower_clamp_float\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"in\" type=\"float\" value=\"0.0\" />\n    <input name=\"low\" type=\"float\" value=\"0.0\" />\n    <input name=\"high\" type=\"float\" value=\"1.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_clamp_float\" nodedef=\"ND_iris_rs_lower_clamp_float\">\n    <max name=\"max\" type=\"float\" nodedef=\"ND_max_float\">\n      <input name=\"in1\" type=\"float\" interfacename=\"in\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"low\" />\n    </max>\n    <min name=\"min\" type=\"float\" nodedef=\"ND_min_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"max\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"high\" />\n    </min>\n    <output name=\"out\" type=\"float\" nodename=\"min\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_convert_float_color3\" node=\"iris_rs_lower_convert_float_color3\">\n    <output name=\"out\" type=\"color3\" />\n    <input name=\"in\" type=\"float\" value=\"0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_convert_float_color3\" nodedef=\"ND_iris_rs_lower_convert_float_color3\">\n    <combine3 name=\"combine3\" type=\"color3\" nodedef=\"ND_combine3_color3\">\n      <input name=\"in1\" type=\"float\" interfacename=\"in\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"in\" />\n      <input name=\"in3\" type=\"float\" interfacename=\"in\" />\n    </combine3>\n    <output name=\"out\" type=\"color3\" nodename=\"combine3\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_max_color3FA\" node=\"iris_rs_lower_max_color3FA\">\n    <output name=\"out\" type=\"color3\" />\n    <input name=\"in1\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n    <input name=\"in2\" type=\"float\" value=\"0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_max_color3FA\" nodedef=\"ND_iris_rs_lower_max_color3FA\">\n    <iris_rs_extract_r name=\"iris_rs_extract_r\" type=\"float\" nodedef=\"ND_iris_rs_extract_r\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in1\" />\n    </iris_rs_extract_r>\n    <max name=\"max\" type=\"float\" nodedef=\"ND_max_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"iris_rs_extract_r\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"in2\" />\n    </max>\n    <iris_rs_extract_g name=\"iris_rs_extract_g\" type=\"float\" nodedef=\"ND_iris_rs_extract_g\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in1\" />\n    </iris_rs_extract_g>\n    <max name=\"max2\" type=\"float\" nodedef=\"ND_max_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"iris_rs_extract_g\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"in2\" />\n    </max>\n    <iris_rs_extract_b name=\"iris_rs_extract_b\" type=\"float\" nodedef=\"ND_iris_rs_extract_b\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in1\" />\n    </iris_rs_extract_b>\n    <max name=\"max3\" type=\"float\" nodedef=\"ND_max_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"iris_rs_extract_b\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"in2\" />\n    </max>\n    <combine3 name=\"combine3\" type=\"color3\" nodedef=\"ND_combine3_color3\">\n      <input name=\"in1\" type=\"float\" nodename=\"max\" />\n      <input name=\"in2\" type=\"float\" nodename=\"max2\" />\n      <input name=\"in3\" type=\"float\" nodename=\"max3\" />\n    </combine3>\n    <output name=\"out\" type=\"color3\" nodename=\"combine3\" />\n  </nodegraph>\n</materialx>\n",
+  "materialx_lowerings": {
+    "ND_extract_color3": [
+      {
+        "when": {
+          "index": 1
+        },
+        "replacement": "ND_iris_rs_extract_g"
+      },
+      {
+        "when": {
+          "index": 2
+        },
+        "replacement": "ND_iris_rs_extract_b"
+      }
+    ],
+    "ND_ifequal_float": [
+      {
+        "when": {},
+        "replacement": "ND_iris_rs_lower_ifequal_float"
+      }
+    ],
+    "ND_ifequal_color3": [
+      {
+        "when": {},
+        "replacement": "ND_iris_rs_lower_ifequal_color3"
+      }
+    ],
+    "ND_ifgreater_float": [
+      {
+        "when": {},
+        "replacement": "ND_iris_rs_lower_ifgreater_float"
+      }
+    ],
+    "ND_ifgreater_color3": [
+      {
+        "when": {},
+        "replacement": "ND_iris_rs_lower_ifgreater_color3"
+      }
+    ],
+    "ND_clamp_float": [
+      {
+        "when": {},
+        "replacement": "ND_iris_rs_lower_clamp_float"
+      }
+    ],
+    "ND_convert_float_color3": [
+      {
+        "when": {},
+        "replacement": "ND_iris_rs_lower_convert_float_color3"
+      }
+    ],
+    "ND_max_color3FA": [
+      {
+        "when": {},
+        "replacement": "ND_iris_rs_lower_max_color3FA"
+      }
+    ]
+  },
+  "texture_alpha_modes": [
+    "STRAIGHT",
+    "PREMUL",
+    "CHANNEL_PACKED",
+    "NONE"
+  ],
+  "texture_image_channels": [
+    1,
+    3
+  ]
 }

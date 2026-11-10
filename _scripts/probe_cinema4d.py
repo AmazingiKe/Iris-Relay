@@ -12,6 +12,11 @@ import redshift
 
 
 def json_value(value):
+    if type(value).__name__ == "Bool":
+        literal = str(value).lower()
+        if literal not in {"true", "false"}:
+            raise ValueError("未知 Maxon Bool 表示：" + literal)
+        return literal == "true"
     if value is None or isinstance(value, (str, bool, int, float)):
         return value
     name = type(value).__name__

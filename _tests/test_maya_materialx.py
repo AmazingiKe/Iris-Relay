@@ -150,3 +150,38 @@ def test_maya_specular_limit_is_reported_before_host_creation():
     )
     assert response["status"] == "error", response
     assert response["result"]["material"] is None
+
+
+def test_maya_unmapped_native_settings_are_guarded_by_live_evidence():
+    target = maya_profile()
+    # 这些输入影响着色，却没有对应的已实现语义；读取时必须保持已核验默认值。
+    assert target["nodes"]["standard_surface"]["native"]["properties"]["subsurface"] == 0
+    assert target["nodes"]["image"]["native"]["properties"]["sscale"] == 1
+    assert "outColor" not in target["nodes"]["standard_surface"]["native"]["properties"]
+    assert (
+        target["nodes"]["standard_surface"]["inputs"]["coatNormal"]["native"]["codec"] == "normal"
+    )
+
+
+def test_maya_geometry_normal_default_uses_actual_port_evidence():
+    from iris_relay.native import decode_value
+
+    inputs = maya_profile()["nodes"]["standard_surface"]["inputs"]
+    assert decode_value([1, 1, 1], inputs["normalCamera"]) is None
+    assert decode_value([0, 0, 0], inputs["coatNormal"]) is None
+    assert decode_value([0, 0, 0], inputs["normalCamera"]) == [0, 0, 0]
+
+
+def test_unverified_rgba_is_blocked_by_core_target_capability():
+    from _tests.test_materialx_alpha import setup
+    from _tests.test_materialx_bridge import call
+    from _tests.test_materialx_lowerings import rs_profile
+
+    api, source = setup(channels=4, linked=False)
+    document = call(api, "materialx.export", material=source)["result"]["document"]
+    for target in (maya_profile(), rs_profile()):
+        response = call(
+            RelayAPI([target]), "materialx.convert", document=document, target=renderer(target)
+        )
+        assert response["status"] == "error", response
+        assert response["result"]["material"] is None

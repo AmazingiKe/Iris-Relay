@@ -93,20 +93,23 @@ def evaluate(graph, parameters):
             result = math.floor(ports["in"])
         elif category == "clamp":
             result = min(ports["high"], max(ports["low"], ports["in"]))
-        elif category in {"ifequal", "ifgreater"}:
+        elif category in {"ifequal", "ifgreater", "ifgreatereq"}:
             condition = (
                 ports["value1"] == ports["value2"]
                 if category == "ifequal"
-                else ports["value1"] > ports["value2"]
+                else (
+                    ports["value1"] >= ports["value2"]
+                    if category == "ifgreatereq"
+                    else ports["value1"] > ports["value2"]
+                )
             )
             result = ports["in1"] if condition else ports["in2"]
         elif category == "combine3":
             result = [ports[f"in{i}"] for i in (1, 2, 3)]
         elif category == "mix":
-            result = [
-                f * ports["mix"] + b * (1 - ports["mix"])
-                for f, b in zip(ports["fg"], ports["bg"], strict=True)
-            ]
+            result = binary(
+                ports["fg"], ports["bg"], lambda f, b: f * ports["mix"] + b * (1 - ports["mix"])
+            )
         else:
             raise AssertionError(f"未经独立解释的运算：{category}")
         cache[node.getName()] = result
