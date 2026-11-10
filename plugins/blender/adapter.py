@@ -468,6 +468,8 @@ class BlenderAdapter:
                 find_socket(nodes[endpoint["node"]].outputs, endpoint["socket"]),
                 output.inputs["Surface"],
             )
+            # 新建材质默认不绑定对象，仍需保留以供 .blend 保存和后续手动选择。
+            material.use_fake_user = True
             return material
         except Exception:
             # 4. 任意一步失败只清理本次新增数据，保留源材质与源图片。

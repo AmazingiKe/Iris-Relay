@@ -21,6 +21,7 @@ def main():
     entry = runpy.run_path(str(ENTRY), run_name="__main__")
     bpy.context.window_manager.iris_relay_demo.filepath = "上次输入.mtlx"
     bpy.context.window_manager.iris_relay_demo.surface_only = True
+    bpy.context.window_manager.iris_relay_demo.import_filepath = "上次导入.mtlx"
     runpy.run_path(str(ENTRY), run_name="__main__")
     from plugins.blender import ui
 
@@ -29,6 +30,13 @@ def main():
     assert hasattr(bpy.types, "IRISRELAY_PT_demo_view")
     assert bpy.context.window_manager.iris_relay_demo.filepath == ""
     assert bpy.context.window_manager.iris_relay_demo.surface_only is False
+    assert bpy.context.window_manager.iris_relay_demo.import_filepath == ""
+    for handlers in (
+        bpy.app.handlers.undo_post,
+        bpy.app.handlers.redo_post,
+        bpy.app.handlers.load_post,
+    ):
+        assert handlers.count(ui.reset_after_history) == 1
     checks.append("入口重复运行及 GUI 独立加载")
 
     area = next(area for area in bpy.context.window.screen.areas if area.type == "VIEW_3D")
@@ -172,8 +180,62 @@ def main():
             assert texture.read_bytes() == original_texture
         checks.append("图片驱动法线和高度凹凸的真实导出、连接与 Raw 语义")
 
+        # 使用刚导出的文件走真实 UI 导入；不依赖活动对象或所选源材质。
+        assert settings.import_filepath == settings.filepath
+        settings.mode = "IMPORT"
+        settings.material = None
+        original_materials = set(bpy.data.materials.keys())
+        original_images = set(bpy.data.images.keys())
+        original_binding = list(cube.data.materials)
+        assert bpy.ops.iris_relay.check_import() == {"FINISHED"}
+        assert settings.status == "warning"
+        assert bpy.ops.iris_relay.import_materialx() == {"CANCELLED"}
+        assert set(bpy.data.materials.keys()) == original_materials
+        settings.accept_import_warnings = True
+        assert bpy.ops.iris_relay.import_materialx() == {"FINISHED"}
+        imported_report = json.loads(settings.report_json)
+        imported_name = imported_report["created_material"]
+        imported = bpy.data.materials[imported_name]
+        assert imported.use_fake_user and imported not in list(cube.data.materials)
+        assert set(bpy.data.materials.keys()) - original_materials == {imported_name}
+        assert list(cube.data.materials) == original_binding
+        assert BlenderAdapter(source, ui._service).read_material() == before
+        assert texture.read_bytes() == original_texture
+        assert bpy.context.scene.render.engine == original_engine
+        assert BlenderAdapter(imported, ui._service).read_material()["links"]
+        checks.append("导出后自动填入导入路径、检查警告、确认后创建独立材质")
+
+        # 输入损坏或资源缺失时保留已有导入结果，不遗留额外数据。
+        after_import = (set(bpy.data.materials.keys()), set(bpy.data.images.keys()))
+        broken = output.parent / "损坏.mtlx"
+        broken.write_text("<broken", encoding="utf-8")
+        assert bpy.ops.iris_relay.demo_choose_import(filepath=str(broken)) == {"FINISHED"}
+        assert settings.status == "idle"
+        assert bpy.ops.iris_relay.import_materialx() == {"CANCELLED"}
+        assert settings.status == "error"
+        settings.import_filepath = settings.filepath
+        texture.rename(texture.with_suffix(".hidden"))
+        assert bpy.ops.iris_relay.import_materialx() == {"CANCELLED"}
+        texture.with_suffix(".hidden").rename(texture)
+        assert (set(bpy.data.materials.keys()), set(bpy.data.images.keys())) == after_import
+        assert original_images < set(bpy.data.images.keys())
+        checks.append("损坏文档与缺失贴图阻断，既有材质和图片不受影响")
+
+        # 未绑定材质必须在保存重开后仍然存在。
+        blend = output.parent / "导入保存验证.blend"
+        bpy.ops.wm.save_as_mainfile(filepath=str(blend))
+        bpy.ops.wm.open_mainfile(filepath=str(blend))
+        assert imported_name in bpy.data.materials
+        assert bpy.data.materials[imported_name].use_fake_user
+        assert bpy.context.window_manager.iris_relay_demo.status == "idle"
+        assert bpy.context.window_manager.iris_relay_demo.report_json == ""
+        checks.append("导入的新材质未绑定对象时仍能保存重开")
+
     ui.unregister()
     ui.unregister()
+    assert ui.reset_after_history not in bpy.app.handlers.undo_post
+    assert ui.reset_after_history not in bpy.app.handlers.redo_post
+    assert ui.reset_after_history not in bpy.app.handlers.load_post
     assert not hasattr(bpy.types.WindowManager, "iris_relay_demo")
     assert "iris_relay_demo" not in bpy.context.window_manager
     assert not hasattr(bpy.types, "IRISRELAY_PT_demo_text")
