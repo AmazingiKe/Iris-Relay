@@ -14,7 +14,7 @@
 
 目录记录类型名称、字符串 ID 或整数 code、端口、默认值及探测状态。Blender 的 `ShaderNodeCustomGroup` 不能直接实例化，保留失败原因。动态节点组、用户资产、第三方程序生成节点和不同模式下新增的端口不属于此次完整性范围。个别 Arnold 类型的头文件没有可提取的参数表，个别 Redshift 端口的 Python 值不可读；目录明确保留空列表或 `unreadable`，不猜测数值。
 
-**收录 385 个类型不等于支持 385 个节点互换。** 每套可转换字典包含标准表面、图片、切线空间法线、高度凹凸与显式 R 通道提取五类共有功能；Blender 另含旧 Principled `GGX + BURLEY` 配置及 RGB 显式加权求和，共 17 个实现配置。Redshift 的高度凹凸与切线法线共用节点资产，模式不同，因此实现配置数不等于原生节点类型数。目录用于查 code、补充映射和发现缺口；核心只加载 `dictionaries/` 顶层字典，不把 `catalogs/` 当成转换规则。
+**收录 385 个类型不等于支持 385 个节点互换。** 每套可转换字典包含标准表面、图片、切线空间法线、高度凹凸、显式 R 通道提取及 RGB 显式加权求和六类共有功能；Blender 另含六种历史 Principled 配置，三套字典共 24 个实现配置。Redshift 的高度凹凸与切线法线共用节点资产，模式不同，因此实现配置数不等于原生节点类型数。目录用于查 code、补充映射和发现缺口；核心只加载 `dictionaries/` 顶层字典，不把 `catalogs/` 当成转换规则。
 
 ## 真实名称与 code 示例
 
@@ -46,7 +46,7 @@ Arnold `rgb_to_float` 没有对应独立参数头文件；Input code `1582091381
 | `normal.tangent` | 切线空间编码法线解码 | 法线颜色、强度 → 法线向量 |
 | `bump.height` | 标量高度场扰动法线 | 高度、幅度、可选基础法线 → 法线向量 |
 | `channel.red` | 显式通道选择 | RGB → R 标量 |
-| `color.weighted_sum` | RGB 分量按显式系数求和，仅 Blender 有绑定 | RGB、三分量系数 → 标量 |
+| `color.weighted_sum` | RGB 分量按显式系数求和，三端均有绑定 | RGB、三分量系数 → 标量 |
 
 来源适配器从 `describe` 获取需要读取的原生属性，把实际 ID 和模式发给 `identify`；核心返回实现键与通用功能。多个原生实现可以归入同一功能；一个原生 ID 也可以按模式拆成不同功能。目标有多个实现时必须指定唯一 `target_default`，否则报告歧义并保留源材质，不按列表顺序选择。
 
@@ -106,9 +106,13 @@ fingerprint = response["result"]["fingerprint"]
 
 实文件完成 GUI 操作检查、保存及 MaterialX 读回校验，源 `.blend` 和四张图片哈希前后相同。新增宿主回归为 [`verify_blender_read.py`](../_scripts/verify_blender_read.py)；原始资产与运行报告不提交 Git。没有新增渲染外观证据。
 
-2026-11-09 字典内容版本升为 `0.3.2`，新增 `ShaderNodeVectorMath.dot_product` 实现配置：原生 ID 为 `ShaderNodeVectorMath`，属性 `operation=DOT_PRODUCT`；输入 identifier 为 `Vector`、`Vector_001`，标量输出为 `Value`。实机核验该模式的有效端口，并用木地板 `.mtlx` 创建新材质、保存重开及读回。此绑定保留文档亮度系数，详见 [MaterialX 边界及复现](materialx-core.md#当前目标转换边界)；不支持其他 Vector Math 模式，也未新增 C4D 目标绑定或外观证据。
+2026-11-09 字典内容版本升为 `0.3.2`，新增 `ShaderNodeVectorMath.dot_product` 实现配置：原生 ID 为 `ShaderNodeVectorMath`，属性 `operation=DOT_PRODUCT`；输入 identifier 为 `Vector`、`Vector_001`，标量输出为 `Value`。实机核验该模式的有效端口，并用木地板 `.mtlx` 创建新材质、保存重开及读回。此绑定保留文档亮度系数，详见 [MaterialX 边界及复现](materialx-core.md#当前目标转换边界)；不支持其他 Vector Math 模式，当时尚无 C4D 目标绑定，外观仍未验证。
+
+2026-11-10 C4D 两套字典升为 `0.3.1`，加入 Redshift `rsmathdotvector`（`math_op=24`）及 Arnold `dot`（code `193489676`）的加权求和绑定。Arnold 向量输入 Input1、Input2 的 code 分别为 `729976059`、`729976060`，由 `GetDescription` 取得；数值按向量原样写入。A1 文档合计 748 个 C4D 目标通过保存重开与读回，详见 [A1 记录](a1-materialx-roundtrip.md)。
 
 ## 复现实机验证
+
+2026-11-10 Cycles 字典内容版本升为 `0.3.3`，根据 `A1.blend` 实机读取补充五种 Principled 历史配置。宿主版本仍为 5.2.3，目标默认实现保持不变；识别历史 SSS 模式不代表支持活动 SSS。全量盘点与分项证据见 [A1 材质批量往返验证](a1-materialx-roundtrip.md)。
 
 安装开发依赖后，将路径替换为本机实际可执行文件；输出目录必须不存在：
 

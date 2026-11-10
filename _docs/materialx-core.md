@@ -70,7 +70,7 @@ Blender 导出新增一项受限规则：字典明确声明颜色到标量连接
 
 GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶层节点、属性、输入、图片引用和连接保留于完整报告的 `source_snapshot`。该快照用于诊断，不是递归节点组备份，也不会嵌入 `.mtlx`；原 `.blend` 始终保留。未连接活动表面的节点有信息提示；非恒等 Mapping、体积、活动图中的未知节点和节点组仍阻断。
 
-文档可保存的范围大于当前目标可转换的范围。桥接支持三套字典共有的五类功能，以及 Blender 的显式加权求和：
+文档可保存的范围大于当前目标可转换的范围。桥接支持三套字典共有的六类功能：
 
 | MaterialX | 既有字典语义 | 限制 |
 | --- | --- | --- |
@@ -79,7 +79,7 @@ GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶�
 | `normalmap`，float scale | `normal.tangent` | 颜色连接须显式 `convert(color3→vector3)`；几何法线／切线使用默认值 |
 | `bump`，vector3 | `bump.height` | 标量高度；高度幅度和空间导数只作近似对应 |
 | `extract`，color3→float | `channel.red` | 仅 index=0 |
-| `luminance → extract(index=0)`；或 `dotproduct(vector3)` | `color.weighted_sum` | 仅 Blender；常量系数；点积的颜色连接须先经 `convert(color3→vector3)` |
+| `luminance → extract(index=0)`；或 `dotproduct(vector3)` | `color.weighted_sum` | 三套字典；常量系数；点积的颜色连接须先经 `convert(color3→vector3)` |
 
 自定义子图展开后全部相关节点落在以上范围内才可转换；否则保留原文并报告不支持。标准库中的其他节点可查询、校验和保存，但没有自动获得目标转换能力。未知原生节点导出失败时保留原始 JSON，不自动猜测并编造自定义 NodeDef。
 
