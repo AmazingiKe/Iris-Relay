@@ -398,6 +398,7 @@ def build(catalog):
         add_blender_principled_variants(profile, catalog, shader_key)
         add_blender_weighted_sum(profile, catalog)
         add_blender_standard_math(profile, catalog)
+        add_blender_invert(profile, catalog)
     else:
         profile["version"] = "0.3.1"
         add_c4d_weighted_sum(profile, catalog)
@@ -514,6 +515,35 @@ def add_blender_standard_math(profile, catalog):
     profile["evidence"]["standard_math"] = (
         "本版本 ShaderNodeMath 实机枚举与端口；ADD、SUBTRACT、MULTIPLY 且 use_clamp=false。"
         "对应官方 float 数学 NodeDef，未声明其他模式或外观验证。"
+    )
+
+
+def add_blender_invert(profile, catalog):
+    """将 Fac=1 的颜色反相绑定官方 invert；部分系数和系数连接仍显式阻断。"""
+    observed = catalog["nodes"]["ShaderNodeInvert"]
+    ports = {p["id"]: p for p in observed["inputs"]}
+    output = next(p for p in observed["outputs"] if p["id"] == "Color")
+    if observed["status"] != "instantiated" or ports["Fac"]["default"] != 1.0:
+        raise ValueError("颜色反相缺少本版本实机默认值证据")
+    color = infer_rule(ports["Color"], "cycles", "in")
+    color.pop("adjustable", None)
+    profile["nodes"]["ShaderNodeInvert"] = {
+        "semantic": "materialx.ND_invert_color3",
+        "native": {"id": observed["id"], "label": observed["label"], "properties": {}},
+        "inputs": {"Color": color, "Fac": infer_rule(ports["Fac"], "cycles")},
+        "outputs": {
+            "Color": {
+                "semantic": "out",
+                "type": "color",
+                "native": {"id": output["id"], "kind": "socket", "codec": "rgb"},
+            }
+        },
+    }
+    profile["version"] = "0.3.7"
+    profile["evidence"]["full_invert"] = (
+        "Blender 5.2.3 ShaderNodeInvert 实机端口；仅 Fac=1 且未连接，RGB 为 1-color。"
+        "对应 MaterialX ND_invert_color3 的 amount 默认值；不把 amount 误映射成 Fac。"
+        "https://github.com/blender/blender/blob/v5.2.3/source/blender/gpu/shaders/material/gpu_shader_material_invert.glsl"
     )
 
 

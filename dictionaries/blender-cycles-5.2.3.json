@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "id": "blender.cycles.native",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "texture_alpha_modes": ["STRAIGHT", "PREMUL", "CHANNEL_PACKED", "NONE"],
   "semantic_schema_version": "1",
   "description": "真实原生绑定；标准表面、图片、切线法线、高度凹凸与显式 R 通道提取。其余节点见探测目录。",
@@ -24,7 +24,8 @@
     "implicit_color_to_float": "https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/convert.h",
     "principled_variants": "Blender 5.2.3 对 A1.blend 全部 1803 个材质的原生读取；新增五种 distribution / subsurface_method 组合，样本中 SSS 权重均为零。",
     "weighted_sum": "Blender 5.2.3 DOT_PRODUCT 实机端口核验；https://github.com/blender/blender/blob/v5.2.3/source/blender/nodes/shader/nodes/node_shader_vector_math.cc",
-    "standard_math": "本版本 ShaderNodeMath 实机枚举与端口；ADD、SUBTRACT、MULTIPLY 且 use_clamp=false。对应官方 float 数学 NodeDef，未声明其他模式或外观验证。"
+    "standard_math": "本版本 ShaderNodeMath 实机枚举与端口；ADD、SUBTRACT、MULTIPLY 且 use_clamp=false。对应官方 float 数学 NodeDef，未声明其他模式或外观验证。",
+    "full_invert": "Blender 5.2.3 ShaderNodeInvert 实机端口；仅 Fac=1 且未连接，RGB 为 1-color。对应 MaterialX ND_invert_color3 的 amount 默认值；不把 amount 误映射成 Fac。https://github.com/blender/blender/blob/v5.2.3/source/blender/gpu/shaders/material/gpu_shader_material_invert.glsl"
   },
   "nodes": {
     "ShaderNodeBsdfPrincipled": {
@@ -3944,6 +3945,53 @@
             "id": "Value",
             "kind": "socket",
             "codec": "identity"
+          }
+        }
+      }
+    },
+    "ShaderNodeInvert": {
+      "semantic": "materialx.ND_invert_color3",
+      "native": {
+        "id": "ShaderNodeInvert",
+        "label": "Invert Color",
+        "properties": {}
+      },
+      "inputs": {
+        "Color": {
+          "semantic": "in",
+          "type": "color",
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "native": {
+            "id": "Color",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false
+        },
+        "Fac": {
+          "semantic": "native.cycles.Fac",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "Fac",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": true
+        }
+      },
+      "outputs": {
+        "Color": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "Color",
+            "kind": "socket",
+            "codec": "rgb"
           }
         }
       }
