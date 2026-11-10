@@ -13,7 +13,7 @@
 | Cinema 4D 2025.3.2／Arnold 7.4.3.0，C4DtoA 4.8.3.1 | [目录](../dictionaries/catalogs/cinema4d-arnold-7.4.3.0.json) | [字典](../dictionaries/cinema4d-arnold-7.4.3.0.json) | 131 个内置 shader／custom shader 可实例化 |
 | Maya 2022.5／Arnold 7.2.5.3，MtoA 5.3.5.3 | [任务所需类型目录](../dictionaries/catalogs/maya-arnold-7.2.5.3.json) | [字典](../dictionaries/maya-arnold-7.2.5.3.json) | 17 种原生类型实际创建及属性查询；不是完整探测目录 |
 
-Maya 新增目标的节点映射、31 / 89 份实际文件导入及 5 / 5 份 HSV 夹具结果见 [Maya 导入文档](maya-materialx-import.md)。该字典不构成 Maya 原生读取／导出实现，MtoA 精确版本另由宿主适配器检查。下文三端数量和 18 组跨端结果是原 Blender / C4D 验证记录，不包含本次 Maya 增量。
+Maya 新增目标的节点映射、31 / 89 份实际文件导入及 5 / 5 份 HSV 夹具结果见 [Maya 导入文档](maya-materialx-import.md)。A12 后续已实现受限 Maya 原生读取及再导出，见 [三宿主报告](a12-materialx-interoperability.md)；初次字典提交本身不构成原生读取／导出实现，MtoA 精确版本另由宿主适配器检查。下文三端数量和 18 组跨端结果是原 Blender / C4D 验证记录，不包含本次 Maya 增量。
 
 目录记录类型名称、字符串 ID 或整数 code、端口、默认值及探测状态。Blender 的 `ShaderNodeCustomGroup` 不能直接实例化，保留失败原因。动态节点组、用户资产、第三方程序生成节点和不同模式下新增的端口不属于此次完整性范围。个别 Arnold 类型的头文件没有可提取的参数表，个别 Redshift 端口的 Python 值不可读；目录明确保留空列表或 `unreadable`，不猜测数值。
 
@@ -85,13 +85,22 @@ USD/UsdShade 与 MaterialX 的早期职责评估见 [ADR-0004](adr/0004-统一�
 from iris_relay import RelayAPI
 
 api = RelayAPI.from_directory("dictionaries")
-response = api.handle({
-    "api_version": "1", "request_id": "查询原生绑定", "operation": "describe",
-    "payload": {"renderer": {
-        "id": "arnold", "version": "7.4.3.0", "host": "cinema4d",
-        "host_version": "2025.3.2", "node_system": "arnold.gvnodes"
-    }}
-})
+response = api.handle(
+    {
+        "api_version": "1",
+        "request_id": "查询原生绑定",
+        "operation": "describe",
+        "payload": {
+            "renderer": {
+                "id": "arnold",
+                "version": "7.4.3.0",
+                "host": "cinema4d",
+                "host_version": "2025.3.2",
+                "node_system": "arnold.gvnodes",
+            }
+        },
+    }
+)
 dictionary = response["result"]["dictionary"]
 fingerprint = response["result"]["fingerprint"]
 ```
@@ -132,9 +141,9 @@ C4D 两套字典尚未声明命名 UV 或矩阵能力，相关文档在调用宿
 这项扩展没有给 C4D 声明新增坐标能力，也没有把常量求值器中的 Math 模式全部登记为通用着色节点支持；函数节点绑定与静态坐标读取须分别判断。
 回导重建可编辑 Mapping，源常量计算子图、组结构及共享坐标节点身份未重建；动画和跨材质分支的共享依赖不能冻结，见[坐标边界](materialx-core.md#uv-与静态-mapping)。
 
-2026-11-10 Cycles 字典内容版本升为 `0.3.8`，增加完整 `ShaderNodeHueSaturation`。五个端口及默认值来自本版本探测目录；`materialx_extensions` 内联官方标准数学节点构成的子图，回导前核验实际实现，再创建一个原生 HSV 节点。近灰、负值、饱和度钳制和 Fac 混合均有边界测试；五组独立宿主夹具核对 209 个输入、27 条连接。C4D 字典未增加 HSV 支持，详见 [完整 HSV](materialx-core.md#完整-hsv-与内联标准子图)。
+2026-11-10 Cycles 字典内容版本升为 `0.3.8`，增加完整 `ShaderNodeHueSaturation`。五个端口及默认值来自本版本探测目录；`materialx_extensions` 内联官方标准数学节点构成的子图，回导前核验实际实现，再创建一个原生 HSV 节点。近灰、负值、饱和度钳制和 Fac 混合均有边界测试；五组独立宿主夹具核对 209 个输入、27 条连接。该阶段 C4D 字典未增加 HSV 支持；A12 后续通过 Redshift 0.4.0 的组合规则接入，详见 [完整 HSV](materialx-core.md#完整-hsv-与内联标准子图)。
 
-2026-11-10 Cycles 字典内容版本升为 `0.3.6`，新增 `texture_alpha_modes` 四种原生模式声明。Blender 读取 `Image.alpha_mode` 和文件解码通道，创建目标图片时核对实际通道并恢复模式；Color、Alpha 仍来自同一 `ShaderNodeTexImage`。探测使用临时 Image，随即释放，缓存按文件路径、大小和修改时间区分。原生模式和端口由 48 组独立夹具核验；C4D 两套字典尚无该声明，不将新图片资源解释静默丢弃。标准组合、近似警告及限制见 [Alpha 说明](materialx-core.md#图片-alpha-与透明度连接)。
+2026-11-10 Cycles 字典内容版本升为 `0.3.6`，新增 `texture_alpha_modes` 四种原生模式声明。Blender 读取 `Image.alpha_mode` 和文件解码通道，创建目标图片时核对实际通道并恢复模式；Color、Alpha 仍来自同一 `ShaderNodeTexImage`。原阶段探测使用临时 Image，随即释放，缓存按文件路径、大小和修改时间区分；A12 后续为 PNG／EXR 增加文件头优先核对。原生模式和端口由 48 组独立夹具核验；该阶段 C4D 两套字典尚无该声明，后续 Redshift 0.4.0 的受限通道能力见本文末尾。标准组合、近似警告及限制见 [Alpha 说明](materialx-core.md#图片-alpha-与透明度连接)。
 
 2026-11-10 Cycles 字典内容版本升为 `0.3.3`，根据 `A1.blend` 实机读取补充五种 Principled 历史配置。宿主版本仍为 5.2.3，目标默认实现保持不变；识别历史 SSS 模式不代表支持活动 SSS。全量盘点与分项证据见 [A1 材质批量往返验证](a1-materialx-roundtrip.md)。
 
@@ -174,3 +183,11 @@ uv run python _scripts/build_native_dictionaries.py --blender 本次Blender探�
 审核生成内容后再更新仓库字典，重新执行离线测试与实机验证。当前直接使用仓库中的核心源码、字典、插件模块和脚本；宿主接入时显式指定字典目录与宿主脚本路径。
 
 实现依据包括 [Blender ShaderNode API](https://docs.blender.org/api/current/bpy.types.ShaderNode.html)、[Maxon GraphNode API](https://developers.maxon.net/docs/py/2025_3_1/modules/maxon_generated/frameworks/graph/datatype/maxon.GraphNode.html)、[C4DtoA Linear Workflow 说明](https://help.autodesk.com/cloudhelp/ENU/AR-Cinema4D/files/ci-tutorials/ci-rendering-tutorials/arnold_for_cinema_4d_ci_Rendering_Tutorials_ci_Linear_Workflow_html.html)，以及目录记录的本机资源与运行时结果。节点 code 和版本以此次本机探测为准。
+
+## A12 的字典与读取修正
+
+Maya 字典现为 0.2.0，增加未映射输入的实际默认配置约束、几何法线隐式默认值及 1/3 通道能力。Redshift 字典现为 0.4.0，补充标准数学、内联组合规则与原生色彩 ID 编码，跨宿主同样只声明已核验的 1/3 通道。模式支持不等于任意通道、格式和采样响应已还原。
+
+重新实机探测发现 Maxon Bool 包装对象不能用 Python 真值读取，Redshift 目录有 174 个 false 默认值曾被记录为 true；本轮已修正目录及生成字典。依赖旧布尔默认值的历史参数核对结论不能直接沿用，当前 50 个材质与 6 组源／18 组转换回归使用修正后的读取。探测数量仍不代表语义转换数量。
+
+Maya 和 C4D 保存的实现提示须经公开 `identify` 验证当前原生类型和配置，不能替代当前图读回。C4D 本轮实现 MaterialX 到原生图创建，没有通用原生材质导出器。[A12 报告](a12-materialx-interoperability.md)记录全部节点与贴图核对、失败策略和当前边界。

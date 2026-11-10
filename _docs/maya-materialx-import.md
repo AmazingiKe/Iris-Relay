@@ -1,4 +1,6 @@
-# Maya 2022：MaterialX 导入为可编辑 Arnold 节点
+# Maya 2022：MaterialX 导入与原生图再导出
+
+后续 A12 测试已补充当前原生图读取及 `.mtlx` 导出：50 / 50 个材质完成导入、保存重开、原生回读及再导出，并全部进入 C4D Redshift。结果及新限制见 [A12 报告](a12-materialx-interoperability.md)。下文 A1 的 31 / 89 与 422 项测试是初次导入阶段的历史记录。
 
 2026-11-10 已在本机 Maya 2022.5、Python 3.7.7、MtoA 5.3.5.3、Arnold 7.2.5.3 完成受限导入验证。输入是上一轮从 A1 导出的 89 份 `.mtlx`；31 份创建成功并通过保存重开核对，58 份明确阻断。本轮只验证节点结构、参数、贴图引用和连接，没有渲染对照或神经网络校正。
 
@@ -8,6 +10,7 @@
 
 ```python
 import runpy
+
 runpy.run_path(r"仓库绝对路径/_examples/maya_demo_gui.py", run_name="__main__")
 ```
 
@@ -25,7 +28,7 @@ runpy.run_path(r"仓库绝对路径/_examples/maya_demo_gui.py", run_name="__mai
 
 调用链为 `ui → controller → RelayService.handle(materialx.convert) → MayaAdapter.create_material`。Maya 只通过公开 `describe`／原生编码辅助接口解释核心返回的目标图。语义映射集中在 Maya 专用字典；不复用 C4DtoA 的整数 code，也不从 Blender 源快照恢复隐藏信息。
 
-Maya 的 Python 3.7 使用公开 `iris_relay.transport.JsonCommandService` 调用仓库 `.venv` 中的 Python 3.11+ 核心和 MaterialX 1.39.5。核心仍不导入 `maya`；没有 HTTP 服务，也不向 Maya 安装 SDK。`iris_relay.plugin.JsonCommandService` 旧导入路径保留。
+Maya 的 Python 3.7 使用公开 `iris_relay.transport.JsonSessionService` 调用仓库 `.venv` 中的 Python 3.11+ 核心和 MaterialX 1.39.5。核心仍不导入 `maya`；没有 HTTP 服务，也不向 Maya 安装 SDK。`iris_relay.plugin.JsonCommandService` 旧导入路径保留。
 
 | MaterialX 功能 | Maya / Arnold 原生实现 |
 | --- | --- |
@@ -93,4 +96,6 @@ Autodesk 提供的 [MaterialX Shader](https://help.autodesk.com/cloudhelp/ENU/AR
 
 目前图片只接受实际 1 或 3 通道，且文档有通道声明时必须相符。字典列出的 Alpha 模式不意味着四通道语义已实现；宿主预检仍是必经步骤。floor 使用 32 位整数输出，极大数值、动态枚举索引及未支持的坐标链不宣称等价。窗口不调整工作色彩空间；当前 Maya 色彩上下文会作为警告输出。
 
-尚未实现 Maya 原生材质读取／导出，也没有完整 Maya → Blender 往返。节点可编辑、贴图引用正确及保存重开通过，都不等于 Arnold 与 Cycles 外观一致；BSDF、切线、色彩处理和动态计算的渲染语义仍待后续对照验证。
+已实现受限 Maya 原生材质读取／导出：在场景选中 `aiStandardSurface`，点击面板新增导出按钮并选择输出目录；警告默认阻止写入，文件不覆盖。读取当前参数及连线，经核心生成新文档，不复用导入 XML。`irisImplementation` 提示由当前原生类型和配置重新核验；无提示且匹配歧义、未知节点、多余连接或未支持配置仍拒绝。
+
+本轮未验证完整 Maya → Blender 链路。节点可编辑、贴图引用正确及保存重开通过，都不等于 Arnold 与 Cycles 外观一致；BSDF、切线、色彩处理和动态计算的渲染语义仍待后续对照验证。

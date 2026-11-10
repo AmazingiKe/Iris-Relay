@@ -27,6 +27,8 @@ uv run python -m iris_relay --dictionaries _examples/dictionaries --request _exa
 
 `--request -` 从标准输入读取 JSON，`--output -` 向标准输出写入 JSON；两者均为默认值。`--output 新文件.json` 写入一个新文件，不覆盖已有文件，也不自动创建父目录。退出码 `0` 表示有可用响应（可能包含警告），`2` 表示请求、转换或文件读写失败。插件必须查看 JSON 的 `status` 和报告，不能只看退出码。
 
+批量宿主调用可使用 `--stream`：标准输入、输出各为一行一个 UTF-8 JSON 对象，沿用同一 API，不与 `--request`／`--output` 文件参数组合。单帧仍限 16 MiB，业务错误返回对应响应并继续下一请求；超限帧终止会话。`JsonSessionService` 串行复用一个核心子进程；写入阻塞超时、响应超时、超限或无法解析的响应都会关闭该会话，不重启或重放请求。公共 `iris_relay.native.request` 另检查响应版本、请求 ID 及状态。服务支持上下文管理器和显式 `close()`，界面关闭及批处理退出须释放自己创建的服务。
+
 ## 请求与响应
 
 请求必须包含以下字段，不接受额外字段：
@@ -69,19 +71,30 @@ uv run python -m iris_relay --dictionaries _examples/dictionaries --request _exa
 
 `identify` 不按显示名识别，也不猜测缺失的模式。它匹配精确版本下的 `native.id` 和声明的全部 `native.properties`；属性类型和值均须一致。未知 ID 返回 `UNSUPPORTED_NODE`，缺失或未支持的配置返回 `UNSUPPORTED_NODE_CONFIGURATION`，多重匹配返回 `AMBIGUOUS_NATIVE_NODE`。属性只是适配器对宿主的读取结果，不能用目标默认模式冒充来源观测值。识别操作不读取材质，也不证明未提交参数或连接受支持；随后仍须调用 `validate`／`convert`。
 
+`identify.payload` 可额外提交 `implementation_hint`，值为先前创建材质时保存的实现键。该键只能在当前原生 ID 与全部配置仍匹配的候选中消除歧义；失效提示返回 `NATIVE_HINT_MISMATCH`。适配器仍须读取当前节点、所有受支持属性和连接，不能借提示或源 XML 快照恢复已被用户改动的材质。
+
 例如查询 Redshift 高度凹凸实现：
 
 ```python
 api = RelayAPI.from_directory("dictionaries")
-response = api.handle({
-    "api_version": "1", "request_id": "识别高度凹凸", "operation": "identify",
-    "payload": {
-        "renderer": {"id": "redshift", "version": "2025.3.0", "host": "cinema4d",
-                     "host_version": "2025.3.2", "node_system": "redshift.maxon"},
-        "native_id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap",
-        "properties": {"com.redshift3d.redshift4c4d.nodes.core.bumpmap.inputtype": 0}
+response = api.handle(
+    {
+        "api_version": "1",
+        "request_id": "识别高度凹凸",
+        "operation": "identify",
+        "payload": {
+            "renderer": {
+                "id": "redshift",
+                "version": "2025.3.0",
+                "host": "cinema4d",
+                "host_version": "2025.3.2",
+                "node_system": "redshift.maxon",
+            },
+            "native_id": "com.redshift3d.redshift4c4d.nodes.core.bumpmap",
+            "properties": {"com.redshift3d.redshift4c4d.nodes.core.bumpmap.inputtype": 0},
+        },
     }
-})
+)
 ```
 
 此配置识别为 `bump.height`；模式 `1` 对应 `normal.tangent`。返回的 `implementation` 才是原生材质图的节点 `type`。一个宿主节点 ID 可以对应不同实现键，创建时从键查询绑定，不能把实现键直接当宿主节点 ID。
@@ -111,6 +124,8 @@ response = api.handle({
 
 `materialx.export`／`materialx.convert` 另解释可选的 `metadata.image_alpha: {"mode":"STRAIGHT","channels":4}`：模式限定为 `STRAIGHT`、`PREMUL`、`CHANNEL_PACKED`、`NONE`，通道限定为整数 1、3、4。源适配器提供实际观测，核心不读像素猜测；目标字典须用可选 `texture_alpha_modes` 列表声明支持的模式。缺省字段仍采用旧 RGB 行为，使用 Alpha 输出时必须补充明确描述。标准图和原生还原边界见 [图片 Alpha](materialx-core.md#图片-alpha-与透明度连接)。
 
+目标字典可另用 `texture_image_channels` 声明不重复的 1／3／4 通道列表；未声明时兼容既有通道行为。核心按图片声明提前拒绝超出能力的图，宿主继续核对实际资源，不能仅检查 Alpha 模式。当前 Maya／Redshift 配置声明 `[1, 3]`，RGBA 继续阻断。PNG／EXR 文件头核对只提供通道证据，不证明像素、采样或外观相同。
+
 `materialx.export`／`materialx.convert` 另解析受限 UV 描述：`{"kind":"uv","set":"UV名称或空字符串","transforms":[矩阵1,矩阵2]}`。`transforms` 可省略；每个矩阵为按 MaterialX 行向量约定展平的 16 个有限数值，按列表顺序应用。只支持仿射矩阵，数量最多 64。命名 UV 和变换的目标能力由字典的可选 `texture_coordinates` 声明，缺省只接受默认 UV；目前 `transforms` 能力取值为 `none` 或 `trs`。实际标准节点及宿主限制见 [MaterialX 坐标说明](materialx-core.md#uv-与静态-mapping)。
 
 源图中未列出的已知输入由源字典默认值补全。源图含未知输入或输出时阻断转换。目标端增加了源端没有的语义时，使用目标字典默认值并发出 `TARGET_DEFAULT` 警告；目标端丢失源语义则阻断。
@@ -132,6 +147,8 @@ API 接受有限数值；JSON 文件拒绝重复键、NaN 和 Infinity，单次 
 
 `native` 含实际 `id`（字符串或整数 code），可选 `label`、`properties`、`kind`、`codec`、`colorspace_id`、`uv_id`。`kind` 为 `socket`／`property`／`resource`；`codec` 白名单为 `identity`／`rgb`／`srgb`／`bool`／`normal`／`texture`／`gray`。`gray` 仅将标量读写为相等的三个分量，读取非灰度三通道时拒绝，不做亮度或通道猜测。这些是声明式宿主读写信息，不可携带执行代码。数值编码由宿主适配层的公开辅助函数处理，语义变换只由核心处理。
 
+`normal` 编码可用 `native.properties.implicit_value` 声明未连接的隐式几何默认向量；只有该精确值解码为空值。资源端口可用 `native.properties.color_spaces` 声明逻辑名称到原生 ID 的字符串映射，交由公开 `resource_color_space` 编码／解码。反向映射须唯一，未知名称返回 `COLORSPACE_UNSUPPORTED`，不回退 Auto。Maya 原生枚举映射见后文。
+
 `omit_if_default` 仅允许省略未连接、等于默认值的源原生控制项，并在源快照保留其值；目标使用自己的默认值。已知输出未连接且不是最终出口时允许省略。信息码为 `NATIVE_DEFAULT_OMITTED`、`UNUSED_OUTPUT_OMITTED`；不同 BSDF 的近似使用 `SHADING_MODEL_APPROXIMATION` 警告。信息记录不影响状态，错误阻断，警告需要插件明确接受。
 
 原生辅助参数可额外声明 `inactive_when: {"input": "Subsurface Weight", "equals": 0}`：条件输入及当前输入都未连接、条件值精确相等时，报告 `INACTIVE_INPUT_OMITTED`，原值保留在源快照。条件输入须为同一节点的浮点输入，不能引用自身；当前规则仍须声明 `omit_if_default`。Blender 字典将它用于 SSS 关闭时的半径、尺度、IOR 和各向异性。开启 SSS 或连接辅助参数仍受原有支持边界限制。
@@ -149,6 +166,16 @@ API 接受有限数值；JSON 文件拒绝重复键、NaN 和 Infinity，单次 
 
 导入时，核心对文档内的定义、完整子图及其自定义依赖与目标字典逐项比对，只有实现一致才能恢复为原生功能节点；修改计算、默认值、删除实现或增加替代实现均明确阻断。没有原生绑定的目标按标准子图展开后逐节点检查支持范围。`materialx.normalize` 的显式展开不保留原生包装节点；展开后的图不保证能再次折叠为原生节点。这不改变 API v1，也不读取源快照恢复材质。
 
+目标字典还可声明 `materialx_lowerings`，以官方 NodeDef 名称为键，候选为 `{"when": {常量选择端口: 值}, "replacement": "目标内联 NodeDef"}`。替换定义须来自已校验的 `materialx_extensions`，输出类型一致，输入接口只允许省去已经精确匹配的常量选择端口；动态连接不能冒充常量。核心在工作副本中展开，保留源文档，限制循环与规模，重名但不同的实现阻断。规则归核心执行，宿主不复制公式。已验证实例见 [ADR-0006](adr/0006-未知原生图保存与目标组合转换.md)。
+
+## 未知原生图保存
+
+`materialx.preserve` 的 payload 为 `{"snapshot": 原生快照}`。快照包含 `name`、`host`、`nodes`、`links`，可选 `metadata`。每个节点包含 `id`、原生 `type`、`inputs`、`outputs`，可选 `properties`／`metadata`；输入输出为含 `id`、MaterialX `type` 以及可选 `value`／`metadata` 的列表。连线仍使用 `from`／`to` 的节点与端口标识。完整小例见 [保存测试夹具](../_tests/test_materialx_preserve.py)。
+
+成功响应保留 `snapshot`、`document` 和报告，固定 `conversion_supported=false`、`appearance_verified=false`。文档中的未知 NodeDef 与隐式类型连接没有计算实现，原生 JSON 通过明确的 Base64 UTF-8 编码属性保存，文档标记 `iris_preservation_only="true"`。`materialx.convert` 对它返回 `MATERIALX_PRESERVED_ONLY`，不得据此创建替代着色器。保存成功、目标可转换与外观验证是三个独立结论。
+
+JSON 及有效材质数值仍拒绝 NaN／Infinity。Blender 保存适配层仅在原生记录中将其标记为 `{"iris_nonfinite_float":"nan"}`／`"+inf"`／`"-inf"`，不会将标签作为有效参数。原始 DCC 文件仍是完整资产恢复来源；保留文档不包含全部宿主内部状态或贴图像素。
+
 ## 插件接入
 
 插件实现 `MaterialAdapter` 的两个方法：
@@ -164,7 +191,7 @@ class MyAdapter:
         ...
 ```
 
-调用 `convert_material(adapter, service, target)` 获取 `PluginResult`。`service` 可以是 `RelayAPI` 或 `JsonCommandService`，其他实现只需满足 `RelayService` 协议；后者使用参数列表启动子进程，不经 shell 执行。
+调用 `convert_material(adapter, service, target)` 获取 `PluginResult`。`service` 可以是 `RelayAPI`、`JsonCommandService` 或 `JsonSessionService`，其他实现只需满足 `RelayService` 协议；两种子进程服务均使用参数列表启动，不经 shell 执行。
 
 默认只有 `status == "ok"` 才调用 `create_material`。警告响应保留供界面展示；插件明确选择接受已展示的近似方案后，可设置 `accept_warnings=True`。错误响应从不应用。新建后的材质绑定替换属于宿主的显式、可撤销操作，辅助接口不会自动执行。
 
@@ -181,7 +208,9 @@ uv run python _examples/plugin_demo.py --transport process
 
 本地子进程从其他工作目录启动时，可传入 `JsonCommandService([...], cwd=仓库根目录)`，使 `python -m iris_relay` 能定位核心；该设置只影响子进程，不改变宿主工作目录。
 
-Python 3.7 宿主可从 `iris_relay.transport` 导入 `JsonCommandService`，从 `iris_relay.protocol` 导入 `ValidationError`；两者及公开 `iris_relay.native` 辅助接口不加载核心或 SDK。旧 `iris_relay.plugin` 导入路径保留，但该模块本身仍面向 Python 3.11+。`env=环境字典` 可指定子进程环境；不传时继承父进程。Maya 控制层仅对子进程清除 Maya 注入的 `PYTHONHOME` / `PYTHONPATH`。
+Python 3.7 宿主可从 `iris_relay.transport` 导入两种子进程服务，从 `iris_relay.protocol` 导入 `ValidationError`；这些模块、`iris_relay.model.Material` 及公开 `iris_relay.native` 辅助接口不加载核心或 SDK。旧 `iris_relay.plugin` 导入路径保留，但该模块本身仍面向 Python 3.11+。`env=环境字典` 可指定子进程环境；不传时继承父进程。公共宿主控制层仅对子进程清除宿主注入的 `PYTHONHOME` / `PYTHONPATH`。
+
+`plugins/core.py` 提供 Maya／C4D 共用的文件检查与导入／导出流程：调用公开服务、检查响应、解析完整目标材质、定位资源、执行宿主预检，再交适配器创建。导出必须从当前原生材质重新读取，通过核心导出及校验后独占创建新文件，不覆盖已有输出。插件只创建材质，默认不替换对象绑定；事务与失败清理由各宿主适配器实现。
 
 Maya 字典的端口 `native.properties.enum_values` 是原生枚举编码表，例如 `[5, 6, 7]` 将标准 RGB 索引 0/1/2 写为对应 `aiColorToFloat.mode`。它不参与语义计算；动态连接到该枚举端口会被宿主明确阻断。标准 NodeDef 的 integer 端口在旧材质协议中使用数值字段，要求实际值为整数，导出时写为 MaterialX integer。
 

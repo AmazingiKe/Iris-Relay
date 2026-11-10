@@ -2,7 +2,7 @@
 
 Iris Relay 0.4.0 使用官方 MaterialX 1.39.5 SDK，提供材质文档校验、节点定义查询、自定义节点保存和受限原生转换。插件仍只调用公开 Python API，不需要 HTTP，也不需要每次经过磁盘文件。
 
-新增 [Maya 2022 Arnold 目标入口](maya-materialx-import.md)：通过同一 `materialx.convert` 将标准图创建为可编辑节点，HSV 扩展展开为受支持的数学节点。integer 索引按整数验证和序列化；宿主负责原生枚举编码及图片通道预检。Maya 原生读取／导出、四通道 Alpha、UV 矩阵还原和渲染外观仍未实现或验证。
+新增 [Maya 2022 Arnold 目标入口](maya-materialx-import.md)：通过同一 `materialx.convert` 将标准图创建为可编辑节点，HSV 扩展展开为受支持的数学节点。integer 索引按整数验证和序列化；宿主负责原生枚举编码及图片通道预检。A12 后续已补充受限 Maya 原生再导出与 C4D Redshift 组合节点接入；50 个材质的三条链路通过实机保存重开。四通道 Alpha、目标 UV 矩阵还原与外观仍受限制，见 [A12 报告](a12-materialx-interoperability.md)。
 
 ## 最小调用
 
@@ -14,12 +14,14 @@ from iris_relay import RelayAPI
 
 api = RelayAPI.from_directory("dictionaries")
 document = Path("_examples/materialx-example.mtlx").read_text(encoding="utf-8")
-response = api.handle({
-    "api_version": "1",
-    "request_id": "检查材质",
-    "operation": "materialx.normalize",
-    "payload": {"document": document},
-})
+response = api.handle(
+    {
+        "api_version": "1",
+        "request_id": "检查材质",
+        "operation": "materialx.normalize",
+        "payload": {"document": document},
+    }
+)
 if response["status"] != "error":
     normalized = response["result"]["document"]
 ```
@@ -45,6 +47,7 @@ uv run python _examples/materialx_demo.py --out .local/materialx-demo-新编号
 | `materialx.definitions` | `{}`；可选 `category` 和 `document` | 官方 NodeDef，以及指定文档内联的自定义 NodeDef；端口类型、默认值字符串及原始属性 |
 | `materialx.validate` | `{"document": XML字符串}` | `source`、`valid`、`issues`；`document` 为 null，不执行着色 |
 | `materialx.normalize` | `{"document": XML字符串, "flatten": false}` | 校验后输出规范化 XML；可选 `flatten=true` 展开自定义节点子图，保留标准着色节点 |
+| `materialx.preserve` | `{"snapshot": 原生图快照}` | 带 `preservation_only` 标记的自定义声明文档；`conversion_supported=false`，不能计入转换成功 |
 | `materialx.export` | `{"material": 既有原生JSON材质图}` | 标准 MaterialX `document`、源图 `source` 和 `report` |
 | `materialx.convert` | `{"document": XML字符串, "target": 渲染器引用}`；可选 `material_name` | 目标 JSON `material`、原文 `source` 和 `report`；多材质文档必须选择顶层 surfacematerial 名称 |
 
@@ -83,7 +86,7 @@ GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶�
 | `extract`，color3→float | `channel.red` | 仅 index=0 |
 | `luminance → extract(index=0)`；或 `dotproduct(vector3)` | `color.weighted_sum` | 三套字典；常量系数；点积的颜色连接须先经 `convert(color3→vector3)` |
 
-自定义子图展开后全部相关节点落在以上范围内才可转换；否则保留原文并报告不支持。标准库中的其他节点可查询、校验和保存，但没有自动获得目标转换能力。未知原生节点导出失败时保留原始 JSON，不自动猜测并编造自定义 NodeDef。
+自定义子图展开后全部相关节点落在以上范围内才可转换；否则保留原文并报告不支持。标准库中的其他节点可查询、校验和保存，但没有自动获得目标转换能力。未知原生节点的正常导出仍失败并保留源 JSON；可另调用 `materialx.preserve` 保存明确不可转换的原生声明，不赋予未知节点可执行含义。
 
 ### 官方 NodeDef 直接绑定
 
@@ -92,7 +95,7 @@ GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶�
 宿主中的 `describe`／`identify` 只需读取原生声明，无需在宿主进程加载 SDK；官方契约校验在统一服务的 MaterialX 操作中执行。
 
 目前直接映射覆盖 Blender 未钳制的 Math / ADD、SUBTRACT、MULTIPLY，以及 Redshift 对应标量数学资产。
-这些节点可与既有表面、图片和亮度链连接，也可承接自定义子图展开后的同类标准节点。没有目标绑定的标准节点仍阻断；Arnold 尚无这三个标量绑定。
+这些节点可与既有表面、图片和亮度链连接，也可承接自定义子图展开后的同类标准节点。没有目标绑定的标准节点仍阻断；C4DtoA 尚无这三个标量绑定；Maya Arnold 的数学绑定见其独立文档。
 直接绑定首版只接受单个、已支持数据类型的输出；不会因引用 NodeDef 就自动实现全部官方库、任意多输出节点或专有节点。
 
 Blender 字典 `0.3.7` 增加 `ShaderNodeInvert → materialx.ND_invert_color3`，保留颜色输入及共享输出，允许后接显式亮度链。
@@ -105,7 +108,7 @@ Blender 的 RGB 运算为 `mix(color, 1-color, Fac)`，MaterialX 则为 `amount-
 
 当前桥接拒绝尚未处理的单位、文件前缀、通道重排和非图片输入色彩空间上下文。只转换选定材质可达的图；未选用的顶层节点有信息报告，完整内容保留在源文档。资源、节点 metadata 等原生专用信息也保留在响应源快照中，不保证仅凭标准 `.mtlx` 重建所有原生信息。
 
-旧 `convert` 继续使用旧语义链路；新路径显式使用 `materialx.export`／`materialx.convert`。Maya Arnold 的原生读取和字典尚未实现，不应把 C4DtoA 字典套用到 Maya。当前不会生成 USD、自动训练网络或证明外观一致。
+旧 `convert` 继续使用旧语义链路；新路径显式使用 `materialx.export`／`materialx.convert`。Maya Arnold 已有独立版本字典及受限原生读取，不套用 C4DtoA 的整数绑定。当前不会生成 USD、自动训练网络或证明外观一致。
 
 ### 完整 HSV 与内联标准子图
 
@@ -115,7 +118,7 @@ Cycles 字典 `0.3.8` 增加 `ShaderNodeHueSaturation` 的五个输入（Hue、S
 
 独立公式与实际 XML 标准节点解释器核对 524 组边界和随机输入；五组真实 Blender 夹具覆盖常量、近灰、图片、四个标量输入连接及组内 HSV，独立导入、保存重开核对 209 个输入、27 条连接。修改子图计算的文档被拒绝。测试覆盖有效参数和计算关系，不承诺保存已连接端口的闲置默认值、布局、组层级或渲染外观。
 
-没有原生包装绑定的目标可以展开标准子图，但还需要支持展开后的每个功能。当前 C4D Arnold／Redshift 尚未补齐这些绑定，五组夹具均阻断；内联标准图可校验不等于任意 DCC 导入器已兼容。显式规范化展开后也不保证能恢复 Blender 的单个 HSV 节点。扩展库协议与实现比对见 [API 文档](api.md#字典)。
+没有原生包装绑定的目标可以展开标准子图，但还需要支持展开后的每个功能。初次阶段 C4D 两端因绑定缺失阻断；A12 后续已补入 Redshift 组合展开与实机证据，C4DtoA 的范围不随之扩大；内联标准图可校验不等于任意 DCC 导入器已兼容。显式规范化展开后也不保证能恢复 Blender 的单个 HSV 节点。扩展库协议与实现比对见 [API 文档](api.md#字典)。
 
 ## 验证与复现
 
@@ -141,7 +144,7 @@ C4D 两端各有三份因图片资源能力缺失、一份因反相绑定缺失�
 ### 图片 Alpha 与透明度连接
 
 图片资源可携带 `metadata.image_alpha: {"mode":"STRAIGHT","channels":4}`。模式为 `STRAIGHT`、`PREMUL`、`CHANNEL_PACKED` 或 `NONE`，通道描述为 1、3、4；缺省仍按旧 RGB 桥接处理，但不能据此猜测 Alpha 输出。
-Blender 在临时 Image 中探测解码色彩模式，读取源 Image 的 Alpha 模式，不加载或改变源 Image 的像素缓存。`Image.channels` 常为缓存中的 4 通道，RGB 文件也不例外；因此按 `depth` 和浮点类型确定解码通道。灰度加 Alpha 的双通道 PNG、未保存的像素修改和未支持的图片类型明确阻断。
+Blender 读取源 Image 的 Alpha 模式，优先检查 PNG／EXR 文件头的真实通道，其他已接受格式再用临时 Image 探测解码色彩模式，不加载或改变源 Image 的像素缓存。`Image.channels` 与 `depth` 可能只反映缓存展开格式：A12 中单通道 EXR 曾被误判为 RGB，本轮按 EXR `chlist` 修正；PNG 额外检查 `tRNS`。灰度加 Alpha 的双通道 PNG、未保存的像素修改和未支持的图片类型明确阻断。
 
 导出使用官方节点，无私有 NodeDef：RGBA 通过 `image(color4)` 与 `extract(index=3)` 分别提供颜色与 Alpha；无 Alpha 的文件或 `NONE` 模式用 `constant(float,1)` 表达 Alpha。灰度颜色通过 `image(color3) → extract(index=0) → convert(float→color3)` 明确复制到 RGB，保留颜色管理；不能以 `image(float)` 替代颜色采样。MaterialX 的自动颜色变换只接受 color3／color4，依据为 [1.39.5 着色图实现](https://github.com/AcademySoftwareFoundation/MaterialX/blob/v1.39.5/source/MaterialXGenShader/ShaderGraph.cpp)。
 
@@ -151,7 +154,7 @@ Blender 在临时 Image 中探测解码色彩模式，读取源 Image 的 Alpha 
 
 XML 的 `iris_alpha_mode`、`iris_image_channels`、`iris_alpha_used` 及辅助节点来源／角色属性用于还原原生解释和合并同一图片的两个输出。回导会核验实际标准节点、常量及连线；修改运算或错误标记不会被忽略。计算本身由标准节点表达，附加属性不执行着色。当前原生合并只识别这一规范组合；任意外部 RGBA 图或丢失这些属性的图尚不保证可以转回原生图片，不能将此能力表述为所有 MaterialX 图片图的导入支持。
 
-目标字典通过 `texture_alpha_modes` 声明原生模式读写能力。Blender 已声明四种模式；C4D 两套字典尚未声明，带该资源解释的新文档会明确阻断，不能沿用旧 RGB 文档的兼容结论。旧文档和旧 API 不因新增字段自动获得 Alpha 支持。
+目标字典通过 `texture_alpha_modes` 声明原生模式读写能力。Blender 已声明四种模式；Maya 与 C4D Redshift 后续声明模式及 `texture_image_channels=[1,3]` 能力，核心提前拒绝未核验四通道，宿主再核验实际文件。C4DtoA 仍未声明新解释，不能沿用旧 RGB 文档的兼容结论。旧文档和旧 API 不因新增字段自动获得 Alpha 支持。
 
 独立夹具入口为 `_scripts/verify_blender_alpha.py -- --out "新夹具目录"`，随后交给 `verify_blender_batch.py --documents` 在另一 Blender 中还原、保存重开。夹具覆盖灰度／RGB／RGBA、四种模式、两种色彩解释和 Alpha 使用／未使用的 48 种组合，以及同一图片共享输出、源数据保护和失败清理。详细运行证据见 [A1 记录](a1-materialx-roundtrip.md)。
 
@@ -212,3 +215,9 @@ Blender GUI 的“导入”页也通过 `materialx.validate`、`materialx.conver
 同日完整自动测试 160 项通过，总覆盖率 91%；MaterialX 文档核心与桥接分别达到 92% 和 88%。检查包含 1,100 层节点连接链、标准库覆盖拒绝、输入限制及本地 JSON 子进程。Ruff 检查通过，公开 API 往返曾在独立 Python 3.11 环境验证；开发环境为 Python 3.13。当前直接使用仓库源码，示例 `.mtlx` 位于 `_examples/`，宿主字典位于 `dictionaries/`；不再生成或验证发行包。
 
 完整架构取舍见 [ADR-0005](adr/0005-MaterialX材质图核心与自定义节点扩展.md)。
+
+## A12 后续：目标组合与原生结构保留
+
+目标字典可通过 `materialx_lowerings` 引用内联计算子图，核心检查官方接口、静态选择条件、定义冲突、展开规模及收敛后进行替换。Redshift 的相等／大于、clamp、分量和广播等已完成组合接入；图片辅助节点继续整组核验，不能被通用替换破坏。目标扩展与源文档重名而不等价时拒绝。
+
+`materialx.preserve` 是单独的结构保存操作：输出节点接口、无实现声明、显式连接及原生记录。`iris_preservation_only=true` 的文件在目标转换时以 `MATERIALX_PRESERVED_ONLY` 拒绝。快照使用显式 Base64 编码，源图非有限值仅以标签保存，标准数值校验没有放宽。完整实例、实测范围与未解决项见 [A12 报告](a12-materialx-interoperability.md)和 [ADR-0006](adr/0006-未知原生图保存与目标组合转换.md)。

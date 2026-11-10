@@ -6,7 +6,7 @@ Iris Relay 探索跨渲染器的材质转换：以字典建立材质语义对应
 
 当前已完成初步核心：统一 API、材质图协议、声明式字典、转换与诊断报告、联合校正扩展接口，以及通过同一 API 运行的参考插件。Python 核心不依赖 DCC 运行时；0.4.0 引入官方 MaterialX 1.39.5 SDK。
 
-新的 [MaterialX 核心](_docs/materialx-core.md) 支持官方节点定义查询、`.mtlx` 校验与保存、自定义 NodeDef／子图，以及与现有字典功能的受限原生桥接。文档保存范围大于目标转换范围；专有节点没有目标规则时保留源信息并阻断。现已提供 [Maya 2022 Arnold 导入入口](_docs/maya-materialx-import.md)，将受支持的 `.mtlx` 创建为可编辑原生节点；Maya 原生材质读取及导出尚未实现。
+新的 [MaterialX 核心](_docs/materialx-core.md) 支持官方节点定义查询、`.mtlx` 校验与保存、自定义 NodeDef／子图，以及与现有字典功能的受限原生桥接。文档保存范围大于目标转换范围；专有节点没有目标规则时保留源信息并阻断。现已提供 [Maya 2022 Arnold 导入与原生再导出](_docs/maya-materialx-import.md)，以及 C4D Redshift 接入。[A12 实测](_docs/a12-materialx-interoperability.md)完成全量 1,801 份文档输出，其中 688 份标准／内联图、1,113 份仅保留原生结构；50 个材质通过 Blender → Maya／C4D 及 Maya 再导出 → C4D 保存重开验证。原生保留文件不能计入转换成功。
 
 现已提供 Blender Cycles、C4D Redshift 和 C4DtoA 的真实节点目录与基础字典，包含节点名称、资产 ID、整数 code 和端口绑定。本轮 6 组源材质完成保存重开和原生识别，随后 18 组转换完成目标创建、保存重开及参数／连接核对。详见[原生字典与验证范围](_docs/native-dictionaries.md)。
 
@@ -88,6 +88,7 @@ GUI 按需加载核心；重复运行入口会重新加载宿主模块、清空�
 
 ```python
 import runpy
+
 runpy.run_path(r"仓库绝对路径/_examples/maya_demo_gui.py", run_name="__main__")
 ```
 
