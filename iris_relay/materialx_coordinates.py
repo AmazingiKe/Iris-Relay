@@ -3,7 +3,133 @@
 import math
 from copy import deepcopy
 
+from .conversion import issue
 from .model import ValidationError
+
+
+def sampler_matrix(parameters, spec):
+    """按字典声明的二维采样约定生成行向量矩阵；不把内部一致性当作宿主像素证据。"""
+    if not isinstance(parameters, dict) or set(parameters) != {"scale", "offset", "rotation"}:
+        raise ValidationError("二维采样器参数不完整", "MATERIALX_RESOURCE_UNSUPPORTED")
+    scale, offset, rotation = parameters["scale"], parameters["offset"], parameters["rotation"]
+    if any(not isinstance(v, list) or len(v) != 2 for v in (scale, offset)) or any(
+        type(v) not in (float, int) or not math.isfinite(v) for v in [*scale, *offset, rotation]
+    ):
+        raise ValidationError(
+            "二维采样器须为有限的缩放、偏移和旋转", "MATERIALX_RESOURCE_UNSUPPORTED"
+        )
+    angle = math.radians(rotation) if spec["rotation_unit"] == "degrees" else rotation
+    c, s = math.cos(angle), math.sin(angle)
+    x, y = spec["pivot"]
+    return [
+        scale[0] * c,
+        scale[0] * s,
+        0,
+        0,
+        -scale[1] * s,
+        scale[1] * c,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        x - x * c + y * s + offset[0],
+        y - x * s - y * c + offset[1],
+        0,
+        1,
+    ]
+
+
+def sampler_parameters(matrices, spec):
+    """合并二维仿射序列并严格分解；不能表示的剪切、退化和三维分量明确拒绝。"""
+    parse_coordinates({"kind": "uv", "set": "", "transforms": matrices})
+    matrix = [1 if i // 4 == i % 4 else 0 for i in range(16)]
+    for other in matrices:
+        if any(abs(other[i]) > 1e-8 for i in (2, 6, 8, 9, 14)) or abs(other[10] - 1) > 1e-8:
+            raise ValidationError(
+                "目标二维采样器不能表达三维坐标变换", "MATERIALX_RESOURCE_UNSUPPORTED"
+            )
+        matrix = [
+            sum(matrix[row * 4 + k] * other[k * 4 + column] for k in range(4))
+            for row in range(4)
+            for column in range(4)
+        ]
+    sx = math.hypot(matrix[0], matrix[1])
+    determinant = matrix[0] * matrix[5] - matrix[1] * matrix[4]
+    if sx < 1e-12 or abs(determinant) < 1e-12:
+        raise ValidationError("目标二维采样器不接受退化矩阵", "MATERIALX_RESOURCE_UNSUPPORTED")
+    sy = determinant / sx
+    angle = math.atan2(matrix[1], matrix[0])
+    c, s = math.cos(angle), math.sin(angle)
+    x, y = spec["pivot"]
+    result = {
+        "scale": [sx, sy],
+        "offset": [matrix[12] - x + x * c - y * s, matrix[13] - y + x * s + y * c],
+        "rotation": math.degrees(angle) if spec["rotation_unit"] == "degrees" else angle,
+    }
+    rebuilt = sampler_matrix(result, spec)
+    if any(
+        not math.isclose(a, b, abs_tol=2e-6, rel_tol=2e-6)
+        for a, b in zip(matrix, rebuilt, strict=True)
+    ):
+        raise ValidationError(
+            "目标二维采样器不能表达合成后的剪切", "MATERIALX_RESOURCE_UNSUPPORTED"
+        )
+    return result
+
+
+def prepare_source_coordinates(material, dictionary, issues):
+    """把宿主实读采样参数转成标准矩阵；原始原生参数继续留在源返回值中。"""
+    spec = dictionary.data.get("texture_coordinates", {}).get("sampler")
+    if spec is None:
+        return material
+    material = deepcopy(material)
+    for resource in material["textures"].values():
+        captured = resource.get("metadata", {}).get("native_uv_capture")
+        if captured is None:
+            continue
+        matrix = sampler_matrix(captured, spec)
+        identity = [1 if i // 4 == i % 4 else 0 for i in range(16)]
+        if matrix == identity:
+            continue
+        if resource["coordinates"].get("transforms"):
+            raise ValidationError(
+                "原生采样参数与显式矩阵不能重复解释", "MATERIALX_RESOURCE_UNSUPPORTED"
+            )
+        resource["coordinates"]["transforms"] = [matrix]
+        if not spec["verified"]:
+            issues.append(
+                issue(
+                    "UV_SAMPLER_CONVENTION_UNVERIFIED",
+                    "按声明的二维缩放、旋转和偏移约定生成矩阵；原生采样顺序与旋转中心尚无渲染证据",
+                    severity="warning",
+                )
+            )
+    return material
+
+
+def prepare_target_coordinates(material, dictionary, issues):
+    """为已声明二维采样器生成有限原生参数计划，宿主仅按绑定写值。"""
+    spec = dictionary.data.get("texture_coordinates", {}).get("sampler")
+    if spec is None:
+        return material
+    material = deepcopy(material)
+    for resource in material["textures"].values():
+        matrices = resource["coordinates"].get("transforms", [])
+        if matrices:
+            resource.setdefault("metadata", {})["native_uv_target"] = sampler_parameters(
+                matrices, spec
+            )
+            if not spec["verified"]:
+                issues.append(
+                    issue(
+                        "UV_SAMPLER_CONVENTION_UNVERIFIED",
+                        "二维采样参数已显式生成；原生采样顺序与旋转中心尚无渲染证据，当前属于近似转换",
+                        severity="warning",
+                    )
+                )
+    return material
 
 
 def parse_coordinates(value):
@@ -43,8 +169,11 @@ def check_target_coordinates(data, dictionary):
         if coordinates["set"] and not capability.get("named_uv", False):
             raise ValidationError("目标尚未支持命名 UV 集", "MATERIALX_RESOURCE_UNSUPPORTED")
         matrices = coordinates.get("transforms", [])
-        if matrices and capability.get("transforms", "none") != "trs":
+        if matrices and capability.get("transforms", "none") not in {"trs", "trs2d"}:
             raise ValidationError("目标尚未支持贴图坐标矩阵", "MATERIALX_RESOURCE_UNSUPPORTED")
+        if matrices and capability.get("transforms") == "trs2d":
+            sampler_parameters(matrices, capability["sampler"])
+            continue
         for matrix in matrices:
             axes = [matrix[i : i + 3] for i in (0, 4, 8)]
             lengths = [math.sqrt(sum(v * v for v in axis)) for axis in axes]

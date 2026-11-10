@@ -62,6 +62,7 @@ def extend(profile, catalog):
     for op, suffix in (("divide", "rsmathdiv"), ("min", "rsmathmin"), ("max", "rsmathmax")):
         bind(suffix, "ND_" + op + "_float", {"in1": "input1", "in2": "input2"})
     bind("rsmathfloor", "ND_floor_float", {"in": "input"})
+    bind("rsmathpow", "ND_power_float", {"in1": "base", "in2": "exponent"})
     bind("rsmathsign", "ND_iris_rs_sign_float", {"in": "input"})
     bind("rsmathmix", "ND_mix_float", {"fg": "input2", "bg": "input1", "mix": "mixamount"})
     bind(
@@ -79,14 +80,40 @@ def extend(profile, catalog):
     )
     bind("rscolorconstant", "ND_constant_color3", {"value": "color"}, "outcolor")
     bind("rsmathadd", "ND_constant_float", {"value": "input1"}, fixed={"input2": 0})
+    profile["nodes"][RS + "rsmathadd"]["source_default"] = True
     for channel in "rgb":
         bind("rscolorsplitter", "ND_iris_rs_extract_" + channel, {"in": "input"}, "out" + channel)
     profile["materialx_extensions"] = xml
     profile["materialx_lowerings"] = lowerings
     profile["texture_alpha_modes"] = ["STRAIGHT", "PREMUL", "CHANNEL_PACKED", "NONE"]
-    profile["texture_image_channels"] = [1, 3]
-    profile["version"] = "0.4.0"
+    profile["texture_image_channels"] = [1, 3, 4]
+    profile["texture_alpha_behavior"] = {"png": "independent", "exr": "independent"}
+    profile["version"] = "0.5.0"
     image = next(rule for rule in profile["nodes"].values() if rule["semantic"] == "texture.image")
+    splitter = RS + "rscolorsplitter"
+    observed = catalog["nodes"][splitter]
+    assert observed["status"] == "instantiated"
+    assert any(p["id"] == splitter + ".outa" for p in observed["outputs"])
+    image["outputs"]["alpha"] = {
+        "semantic": "alpha",
+        "type": "float",
+        "native": {
+            "id": splitter + ".outa",
+            "kind": "socket",
+            "codec": "identity",
+            "properties": {
+                "output_projection": {
+                    "asset": splitter,
+                    "input": splitter + ".input",
+                    "source": next(
+                        v["native"]["id"]
+                        for v in image["outputs"].values()
+                        if v["semantic"] == "color"
+                    ),
+                }
+            },
+        },
+    }
     resource = next(p for p in image["inputs"].values() if p["type"] == "texture")
     resource["native"]["properties"] = {
         "color_spaces": {
@@ -94,6 +121,25 @@ def extend(profile, catalog):
             "sRGB": "RS_INPUT_COLORSPACE_SRGB",
         }
     }
+    sampler = {
+        "scale": RS + "texturesampler.scale",
+        "offset": RS + "texturesampler.offset",
+        "rotation": RS + "texturesampler.rotate",
+    }
+    resource["native"]["properties"]["uv_sampler"] = sampler
+    profile["texture_coordinates"] = {
+        "named_uv": True,
+        "transforms": "trs2d",
+        "sampler": {
+            "rotation_unit": "degrees",
+            "pivot": [0.5, 0.5],
+            "order": "scale_rotate_translate",
+            "verified": False,
+        },
+    }
+    for identifier in sampler.values():
+        image["inputs"].pop(identifier, None)
+        image["native"]["properties"].pop(identifier, None)
     # 实机默认含镜像与亮度 Alpha，不能作为 Blender 重复采样的无损默认值。
     for name in ("mirroru", "mirrorv", "alpha_is_luminance", "tone_map_enable"):
         identifier = RS + "texturesampler." + name

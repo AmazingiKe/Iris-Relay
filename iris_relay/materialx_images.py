@@ -1,5 +1,7 @@
 """图片 Alpha 的标准运算与受限原生还原；不读取图片像素或执行着色。"""
 
+from copy import deepcopy
+
 import MaterialX as mx
 
 from .conversion import issue
@@ -16,16 +18,167 @@ def alpha_description(resource):
         return None
     if (
         not isinstance(value, dict)
-        or set(value) != {"mode", "channels"}
+        or not {"mode", "channels"} <= set(value) <= {"mode", "channels", "association"}
         or not isinstance(value["mode"], str)
         or value["mode"] not in MODES
         or type(value["channels"]) is not int
         or value["channels"] not in IMAGE_TYPES
+        or ("association" in value and value["association"] not in {"premultiplied", "independent"})
     ):
         raise ValidationError(
             "图片 Alpha 模式或文件通道描述不受支持", "MATERIALX_RESOURCE_UNSUPPORTED"
         )
     return value
+
+
+def color_association(description, used_alpha, color_space):
+    """返回文件颜色至当前逻辑颜色的 Alpha 次数；原生固定行为优先于 Blender 的使用规则。"""
+    if description["channels"] != 4:
+        return 0
+    if "association" in description:
+        return 1 if description["association"] == "premultiplied" else 0
+    if color_space == "Raw":
+        return 0
+    if description["mode"] == "STRAIGHT" and not used_alpha:
+        return 1
+    if description["mode"] == "PREMUL" and used_alpha:
+        return -1
+    return 0
+
+
+def prepare_target_images(material, dictionary, issues, library=None):
+    """依据目标已验证的采样关联展开显式标准数学；原始材质与资源描述不变。"""
+    result = deepcopy(material)
+    behavior = dictionary.data.get("texture_alpha_behavior")
+    used_ids = {n["id"] for n in result["nodes"]}
+    if library is None:
+        library = mx.createDocument()
+        mx.loadLibraries(mx.getDefaultDataLibraryFolders(), mx.getDefaultDataSearchPath(), library)
+
+    def node(owner, category, inputs):
+        definition = library.getNodeDef("ND_" + category)
+        name = owner + "__alpha_" + category
+        while name in used_ids:
+            name += "_"
+        used_ids.add(name)
+        values = {}
+        for key, value in inputs.items():
+            if isinstance(value, dict):
+                result["links"].append({"from": value, "to": {"node": name, "socket": key}})
+                default = definition.getActiveInput(key).getValue()
+                values[key] = (
+                    list(default) if isinstance(default, (mx.Color3, mx.Vector3)) else default
+                )
+            else:
+                values[key] = value
+        result["nodes"].append(
+            {
+                "id": name,
+                "type": "materialx.ND_" + category,
+                "inputs": values,
+                "outputs": ["out"],
+                "metadata": {"function_owner": owner, "role": "image_alpha"},
+            }
+        )
+        return {"node": name, "socket": "out"}
+
+    for record in list(result["nodes"]):
+        if record["type"] != "texture.image":
+            continue
+        reference = record["inputs"].get("image")
+        if reference is None:
+            continue
+        resource = result["textures"][reference["texture"]]
+        description = alpha_description(resource)
+        if description is None or description["channels"] != 4:
+            continue
+        if behavior is None and "association" not in description:
+            continue
+        resource_behavior = behavior
+        if isinstance(behavior, dict):
+            extension = resource["uri"].rsplit(".", 1)[-1].lower()
+            image_format = resource.get("metadata", {}).get("image_format", extension)
+            resource_behavior = behavior.get(image_format)
+            if resource_behavior is None:
+                raise ValidationError(
+                    "目标尚未核验此 RGBA 文件格式的关联行为：" + image_format,
+                    "MATERIALX_RESOURCE_UNSUPPORTED",
+                )
+        original_links = [e for e in result["links"] if e["from"]["node"] == record["id"]]
+        alpha_links = [e for e in original_links if e["from"]["socket"] == "alpha"]
+        color_links = [e for e in original_links if e["from"]["socket"] == "color"]
+        desired = color_association(description, bool(alpha_links), resource["color_space"])
+        actual = 1 if resource_behavior == "premultiplied" else 0
+        normalized = {"mode": "CHANNEL_PACKED", "channels": 4}
+        if actual:
+            normalized["association"] = "premultiplied"
+        resource["metadata"]["source_image_alpha"] = deepcopy(description)
+        resource["metadata"]["image_alpha"] = normalized
+        if "alpha" not in record["outputs"]:
+            record["outputs"].append("alpha")
+        alpha = {"node": record["id"], "socket": "alpha"}
+        # NONE 的逻辑 Alpha 为 1，与采样器的实际第四通道分别表达。
+        if description["mode"] == "NONE" and alpha_links:
+            one = node(record["id"], "constant_float", {"value": 1.0})
+            for edge in alpha_links:
+                edge["from"] = deepcopy(one)
+        difference = desired - actual
+        if difference and color_links:
+            safe_alpha = (
+                node(
+                    record["id"],
+                    "ifequal_float",
+                    {
+                        "value1": alpha,
+                        "value2": 0.0,
+                        "in1": 1.0,
+                        "in2": alpha,
+                    },
+                )
+                if difference < 0
+                else alpha
+            )
+            channels = []
+            for index in range(3):
+                endpoint = node(
+                    record["id"],
+                    "extract_color3",
+                    {
+                        "in": {"node": record["id"], "socket": "color"},
+                        "index": index,
+                    },
+                )
+                for _ in range(abs(difference)):
+                    endpoint = node(
+                        record["id"],
+                        "multiply_float" if difference > 0 else "divide_float",
+                        {
+                            "in1": endpoint,
+                            "in2": safe_alpha,
+                        },
+                    )
+                channels.append(endpoint)
+            color = node(
+                record["id"],
+                "combine3_color3",
+                {
+                    "in1": channels[0],
+                    "in2": channels[1],
+                    "in3": channels[2],
+                },
+            )
+            for edge in color_links:
+                edge["from"] = deepcopy(color)
+        issues.append(
+            issue(
+                "IMAGE_NATIVE_ALPHA_EXPLICIT",
+                "已按目标原生采样关联保留独立 Alpha 与显式颜色数学；"
+                "解码量化和透明边缘过滤仍可能有差异，预乘解码已丢失的零 Alpha 隐藏 RGB 无法恢复",
+                record["id"],
+                severity="warning",
+            )
+        )
+    return result
 
 
 def alpha_warning(description, color_space, issues, name):
@@ -52,6 +205,10 @@ def add_image_outputs(core, doc, node, description, used_alpha, color_space, add
     node.setAttribute("iris_alpha_mode", mode)
     node.setAttribute("iris_image_channels", str(channels))
     node.setAttribute("iris_alpha_used", "true" if used_alpha else "false")
+    if "association" in description:
+        node.setAttribute("iris_native_association", description["association"])
+    else:
+        node.removeAttribute("iris_native_association")
 
     def helper(definition, role, upstream=None):
         child = doc.addNodeInstance(
@@ -66,13 +223,27 @@ def add_image_outputs(core, doc, node, description, used_alpha, color_space, add
 
     # 1. 文件通道和原生 Alpha 模式共同决定颜色；不能把缺失 Alpha 当零。
     color = node
-    association = None
-    if channels == 4 and color_space != "Raw":
-        if mode == "STRAIGHT" and not used_alpha:
-            association = "premult"
-        elif mode == "PREMUL" and used_alpha:
-            association = "unpremult"
+    exponent = color_association(description, used_alpha, color_space)
+    association = "premult" if exponent > 0 else "unpremult" if exponent < 0 else None
     if association:
+        if exponent < 0:
+            # Cycles 在 Alpha=0 时保留颜色；标准 unpremult 直接除零，需要显式保护分母。
+            alpha = helper("ND_extract_color4", "association_alpha", node)
+            add_value(alpha, "index", 3)
+            safe = helper("ND_ifequal_float", "association_safe_alpha")
+            add_value(safe, "value1", None).setConnectedNode(alpha)
+            add_value(safe, "value2", 0)
+            add_value(safe, "in1", 1)
+            add_value(safe, "in2", None).setConnectedNode(alpha)
+            components = []
+            for index in range(3):
+                component = helper("ND_extract_color4", "association_channel_" + str(index), node)
+                add_value(component, "index", index)
+                components.append(component)
+            protected = helper("ND_combine4_color4", "association_protected")
+            for index, component in enumerate(components + [safe]):
+                add_value(protected, "in" + str(index + 1), None).setConnectedNode(component)
+            color = protected
         color = helper("ND_" + association + "_color4", "association", color)
     if channels == 1:
         # 颜色类型才能接受标准颜色变换；先取灰度的 R，再显式复制到 RGB。
@@ -92,6 +263,108 @@ def add_image_outputs(core, doc, node, description, used_alpha, color_space, add
             add_value(alpha, "value", 1.0)
         outputs["alpha"] = alpha
     return outputs
+
+
+def adapt_target_image_graphs(
+    core, doc, dictionary, read_input, require_defaults, add_value, issues
+):
+    """先严格核验图片组合，再建立目标采样组合及显式数学；后续统一组合展开覆盖新增节点。"""
+    reader = ImageGraphReader(core, doc, read_input, require_defaults, add_value)
+    changed = False
+    for image in list(doc.getNodes()):
+        if image.getCategory() != "image":
+            continue
+        information = reader.read(image)
+        if information is None or information["description"]["channels"] != 4:
+            continue
+        if (
+            not dictionary.data.get("texture_alpha_behavior")
+            and "association" not in information["description"]
+        ):
+            continue
+        name = image.getNamePath()
+        # 计划只包含此图片和虚拟出口；全部数学仍使用与普通转换相同的标准语义。
+        file = image.getInput("file") or image.getNodeDef().getActiveInput("file")
+        space = "Raw" if file.getActiveColorSpace() == "raw" else "sRGB"
+        links = [
+            {"from": {"node": name, "socket": "color"}, "to": {"node": "__sink", "socket": "color"}}
+        ]
+        if information["used_alpha"]:
+            links.append(
+                {
+                    "from": {"node": name, "socket": "alpha"},
+                    "to": {"node": "__sink", "socket": "alpha"},
+                }
+            )
+        plan = prepare_target_images(
+            {
+                "nodes": [
+                    {
+                        "id": name,
+                        "type": "texture.image",
+                        "inputs": {"image": {"texture": "image"}},
+                        "outputs": list(information["outputs"]),
+                        "metadata": {},
+                    }
+                ],
+                "links": links,
+                "textures": {
+                    "image": {
+                        "uri": file.getValueString(),
+                        "color_space": space,
+                        "metadata": {"image_alpha": information["description"]},
+                    }
+                },
+            },
+            dictionary,
+            issues,
+            core.library,
+        )
+        old_helpers = information["helpers"]
+        old_endpoints = {
+            endpoint.getNamePath(): key for key, endpoint in information["outputs"].items()
+        }
+        external_ports = []
+        for element in doc.traverseTree():
+            if not isinstance(element, (mx.Input, mx.Output)):
+                continue
+            parent = element.getParent()
+            if parent.getNamePath() in old_helpers or parent == image:
+                continue
+            upstream = element.getConnectedNode()
+            if upstream is not None and upstream.getNamePath() in old_endpoints:
+                external_ports.append((element, old_endpoints[upstream.getNamePath()]))
+        # 1. 目标原生采样行为作为可核验的图片组合保留，新增补偿在组合之外。
+        used_alpha = any(e["from"] == {"node": name, "socket": "alpha"} for e in plan["links"])
+        normalized = plan["textures"]["image"]["metadata"]["image_alpha"]
+        native_outputs = add_image_outputs(
+            core, doc, image, normalized, used_alpha, space, add_value
+        )
+        endpoints = {(name, key): value for key, value in native_outputs.items()}
+        for record in plan["nodes"][1:]:
+            definition = core.library.getNodeDef(record["type"].removeprefix("materialx."))
+            created = doc.addNodeInstance(definition, doc.createValidChildName(record["id"]))
+            for key, value in record["inputs"].items():
+                add_value(created, key, value)
+            endpoints[(record["id"], "out")] = created
+        sinks = {}
+        for edge in plan["links"]:
+            origin = endpoints[(edge["from"]["node"], edge["from"]["socket"])]
+            if edge["to"]["node"] == "__sink":
+                sinks[edge["to"]["socket"]] = origin
+            else:
+                destination = endpoints[(edge["to"]["node"], "out")]
+                port = destination.getInput(edge["to"]["socket"])
+                port.removeAttribute("value")
+                port.setConnectedNode(origin)
+        # 2. 所有实际外部使用者都重连，包括共享分支；随后才删除旧的已核验组合。
+        for port, key in external_ports:
+            port.removeAttribute("value")
+            port.setConnectedNode(sinks[key])
+        for helper in old_helpers:
+            doc.removeNode(helper)
+        changed = True
+    return changed
 
 
 class ImageGraphReader:
@@ -127,6 +400,9 @@ class ImageGraphReader:
                 }
             }
         )
+        if node.hasAttribute("iris_native_association"):
+            description["association"] = node.getAttribute("iris_native_association")
+            alpha_description({"metadata": {"image_alpha": description}})
         used = node.getAttribute("iris_alpha_used")
         definition = node.getNodeDef()
         if (

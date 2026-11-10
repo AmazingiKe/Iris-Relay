@@ -176,10 +176,10 @@ def test_unproven_target_alpha_modes_block_and_keep_document():
 
     api, source = setup()
     document = call(api, "materialx.export", material=source)["result"]["document"]
-    target = renderer(
-        json.loads((ROOT / "dictionaries/cinema4d-redshift-2025.3.0.json").read_text("utf-8"))
-    )
-    result = call(api, "materialx.convert", document=document, target=target)
+    profile = json.loads((ROOT / "dictionaries/cinema4d-redshift-2025.3.0.json").read_text("utf-8"))
+    profile["texture_image_channels"] = [1, 3]
+    target = renderer(profile)
+    result = call(RelayAPI([profile]), "materialx.convert", document=document, target=target)
     assert result["status"] == "error" and result["result"]["source"] == document
     assert result["result"]["material"] is None
 

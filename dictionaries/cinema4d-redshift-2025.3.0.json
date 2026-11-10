@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "id": "cinema4d.redshift.native",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "semantic_schema_version": "1",
   "description": "真实原生绑定；标准表面、图片、切线法线、高度凹凸与显式 R 通道提取。其余节点见探测目录。",
   "renderer": {
@@ -1082,6 +1082,11 @@
               "color_spaces": {
                 "Raw": "RS_INPUT_COLORSPACE_RAW",
                 "sRGB": "RS_INPUT_COLORSPACE_SRGB"
+              },
+              "uv_sampler": {
+                "scale": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.scale",
+                "offset": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.offset",
+                "rotation": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.rotate"
               }
             }
           }
@@ -1238,17 +1243,6 @@
           },
           "omit_if_default": true
         },
-        "com.redshift3d.redshift4c4d.nodes.core.texturesampler.rotate": {
-          "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.rotate",
-          "type": "float",
-          "default": 0.0,
-          "native": {
-            "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.rotate",
-            "kind": "socket",
-            "codec": "identity"
-          },
-          "omit_if_default": true
-        },
         "com.redshift3d.redshift4c4d.nodes.core.texturesampler.color_multiplier": {
           "semantic": "native.redshift.com.redshift3d.redshift4c4d.nodes.core.texturesampler.color_multiplier",
           "type": "color",
@@ -1381,6 +1375,22 @@
             "id": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.outcolor",
             "kind": "socket",
             "codec": "identity"
+          }
+        },
+        "alpha": {
+          "semantic": "alpha",
+          "type": "float",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter.outa",
+            "kind": "socket",
+            "codec": "identity",
+            "properties": {
+              "output_projection": {
+                "asset": "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter",
+                "input": "com.redshift3d.redshift4c4d.nodes.core.rscolorsplitter.input",
+                "source": "com.redshift3d.redshift4c4d.nodes.core.texturesampler.outcolor"
+              }
+            }
           }
         }
       }
@@ -1813,7 +1823,8 @@
             "codec": "identity"
           }
         }
-      }
+      },
+      "source_default": true
     },
     "com.redshift3d.redshift4c4d.nodes.core.rsmathsub": {
       "semantic": "materialx.ND_subtract_float",
@@ -2057,6 +2068,48 @@
           "type": "float",
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathfloor.out",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ND_power_float": {
+      "semantic": "materialx.ND_power_float",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathpow",
+        "properties": {
+          "com.redshift3d.redshift4c4d.nodes.core.rsmathpow.math_op": 10
+        }
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathpow.base",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathpow.exponent",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathpow.out",
             "kind": "socket",
             "codec": "identity"
           }
@@ -2427,7 +2480,7 @@
       }
     }
   },
-  "materialx_extensions": "<?xml version=\"1.0\"?>\n<materialx version=\"1.39\">\n  <nodedef name=\"ND_iris_rs_sign_float\" node=\"iris_rs_sign_float\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"in\" type=\"float\" value=\"0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_sign_float\" nodedef=\"ND_iris_rs_sign_float\">\n    <ifgreatereq name=\"ifgreatereq\" type=\"float\" nodedef=\"ND_ifgreatereq_float\">\n      <input name=\"value1\" type=\"float\" interfacename=\"in\" />\n      <input name=\"value2\" type=\"float\" value=\"0\" />\n      <input name=\"in1\" type=\"float\" value=\"1\" />\n      <input name=\"in2\" type=\"float\" value=\"-1\" />\n    </ifgreatereq>\n    <output name=\"out\" type=\"float\" nodename=\"ifgreatereq\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_extract_r\" node=\"iris_rs_extract_r\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"in\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_extract_r\" nodedef=\"ND_iris_rs_extract_r\">\n    <extract name=\"extract\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in\" />\n      <input name=\"index\" type=\"integer\" value=\"0\" />\n    </extract>\n    <output name=\"out\" type=\"float\" nodename=\"extract\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_extract_g\" node=\"iris_rs_extract_g\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"in\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_extract_g\" nodedef=\"ND_iris_rs_extract_g\">\n    <extract name=\"extract\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in\" />\n      <input name=\"index\" type=\"integer\" value=\"1\" />\n    </extract>\n    <output name=\"out\" type=\"float\" nodename=\"extract\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_extract_b\" node=\"iris_rs_extract_b\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"in\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_extract_b\" nodedef=\"ND_iris_rs_extract_b\">\n    <extract name=\"extract\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in\" />\n      <input name=\"index\" type=\"integer\" value=\"2\" />\n    </extract>\n    <output name=\"out\" type=\"float\" nodename=\"extract\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_ifequal_float\" node=\"iris_rs_lower_ifequal_float\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"value1\" type=\"float\" value=\"0.0\" />\n    <input name=\"value2\" type=\"float\" value=\"0.0\" />\n    <input name=\"in1\" type=\"float\" value=\"0.0\" />\n    <input name=\"in2\" type=\"float\" value=\"0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_ifequal_float\" nodedef=\"ND_iris_rs_lower_ifequal_float\">\n    <subtract name=\"subtract\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" interfacename=\"value1\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"value2\" />\n    </subtract>\n    <subtract name=\"subtract2\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" value=\"0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"subtract\" />\n    </subtract>\n    <iris_rs_sign_float name=\"iris_rs_sign_float\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract\" />\n    </iris_rs_sign_float>\n    <iris_rs_sign_float name=\"iris_rs_sign_float2\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract2\" />\n    </iris_rs_sign_float>\n    <add name=\"add\" type=\"float\" nodedef=\"ND_add_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"iris_rs_sign_float\" />\n      <input name=\"in2\" type=\"float\" nodename=\"iris_rs_sign_float2\" />\n    </add>\n    <multiply name=\"multiply\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"add\" />\n      <input name=\"in2\" type=\"float\" value=\"0.5\" />\n    </multiply>\n    <mix name=\"mix\" type=\"float\" nodedef=\"ND_mix_float\">\n      <input name=\"fg\" type=\"float\" interfacename=\"in1\" />\n      <input name=\"bg\" type=\"float\" interfacename=\"in2\" />\n      <input name=\"mix\" type=\"float\" nodename=\"multiply\" />\n    </mix>\n    <output name=\"out\" type=\"float\" nodename=\"mix\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_ifequal_color3\" node=\"iris_rs_lower_ifequal_color3\">\n    <output name=\"out\" type=\"color3\" />\n    <input name=\"value1\" type=\"float\" value=\"0.0\" />\n    <input name=\"value2\" type=\"float\" value=\"0.0\" />\n    <input name=\"in1\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n    <input name=\"in2\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_ifequal_color3\" nodedef=\"ND_iris_rs_lower_ifequal_color3\">\n    <subtract name=\"subtract\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" interfacename=\"value1\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"value2\" />\n    </subtract>\n    <subtract name=\"subtract2\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" value=\"0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"subtract\" />\n    </subtract>\n    <iris_rs_sign_float name=\"iris_rs_sign_float\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract\" />\n    </iris_rs_sign_float>\n    <iris_rs_sign_float name=\"iris_rs_sign_float2\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract2\" />\n    </iris_rs_sign_float>\n    <add name=\"add\" type=\"float\" nodedef=\"ND_add_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"iris_rs_sign_float\" />\n      <input name=\"in2\" type=\"float\" nodename=\"iris_rs_sign_float2\" />\n    </add>\n    <multiply name=\"multiply\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"add\" />\n      <input name=\"in2\" type=\"float\" value=\"0.5\" />\n    </multiply>\n    <mix name=\"mix\" type=\"color3\" nodedef=\"ND_mix_color3\">\n      <input name=\"fg\" type=\"color3\" interfacename=\"in1\" />\n      <input name=\"bg\" type=\"color3\" interfacename=\"in2\" />\n      <input name=\"mix\" type=\"float\" nodename=\"multiply\" />\n    </mix>\n    <output name=\"out\" type=\"color3\" nodename=\"mix\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_ifgreater_float\" node=\"iris_rs_lower_ifgreater_float\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"value1\" type=\"float\" value=\"1.0\" />\n    <input name=\"value2\" type=\"float\" value=\"0.0\" />\n    <input name=\"in1\" type=\"float\" value=\"0.0\" />\n    <input name=\"in2\" type=\"float\" value=\"0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_ifgreater_float\" nodedef=\"ND_iris_rs_lower_ifgreater_float\">\n    <subtract name=\"subtract\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" interfacename=\"value2\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"value1\" />\n    </subtract>\n    <iris_rs_sign_float name=\"iris_rs_sign_float\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract\" />\n    </iris_rs_sign_float>\n    <subtract name=\"subtract2\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" value=\"1\" />\n      <input name=\"in2\" type=\"float\" nodename=\"iris_rs_sign_float\" />\n    </subtract>\n    <multiply name=\"multiply\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"subtract2\" />\n      <input name=\"in2\" type=\"float\" value=\"0.5\" />\n    </multiply>\n    <mix name=\"mix\" type=\"float\" nodedef=\"ND_mix_float\">\n      <input name=\"fg\" type=\"float\" interfacename=\"in1\" />\n      <input name=\"bg\" type=\"float\" interfacename=\"in2\" />\n      <input name=\"mix\" type=\"float\" nodename=\"multiply\" />\n    </mix>\n    <output name=\"out\" type=\"float\" nodename=\"mix\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_ifgreater_color3\" node=\"iris_rs_lower_ifgreater_color3\">\n    <output name=\"out\" type=\"color3\" />\n    <input name=\"value1\" type=\"float\" value=\"1.0\" />\n    <input name=\"value2\" type=\"float\" value=\"0.0\" />\n    <input name=\"in1\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n    <input name=\"in2\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_ifgreater_color3\" nodedef=\"ND_iris_rs_lower_ifgreater_color3\">\n    <subtract name=\"subtract\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" interfacename=\"value2\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"value1\" />\n    </subtract>\n    <iris_rs_sign_float name=\"iris_rs_sign_float\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract\" />\n    </iris_rs_sign_float>\n    <subtract name=\"subtract2\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" value=\"1\" />\n      <input name=\"in2\" type=\"float\" nodename=\"iris_rs_sign_float\" />\n    </subtract>\n    <multiply name=\"multiply\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"subtract2\" />\n      <input name=\"in2\" type=\"float\" value=\"0.5\" />\n    </multiply>\n    <mix name=\"mix\" type=\"color3\" nodedef=\"ND_mix_color3\">\n      <input name=\"fg\" type=\"color3\" interfacename=\"in1\" />\n      <input name=\"bg\" type=\"color3\" interfacename=\"in2\" />\n      <input name=\"mix\" type=\"float\" nodename=\"multiply\" />\n    </mix>\n    <output name=\"out\" type=\"color3\" nodename=\"mix\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_clamp_float\" node=\"iris_rs_lower_clamp_float\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"in\" type=\"float\" value=\"0.0\" />\n    <input name=\"low\" type=\"float\" value=\"0.0\" />\n    <input name=\"high\" type=\"float\" value=\"1.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_clamp_float\" nodedef=\"ND_iris_rs_lower_clamp_float\">\n    <max name=\"max\" type=\"float\" nodedef=\"ND_max_float\">\n      <input name=\"in1\" type=\"float\" interfacename=\"in\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"low\" />\n    </max>\n    <min name=\"min\" type=\"float\" nodedef=\"ND_min_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"max\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"high\" />\n    </min>\n    <output name=\"out\" type=\"float\" nodename=\"min\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_convert_float_color3\" node=\"iris_rs_lower_convert_float_color3\">\n    <output name=\"out\" type=\"color3\" />\n    <input name=\"in\" type=\"float\" value=\"0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_convert_float_color3\" nodedef=\"ND_iris_rs_lower_convert_float_color3\">\n    <combine3 name=\"combine3\" type=\"color3\" nodedef=\"ND_combine3_color3\">\n      <input name=\"in1\" type=\"float\" interfacename=\"in\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"in\" />\n      <input name=\"in3\" type=\"float\" interfacename=\"in\" />\n    </combine3>\n    <output name=\"out\" type=\"color3\" nodename=\"combine3\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_max_color3FA\" node=\"iris_rs_lower_max_color3FA\">\n    <output name=\"out\" type=\"color3\" />\n    <input name=\"in1\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n    <input name=\"in2\" type=\"float\" value=\"0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_max_color3FA\" nodedef=\"ND_iris_rs_lower_max_color3FA\">\n    <iris_rs_extract_r name=\"iris_rs_extract_r\" type=\"float\" nodedef=\"ND_iris_rs_extract_r\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in1\" />\n    </iris_rs_extract_r>\n    <max name=\"max\" type=\"float\" nodedef=\"ND_max_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"iris_rs_extract_r\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"in2\" />\n    </max>\n    <iris_rs_extract_g name=\"iris_rs_extract_g\" type=\"float\" nodedef=\"ND_iris_rs_extract_g\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in1\" />\n    </iris_rs_extract_g>\n    <max name=\"max2\" type=\"float\" nodedef=\"ND_max_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"iris_rs_extract_g\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"in2\" />\n    </max>\n    <iris_rs_extract_b name=\"iris_rs_extract_b\" type=\"float\" nodedef=\"ND_iris_rs_extract_b\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in1\" />\n    </iris_rs_extract_b>\n    <max name=\"max3\" type=\"float\" nodedef=\"ND_max_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"iris_rs_extract_b\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"in2\" />\n    </max>\n    <combine3 name=\"combine3\" type=\"color3\" nodedef=\"ND_combine3_color3\">\n      <input name=\"in1\" type=\"float\" nodename=\"max\" />\n      <input name=\"in2\" type=\"float\" nodename=\"max2\" />\n      <input name=\"in3\" type=\"float\" nodename=\"max3\" />\n    </combine3>\n    <output name=\"out\" type=\"color3\" nodename=\"combine3\" />\n  </nodegraph>\n</materialx>\n",
+  "materialx_extensions": "<?xml version=\"1.0\"?>\n<materialx version=\"1.39\">\n  <nodedef name=\"ND_iris_rs_sign_float\" node=\"iris_rs_sign_float\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"in\" type=\"float\" value=\"0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_sign_float\" nodedef=\"ND_iris_rs_sign_float\">\n    <ifgreatereq name=\"ifgreatereq\" type=\"float\" nodedef=\"ND_ifgreatereq_float\">\n      <input name=\"value1\" type=\"float\" interfacename=\"in\" />\n      <input name=\"value2\" type=\"float\" value=\"0\" />\n      <input name=\"in1\" type=\"float\" value=\"1\" />\n      <input name=\"in2\" type=\"float\" value=\"-1\" />\n    </ifgreatereq>\n    <output name=\"out\" type=\"float\" nodename=\"ifgreatereq\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_extract_r\" node=\"iris_rs_extract_r\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"in\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_extract_r\" nodedef=\"ND_iris_rs_extract_r\">\n    <extract name=\"extract\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in\" />\n      <input name=\"index\" type=\"integer\" value=\"0\" />\n    </extract>\n    <output name=\"out\" type=\"float\" nodename=\"extract\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_extract_g\" node=\"iris_rs_extract_g\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"in\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_extract_g\" nodedef=\"ND_iris_rs_extract_g\">\n    <extract name=\"extract\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in\" />\n      <input name=\"index\" type=\"integer\" value=\"1\" />\n    </extract>\n    <output name=\"out\" type=\"float\" nodename=\"extract\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_extract_b\" node=\"iris_rs_extract_b\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"in\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_extract_b\" nodedef=\"ND_iris_rs_extract_b\">\n    <extract name=\"extract\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in\" />\n      <input name=\"index\" type=\"integer\" value=\"2\" />\n    </extract>\n    <output name=\"out\" type=\"float\" nodename=\"extract\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_ifequal_float\" node=\"iris_rs_lower_ifequal_float\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"value1\" type=\"float\" value=\"0.0\" />\n    <input name=\"value2\" type=\"float\" value=\"0.0\" />\n    <input name=\"in1\" type=\"float\" value=\"0.0\" />\n    <input name=\"in2\" type=\"float\" value=\"0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_ifequal_float\" nodedef=\"ND_iris_rs_lower_ifequal_float\">\n    <subtract name=\"subtract\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" interfacename=\"value1\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"value2\" />\n    </subtract>\n    <subtract name=\"subtract2\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" value=\"0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"subtract\" />\n    </subtract>\n    <iris_rs_sign_float name=\"iris_rs_sign_float\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract\" />\n    </iris_rs_sign_float>\n    <iris_rs_sign_float name=\"iris_rs_sign_float2\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract2\" />\n    </iris_rs_sign_float>\n    <add name=\"add\" type=\"float\" nodedef=\"ND_add_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"iris_rs_sign_float\" />\n      <input name=\"in2\" type=\"float\" nodename=\"iris_rs_sign_float2\" />\n    </add>\n    <multiply name=\"multiply\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"add\" />\n      <input name=\"in2\" type=\"float\" value=\"0.5\" />\n    </multiply>\n    <mix name=\"mix\" type=\"float\" nodedef=\"ND_mix_float\">\n      <input name=\"fg\" type=\"float\" interfacename=\"in1\" />\n      <input name=\"bg\" type=\"float\" interfacename=\"in2\" />\n      <input name=\"mix\" type=\"float\" nodename=\"multiply\" />\n    </mix>\n    <output name=\"out\" type=\"float\" nodename=\"mix\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_ifequal_color3\" node=\"iris_rs_lower_ifequal_color3\">\n    <output name=\"out\" type=\"color3\" />\n    <input name=\"value1\" type=\"float\" value=\"0.0\" />\n    <input name=\"value2\" type=\"float\" value=\"0.0\" />\n    <input name=\"in1\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n    <input name=\"in2\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_ifequal_color3\" nodedef=\"ND_iris_rs_lower_ifequal_color3\">\n    <subtract name=\"subtract\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" interfacename=\"value1\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"value2\" />\n    </subtract>\n    <subtract name=\"subtract2\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" value=\"0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"subtract\" />\n    </subtract>\n    <iris_rs_sign_float name=\"iris_rs_sign_float\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract\" />\n    </iris_rs_sign_float>\n    <iris_rs_sign_float name=\"iris_rs_sign_float2\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract2\" />\n    </iris_rs_sign_float>\n    <add name=\"add\" type=\"float\" nodedef=\"ND_add_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"iris_rs_sign_float\" />\n      <input name=\"in2\" type=\"float\" nodename=\"iris_rs_sign_float2\" />\n    </add>\n    <multiply name=\"multiply\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"add\" />\n      <input name=\"in2\" type=\"float\" value=\"0.5\" />\n    </multiply>\n    <mix name=\"mix\" type=\"color3\" nodedef=\"ND_mix_color3\">\n      <input name=\"fg\" type=\"color3\" interfacename=\"in1\" />\n      <input name=\"bg\" type=\"color3\" interfacename=\"in2\" />\n      <input name=\"mix\" type=\"float\" nodename=\"multiply\" />\n    </mix>\n    <output name=\"out\" type=\"color3\" nodename=\"mix\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_ifgreater_float\" node=\"iris_rs_lower_ifgreater_float\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"value1\" type=\"float\" value=\"1.0\" />\n    <input name=\"value2\" type=\"float\" value=\"0.0\" />\n    <input name=\"in1\" type=\"float\" value=\"0.0\" />\n    <input name=\"in2\" type=\"float\" value=\"0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_ifgreater_float\" nodedef=\"ND_iris_rs_lower_ifgreater_float\">\n    <subtract name=\"subtract\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" interfacename=\"value2\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"value1\" />\n    </subtract>\n    <iris_rs_sign_float name=\"iris_rs_sign_float\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract\" />\n    </iris_rs_sign_float>\n    <subtract name=\"subtract2\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" value=\"1\" />\n      <input name=\"in2\" type=\"float\" nodename=\"iris_rs_sign_float\" />\n    </subtract>\n    <multiply name=\"multiply\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"subtract2\" />\n      <input name=\"in2\" type=\"float\" value=\"0.5\" />\n    </multiply>\n    <mix name=\"mix\" type=\"float\" nodedef=\"ND_mix_float\">\n      <input name=\"fg\" type=\"float\" interfacename=\"in1\" />\n      <input name=\"bg\" type=\"float\" interfacename=\"in2\" />\n      <input name=\"mix\" type=\"float\" nodename=\"multiply\" />\n    </mix>\n    <output name=\"out\" type=\"float\" nodename=\"mix\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_ifgreater_color3\" node=\"iris_rs_lower_ifgreater_color3\">\n    <output name=\"out\" type=\"color3\" />\n    <input name=\"value1\" type=\"float\" value=\"1.0\" />\n    <input name=\"value2\" type=\"float\" value=\"0.0\" />\n    <input name=\"in1\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n    <input name=\"in2\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_ifgreater_color3\" nodedef=\"ND_iris_rs_lower_ifgreater_color3\">\n    <subtract name=\"subtract\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" interfacename=\"value2\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"value1\" />\n    </subtract>\n    <iris_rs_sign_float name=\"iris_rs_sign_float\" type=\"float\" nodedef=\"ND_iris_rs_sign_float\">\n      <input name=\"in\" type=\"float\" nodename=\"subtract\" />\n    </iris_rs_sign_float>\n    <subtract name=\"subtract2\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" value=\"1\" />\n      <input name=\"in2\" type=\"float\" nodename=\"iris_rs_sign_float\" />\n    </subtract>\n    <multiply name=\"multiply\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"subtract2\" />\n      <input name=\"in2\" type=\"float\" value=\"0.5\" />\n    </multiply>\n    <mix name=\"mix\" type=\"color3\" nodedef=\"ND_mix_color3\">\n      <input name=\"fg\" type=\"color3\" interfacename=\"in1\" />\n      <input name=\"bg\" type=\"color3\" interfacename=\"in2\" />\n      <input name=\"mix\" type=\"float\" nodename=\"multiply\" />\n    </mix>\n    <output name=\"out\" type=\"color3\" nodename=\"mix\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_clamp_float\" node=\"iris_rs_lower_clamp_float\">\n    <output name=\"out\" type=\"float\" />\n    <input name=\"in\" type=\"float\" value=\"0.0\" />\n    <input name=\"low\" type=\"float\" value=\"0.0\" />\n    <input name=\"high\" type=\"float\" value=\"1.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_clamp_float\" nodedef=\"ND_iris_rs_lower_clamp_float\">\n    <max name=\"max\" type=\"float\" nodedef=\"ND_max_float\">\n      <input name=\"in1\" type=\"float\" interfacename=\"in\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"low\" />\n    </max>\n    <min name=\"min\" type=\"float\" nodedef=\"ND_min_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"max\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"high\" />\n    </min>\n    <output name=\"out\" type=\"float\" nodename=\"min\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_convert_float_color3\" node=\"iris_rs_lower_convert_float_color3\">\n    <output name=\"out\" type=\"color3\" />\n    <input name=\"in\" type=\"float\" value=\"0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_convert_float_color3\" nodedef=\"ND_iris_rs_lower_convert_float_color3\">\n    <combine3 name=\"combine3\" type=\"color3\" nodedef=\"ND_combine3_color3\">\n      <input name=\"in1\" type=\"float\" interfacename=\"in\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"in\" />\n      <input name=\"in3\" type=\"float\" interfacename=\"in\" />\n    </combine3>\n    <output name=\"out\" type=\"color3\" nodename=\"combine3\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_rs_lower_max_color3FA\" node=\"iris_rs_lower_max_color3FA\">\n    <output name=\"out\" type=\"color3\" />\n    <input name=\"in1\" type=\"color3\" value=\"0.0, 0.0, 0.0\" />\n    <input name=\"in2\" type=\"float\" value=\"0.0\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_rs_lower_max_color3FA\" nodedef=\"ND_iris_rs_lower_max_color3FA\">\n    <iris_rs_extract_r name=\"iris_rs_extract_r\" type=\"float\" nodedef=\"ND_iris_rs_extract_r\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in1\" />\n    </iris_rs_extract_r>\n    <max name=\"max\" type=\"float\" nodedef=\"ND_max_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"iris_rs_extract_r\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"in2\" />\n    </max>\n    <iris_rs_extract_g name=\"iris_rs_extract_g\" type=\"float\" nodedef=\"ND_iris_rs_extract_g\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in1\" />\n    </iris_rs_extract_g>\n    <max name=\"max2\" type=\"float\" nodedef=\"ND_max_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"iris_rs_extract_g\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"in2\" />\n    </max>\n    <iris_rs_extract_b name=\"iris_rs_extract_b\" type=\"float\" nodedef=\"ND_iris_rs_extract_b\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in1\" />\n    </iris_rs_extract_b>\n    <max name=\"max3\" type=\"float\" nodedef=\"ND_max_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"iris_rs_extract_b\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"in2\" />\n    </max>\n    <combine3 name=\"combine3\" type=\"color3\" nodedef=\"ND_combine3_color3\">\n      <input name=\"in1\" type=\"float\" nodename=\"max\" />\n      <input name=\"in2\" type=\"float\" nodename=\"max2\" />\n      <input name=\"in3\" type=\"float\" nodename=\"max3\" />\n    </combine3>\n    <output name=\"out\" type=\"color3\" nodename=\"combine3\" />\n  </nodegraph>\n  <nodedef name=\"ND_iris_separate3_color3\" node=\"iris_separate3\">\n    <input name=\"in\" type=\"color3\" value=\"0, 0, 0\" />\n    <output name=\"outr\" type=\"float\" />\n    <output name=\"outg\" type=\"float\" />\n    <output name=\"outb\" type=\"float\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_separate3_color3\" nodedef=\"ND_iris_separate3_color3\">\n    <extract name=\"extract_outr\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in\" />\n      <input name=\"index\" type=\"integer\" value=\"0\" />\n    </extract>\n    <output name=\"outr\" type=\"float\" nodename=\"extract_outr\" />\n    <extract name=\"extract_outg\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in\" />\n      <input name=\"index\" type=\"integer\" value=\"1\" />\n    </extract>\n    <output name=\"outg\" type=\"float\" nodename=\"extract_outg\" />\n    <extract name=\"extract_outb\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in\" />\n      <input name=\"index\" type=\"integer\" value=\"2\" />\n    </extract>\n    <output name=\"outb\" type=\"float\" nodename=\"extract_outb\" />\n  </nodegraph>\n</materialx>\n",
   "materialx_lowerings": {
     "ND_extract_color3": [
       {
@@ -2484,6 +2537,12 @@
         "when": {},
         "replacement": "ND_iris_rs_lower_max_color3FA"
       }
+    ],
+    "ND_separate3_color3": [
+      {
+        "when": {},
+        "replacement": "ND_iris_separate3_color3"
+      }
     ]
   },
   "texture_alpha_modes": [
@@ -2494,6 +2553,24 @@
   ],
   "texture_image_channels": [
     1,
-    3
-  ]
+    3,
+    4
+  ],
+  "texture_alpha_behavior": {
+    "png": "independent",
+    "exr": "independent"
+  },
+  "texture_coordinates": {
+    "named_uv": true,
+    "transforms": "trs2d",
+    "sampler": {
+      "rotation_unit": "degrees",
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "order": "scale_rotate_translate",
+      "verified": false
+    }
+  }
 }

@@ -180,6 +180,7 @@ def test_unverified_rgba_is_blocked_by_core_target_capability():
     api, source = setup(channels=4, linked=False)
     document = call(api, "materialx.export", material=source)["result"]["document"]
     for target in (maya_profile(), rs_profile()):
+        target["texture_image_channels"] = [1, 3]
         response = call(
             RelayAPI([target]), "materialx.convert", document=document, target=renderer(target)
         )

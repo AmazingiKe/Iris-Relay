@@ -18,6 +18,9 @@ def math_fixture(operation="multiply"):
     profile["nodes"] = {
         k: n for k, n in profile["nodes"].items() if not n["semantic"].startswith("materialx.")
     }
+    # 此夹具刻意只保留旧语义与一个数学节点，相应移除已经不在节点集合中的配方。
+    profile.pop("materialx_recipes", None)
+    profile.pop("materialx_lowerings", None)
     source["links"] = []
     source["nodes"] = [n for n in source["nodes"] if n["type"] == "ShaderNodeBsdfPrincipled"]
     source["textures"] = {}

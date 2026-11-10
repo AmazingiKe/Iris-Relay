@@ -50,7 +50,7 @@ def cycles_hsv(color, hue, saturation, value, factor):
     return [max(0, factor * a + (1 - factor) * c) for a, c in zip(adjusted, color, strict=True)]
 
 
-def evaluate(graph, parameters):
+def evaluate(graph, parameters, output_name="out"):
     """按标准运算解释实际 XML 子图；不调用字典生成器中的计算实现。"""
     cache = {}
 
@@ -82,6 +82,7 @@ def evaluate(graph, parameters):
             "subtract": lambda a, b: a - b,
             "multiply": lambda a, b: a * b,
             "divide": lambda a, b: a / b,
+            "power": math.pow,
             "max": max,
             "min": min,
         }
@@ -115,7 +116,7 @@ def evaluate(graph, parameters):
         cache[node.getName()] = result
         return result
 
-    return node_value(graph.getNode(graph.getOutput("out").getNodeName()))
+    return node_value(graph.getNode(graph.getOutput(output_name).getNodeName()))
 
 
 def test_hsv_standard_graph_matches_cycles_over_boundaries_and_random_inputs():

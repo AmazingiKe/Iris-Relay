@@ -2,7 +2,7 @@
   "schema_version": "1",
   "semantic_schema_version": "1",
   "id": "maya.arnold.native",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "Maya 2022 可编辑 Arnold 材质导入；结构核验，不代表外观等价。",
   "renderer": {
     "id": "arnold",
@@ -24,7 +24,7 @@
   },
   "texture_coordinates": {
     "named_uv": true,
-    "transforms": "none"
+    "transforms": "trs"
   },
   "texture_alpha_modes": [
     "STRAIGHT",
@@ -34,8 +34,13 @@
   ],
   "texture_image_channels": [
     1,
-    3
+    3,
+    4
   ],
+  "texture_alpha_behavior": {
+    "png": "premultiplied",
+    "exr": "independent"
+  },
   "nodes": {
     "standard_surface": {
       "semantic": "surface.standard",
@@ -181,7 +186,12 @@
             "kind": "socket",
             "codec": "identity"
           },
-          "default": 0.20000000298023224
+          "default": 0.20000000298023224,
+          "adjustable": true,
+          "adjustment_range": [
+            0.05,
+            0.95
+          ]
         },
         "specularIOR": {
           "semantic": "reflection.ior",
@@ -203,6 +213,11 @@
           },
           "default": 1.0,
           "range": [
+            0,
+            1
+          ],
+          "adjustable": true,
+          "adjustment_range": [
             0,
             1
           ]
@@ -472,7 +487,80 @@
             "kind": "resource",
             "codec": "identity",
             "colorspace_id": "colorSpace",
-            "uv_id": "uvset"
+            "uv_id": "uvset",
+            "properties": {
+              "coordinate_wrapper": {
+                "asset": "aiUvTransform",
+                "matrix": "uvwMatrix",
+                "uv": "uvset",
+                "inputs": {
+                  "color": "passthrough",
+                  "alpha": "passthroughA"
+                },
+                "outputs": {
+                  "color": "outColor",
+                  "alpha": "outAlpha"
+                },
+                "fixed": {
+                  "nodeState": 0,
+                  "unit": 1,
+                  "uvcoords": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "coverage": [
+                    1.0,
+                    1.0
+                  ],
+                  "scaleFrame": [
+                    1.0,
+                    1.0
+                  ],
+                  "translateFrame": [
+                    0.0,
+                    0.0
+                  ],
+                  "rotateFrame": 0.0,
+                  "pivotFrame": [
+                    0.5,
+                    0.5
+                  ],
+                  "wrapFrameU": 0,
+                  "wrapFrameV": 0,
+                  "wrapFrameColorA": 1.0,
+                  "wrapFrameColor": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "repeat": [
+                    1.0,
+                    1.0
+                  ],
+                  "offset": [
+                    0.0,
+                    0.0
+                  ],
+                  "rotate": 0.0,
+                  "pivot": [
+                    0.5,
+                    0.5
+                  ],
+                  "noise": [
+                    0.0,
+                    0.0
+                  ],
+                  "mirrorU": false,
+                  "mirrorV": false,
+                  "flipU": false,
+                  "flipV": false,
+                  "swapUv": false,
+                  "stagger": false,
+                  "wset": ""
+                }
+              }
+            }
           },
           "default": null
         }
@@ -736,6 +824,55 @@
         }
       }
     },
+    "add_color3": {
+      "semantic": "materialx.ND_add_color3",
+      "native": {
+        "id": "aiAdd",
+        "properties": {}
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "color",
+          "native": {
+            "id": "input1",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "color",
+          "native": {
+            "id": "input2",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "outColor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "source_default": true
+    },
     "subtract_float": {
       "semantic": "materialx.ND_subtract_float",
       "native": {
@@ -780,6 +917,55 @@
           }
         }
       }
+    },
+    "subtract_color3": {
+      "semantic": "materialx.ND_subtract_color3",
+      "native": {
+        "id": "aiSubtract",
+        "properties": {}
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "color",
+          "native": {
+            "id": "input1",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "color",
+          "native": {
+            "id": "input2",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "outColor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "source_default": true
     },
     "multiply_float": {
       "semantic": "materialx.ND_multiply_float",
@@ -826,6 +1012,55 @@
         }
       }
     },
+    "multiply_color3": {
+      "semantic": "materialx.ND_multiply_color3",
+      "native": {
+        "id": "aiMultiply",
+        "properties": {}
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "color",
+          "native": {
+            "id": "input1",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "color",
+          "native": {
+            "id": "input2",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "outColor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "source_default": true
+    },
     "divide_float": {
       "semantic": "materialx.ND_divide_float",
       "native": {
@@ -870,6 +1105,55 @@
           }
         }
       }
+    },
+    "divide_color3": {
+      "semantic": "materialx.ND_divide_color3",
+      "native": {
+        "id": "aiDivide",
+        "properties": {}
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "color",
+          "native": {
+            "id": "input1",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "color",
+          "native": {
+            "id": "input2",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "outColor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "source_default": true
     },
     "min_float": {
       "semantic": "materialx.ND_min_float",
@@ -916,6 +1200,55 @@
         }
       }
     },
+    "min_color3": {
+      "semantic": "materialx.ND_min_color3",
+      "native": {
+        "id": "aiMin",
+        "properties": {}
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "color",
+          "native": {
+            "id": "input1",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "color",
+          "native": {
+            "id": "input2",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "outColor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "source_default": true
+    },
     "max_float": {
       "semantic": "materialx.ND_max_float",
       "native": {
@@ -961,6 +1294,55 @@
         }
       }
     },
+    "max_color3": {
+      "semantic": "materialx.ND_max_color3",
+      "native": {
+        "id": "aiMax",
+        "properties": {}
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "color",
+          "native": {
+            "id": "input1",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "color",
+          "native": {
+            "id": "input2",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "outColor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      },
+      "source_default": true
+    },
     "floor_float": {
       "semantic": "materialx.ND_floor_float",
       "native": {
@@ -993,6 +1375,46 @@
         }
       },
       "approximation": "Arnold floor 使用 32 位整数输出，超出整数范围的计算尚未验证"
+    },
+    "power_float": {
+      "semantic": "materialx.ND_power_float",
+      "native": {
+        "id": "aiPow",
+        "properties": {}
+      },
+      "inputs": {
+        "in1": {
+          "semantic": "in1",
+          "type": "float",
+          "native": {
+            "id": "base",
+            "kind": "socket",
+            "codec": "gray"
+          },
+          "default": 0.0
+        },
+        "in2": {
+          "semantic": "in2",
+          "type": "float",
+          "native": {
+            "id": "exponent",
+            "kind": "socket",
+            "codec": "gray"
+          },
+          "default": 1.0
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "outColorR",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
     },
     "clamp_float": {
       "semantic": "materialx.ND_clamp_float",
@@ -1192,7 +1614,8 @@
             "codec": "identity"
           }
         }
-      }
+      },
+      "source_default": true
     },
     "ifgreater_float": {
       "semantic": "materialx.ND_ifgreater_float",
@@ -1328,7 +1751,8 @@
             "codec": "identity"
           }
         }
-      }
+      },
+      "source_default": true
     },
     "combine3": {
       "semantic": "materialx.ND_combine3_color3",
@@ -1539,7 +1963,8 @@
             "codec": "identity"
           }
         }
-      }
+      },
+      "source_default": true
     },
     "constant_color3": {
       "semantic": "materialx.ND_constant_color3",
@@ -1575,6 +2000,44 @@
           "type": "color",
           "native": {
             "id": "outColor",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "constant_float": {
+      "semantic": "materialx.ND_constant_float",
+      "native": {
+        "id": "aiAdd",
+        "properties": {
+          "input2": [
+            0,
+            0,
+            0
+          ],
+          "input1G": 0.0,
+          "input1B": 0.0
+        }
+      },
+      "inputs": {
+        "value": {
+          "semantic": "value",
+          "type": "float",
+          "native": {
+            "id": "input1R",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "default": 0.0
+        }
+      },
+      "outputs": {
+        "out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "outColorR",
             "kind": "socket",
             "codec": "identity"
           }
@@ -1617,5 +2080,14 @@
         }
       }
     }
+  },
+  "materialx_extensions": "<?xml version=\"1.0\"?>\n<materialx version=\"1.39\">\n  <nodedef name=\"ND_iris_separate3_color3\" node=\"iris_separate3\">\n    <input name=\"in\" type=\"color3\" value=\"0, 0, 0\" />\n    <output name=\"outr\" type=\"float\" />\n    <output name=\"outg\" type=\"float\" />\n    <output name=\"outb\" type=\"float\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_separate3_color3\" nodedef=\"ND_iris_separate3_color3\">\n    <extract name=\"extract_outr\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in\" />\n      <input name=\"index\" type=\"integer\" value=\"0\" />\n    </extract>\n    <output name=\"outr\" type=\"float\" nodename=\"extract_outr\" />\n    <extract name=\"extract_outg\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in\" />\n      <input name=\"index\" type=\"integer\" value=\"1\" />\n    </extract>\n    <output name=\"outg\" type=\"float\" nodename=\"extract_outg\" />\n    <extract name=\"extract_outb\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"in\" />\n      <input name=\"index\" type=\"integer\" value=\"2\" />\n    </extract>\n    <output name=\"outb\" type=\"float\" nodename=\"extract_outb\" />\n  </nodegraph>\n</materialx>\n",
+  "materialx_lowerings": {
+    "ND_separate3_color3": [
+      {
+        "when": {},
+        "replacement": "ND_iris_separate3_color3"
+      }
+    ]
   }
 }

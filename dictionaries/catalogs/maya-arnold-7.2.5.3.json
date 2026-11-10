@@ -5240,6 +5240,921 @@
         }
       },
       "status": "instantiated"
+    },
+    "aiPow": {
+      "status": "instantiated",
+      "actual_type": "aiPow",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ],
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "binMembership": {
+          "type": "string",
+          "value": null,
+          "enum": null,
+          "writable": true,
+          "connectable": false,
+          "parent": null
+        },
+        "outColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": null
+        },
+        "outColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outColor"
+          ]
+        },
+        "outColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outColor"
+          ]
+        },
+        "outColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outColor"
+          ]
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outTransparency"
+          ]
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outTransparency"
+          ]
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outTransparency"
+          ]
+        },
+        "base": {
+          "type": "float3",
+          "value": [
+            [
+              2.7182817459106445,
+              2.7182817459106445,
+              2.7182817459106445
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "baseR": {
+          "type": "float",
+          "value": 2.7182817459106445,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "base"
+          ]
+        },
+        "baseG": {
+          "type": "float",
+          "value": 2.7182817459106445,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "base"
+          ]
+        },
+        "baseB": {
+          "type": "float",
+          "value": 2.7182817459106445,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "base"
+          ]
+        },
+        "exponent": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "exponentR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "exponent"
+          ]
+        },
+        "exponentG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "exponent"
+          ]
+        },
+        "exponentB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "exponent"
+          ]
+        }
+      }
+    },
+    "aiUvTransform": {
+      "status": "instantiated",
+      "actual_type": "aiUvTransform",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ],
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "binMembership": {
+          "type": "string",
+          "value": null,
+          "enum": null,
+          "writable": true,
+          "connectable": false,
+          "parent": null
+        },
+        "outColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": null
+        },
+        "outColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outColor"
+          ]
+        },
+        "outColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outColor"
+          ]
+        },
+        "outColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outColor"
+          ]
+        },
+        "outAlpha": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outTransparency"
+          ]
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outTransparency"
+          ]
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outTransparency"
+          ]
+        },
+        "passthroughA": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "passthrough": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "passthroughR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "passthrough"
+          ]
+        },
+        "passthroughG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "passthrough"
+          ]
+        },
+        "passthroughB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "passthrough"
+          ]
+        },
+        "unit": {
+          "type": "enum",
+          "value": 1,
+          "enum": [
+            "radians:degrees:normalized"
+          ],
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "uvcoords": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "uvcoordsX": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "uvcoords"
+          ]
+        },
+        "uvcoordsY": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "uvcoords"
+          ]
+        },
+        "uvcoordsZ": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "uvcoords"
+          ]
+        },
+        "uvset": {
+          "type": "string",
+          "value": "",
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "coverage": {
+          "type": "float2",
+          "value": [
+            [
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "coverageX": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "coverage"
+          ]
+        },
+        "coverageY": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "coverage"
+          ]
+        },
+        "scaleFrame": {
+          "type": "float2",
+          "value": [
+            [
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "scaleFrameX": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "scaleFrame"
+          ]
+        },
+        "scaleFrameY": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "scaleFrame"
+          ]
+        },
+        "translateFrame": {
+          "type": "float2",
+          "value": [
+            [
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "translateFrameX": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "translateFrame"
+          ]
+        },
+        "translateFrameY": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "translateFrame"
+          ]
+        },
+        "rotateFrame": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "pivotFrame": {
+          "type": "float2",
+          "value": [
+            [
+              0.5,
+              0.5
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "pivotFrameX": {
+          "type": "float",
+          "value": 0.5,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "pivotFrame"
+          ]
+        },
+        "pivotFrameY": {
+          "type": "float",
+          "value": 0.5,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "pivotFrame"
+          ]
+        },
+        "wrapFrameU": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "periodic:color:clamp:mirror:none"
+          ],
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "wrapFrameV": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "periodic:color:clamp:mirror:none"
+          ],
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "wrapFrameColorA": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "wrapFrameColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "wrapFrameColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "wrapFrameColor"
+          ]
+        },
+        "wrapFrameColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "wrapFrameColor"
+          ]
+        },
+        "wrapFrameColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "wrapFrameColor"
+          ]
+        },
+        "repeat": {
+          "type": "float2",
+          "value": [
+            [
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "repeatX": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "repeat"
+          ]
+        },
+        "repeatY": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "repeat"
+          ]
+        },
+        "offset": {
+          "type": "float2",
+          "value": [
+            [
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "offsetX": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "offset"
+          ]
+        },
+        "offsetY": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "offset"
+          ]
+        },
+        "rotate": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "pivot": {
+          "type": "float2",
+          "value": [
+            [
+              0.5,
+              0.5
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "pivotX": {
+          "type": "float",
+          "value": 0.5,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "pivot"
+          ]
+        },
+        "pivotY": {
+          "type": "float",
+          "value": 0.5,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "pivot"
+          ]
+        },
+        "noise": {
+          "type": "float2",
+          "value": [
+            [
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "noiseX": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "noise"
+          ]
+        },
+        "noiseY": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "noise"
+          ]
+        },
+        "mirrorU": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "mirrorV": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "flipU": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "flipV": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "swapUv": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "stagger": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "wset": {
+          "type": "string",
+          "value": "",
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "uvwMatrix": {
+          "type": "matrix",
+          "value": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        }
+      }
     }
   },
   "runtime": {

@@ -3,6 +3,26 @@
 import MaterialX as mx
 
 
+def rgb_separation_library():
+    """标准三输出分离可由三个官方 extract 表达，目标无需另建通用节点定义。"""
+    document = mx.createDocument()
+    nd = document.addNodeDef("ND_iris_separate3_color3", "multioutput", "iris_separate3")
+    for output in list(nd.getOutputs()):
+        nd.removeOutput(output.getName())
+    nd.addInput("in", "color3").setValueString("0, 0, 0")
+    for name in ("outr", "outg", "outb"):
+        nd.addOutput(name, "float")
+    graph = document.addNodeGraph("NG_iris_separate3_color3")
+    graph.setNodeDefString(nd.getName())
+    for index, name in enumerate(("outr", "outg", "outb")):
+        node = graph.addNode("extract", "extract_" + name, "float")
+        node.setNodeDefString("ND_extract_color3")
+        node.addInput("in", "color3").setInterfaceName("in")
+        node.addInput("index", "integer").setValue(index)
+        graph.addOutput(name, "float").setConnectedNode(node)
+    return mx.writeToXmlString(document)
+
+
 def blender_hsv_library(inputs):
     """按 Cycles 5.2.3 公式表达完整 HSV，包括负颜色、饱和度钳制与混合后下限。"""
     library = mx.createDocument()

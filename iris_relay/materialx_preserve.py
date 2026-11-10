@@ -161,7 +161,7 @@ def preserve_snapshot(core, snapshot):
             if source.getType() == "multioutput":
                 target.setOutputString(output)
         # 3. 使用与正常文档相同的 SDK、类型、循环和规模检查，只有通过才返回文本。
-        xml = mx.writeToXmlString(doc)
+        xml = core.serialize(doc)
         checked = core.read(xml)
         issues.extend(core.inspect(checked))
         if status_for(issues) != "error":

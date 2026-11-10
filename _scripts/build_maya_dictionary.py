@@ -24,9 +24,10 @@ def build(catalog):
             "plugin_version": catalog["renderer"]["plugin_version"],
             "appearance_verified": False,
         },
-        "texture_coordinates": {"named_uv": True, "transforms": "none"},
+        "texture_coordinates": {"named_uv": True, "transforms": "trs"},
         "texture_alpha_modes": ["STRAIGHT", "PREMUL", "CHANNEL_PACKED", "NONE"],
-        "texture_image_channels": [1, 3],
+        "texture_image_channels": [1, 3, 4],
+        "texture_alpha_behavior": {"png": "premultiplied", "exr": "independent"},
         "nodes": {},
     }
 
@@ -140,6 +141,11 @@ def build(catalog):
         if native == "specular":
             # Maya 2022 的 setAttr 实测拒绝大于 1，不通过钳制掩盖源反射权重。
             inputs[native]["range"] = [0, 1]
+        if native in {"specularRoughness", "specular"}:
+            inputs[native]["adjustable"] = True
+            inputs[native]["adjustment_range"] = (
+                [0.05, 0.95] if native == "specularRoughness" else [0, 1]
+            )
         if datatype == "vector":
             inputs[native]["nullable"] = True
             inputs[native]["native"]["codec"] = "normal"
@@ -157,6 +163,37 @@ def build(catalog):
     )
     image = port("image", "texture", "filename")
     image["native"].update(kind="resource", colorspace_id="colorSpace", uv_id="uvset")
+    uv = catalog["nodes"]["aiUvTransform"]
+    assert uv["status"] == "instantiated"
+    excluded = {
+        "passthrough",
+        "passthroughA",
+        "uvwMatrix",
+        "uvset",
+        "caching",
+        "frozen",
+        "isHistoricallyInteresting",
+        "binMembership",
+    }
+    fixed = {}
+    for name, observed in uv["attributes"].items():
+        if name in excluded or observed.get("parent") or not observed["writable"]:
+            continue
+        value = observed["value"]
+        if isinstance(value, list) and len(value) == 1 and isinstance(value[0], list):
+            value = value[0]
+        if value is not None:
+            fixed[name] = value
+    image["native"]["properties"] = {
+        "coordinate_wrapper": {
+            "asset": "aiUvTransform",
+            "matrix": "uvwMatrix",
+            "uv": "uvset",
+            "inputs": {"color": "passthrough", "alpha": "passthroughA"},
+            "outputs": {"color": "outColor", "alpha": "outAlpha"},
+            "fixed": fixed,
+        }
+    }
     node(
         "image",
         "aiImage",
@@ -244,8 +281,24 @@ def build(catalog):
             {"in1": "input1R", "in2": "input2R"},
             "outColorR",
         )
+        standard(
+            operation + "_color3",
+            native,
+            "ND_" + operation + "_color3",
+            {"in1": "input1", "in2": "input2"},
+            "outColor",
+        )
+        profile["nodes"][operation + "_color3"]["source_default"] = True
     standard(
         "floor_float", "aiFloatToInt", "ND_floor_float", {"in": "input"}, "outValue", {"mode": 2}
+    )
+    standard(
+        "power_float",
+        "aiPow",
+        "ND_power_float",
+        {"in1": "base", "in2": "exponent"},
+        "outColorR",
+        gray=("in1", "in2"),
     )
     standard(
         "clamp_float",
@@ -271,6 +324,8 @@ def build(catalog):
                 "outColor" + suffix,
                 {"operation": mode},
             )
+            if datatype == "color3":
+                profile["nodes"][operation + "_color3"]["source_default"] = True
     standard(
         "combine3",
         "aiFloatToRgba",
@@ -304,12 +359,21 @@ def build(catalog):
         "enum_values": [5, 6, 7]
     }
     profile["nodes"]["extract_color3"]["inputs"]["index"]["range"] = [0, 2]
+    profile["nodes"]["extract_color3"]["source_default"] = True
     standard(
         "constant_color3",
         "aiAdd",
         "ND_constant_color3",
         {"value": "input1"},
         "outColor",
+        {"input2": [0, 0, 0]},
+    )
+    standard(
+        "constant_float",
+        "aiAdd",
+        "ND_constant_float",
+        {"value": "input1R"},
+        "outColorR",
         {"input2": [0, 0, 0]},
     )
     standard(
@@ -321,6 +385,13 @@ def build(catalog):
         {"input2": [0, 0, 0]},
         gray=("in",),
     )
+    from _scripts.materialx_extension_library import rgb_separation_library
+
+    profile["materialx_extensions"] = rgb_separation_library()
+    profile["materialx_lowerings"] = {
+        "ND_separate3_color3": [{"when": {}, "replacement": "ND_iris_separate3_color3"}]
+    }
+    profile["version"] = "0.4.0"
     return profile
 
 

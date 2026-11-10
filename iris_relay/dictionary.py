@@ -74,6 +74,11 @@ def native_binding(value: Any) -> None:
         text(value["label"], "原生名称")
     if not isinstance(value.get("properties", {}), dict):
         raise ValidationError("原生属性必须为声明式对象")
+    projection = value.get("properties", {}).get("output_projection")
+    if projection is not None:
+        fields(projection, {"asset", "input", "source"})
+        for key, item in projection.items():
+            text(item, "输出投影的 " + key)
     if value.get("kind", "socket") not in {"socket", "property", "resource"}:
         raise ValidationError("不支持的原生绑定类型")
     if value.get("codec", "identity") not in {
@@ -84,6 +89,7 @@ def native_binding(value: Any) -> None:
         "texture",
         "srgb",
         "gray",
+        "color_ramp",
     }:
         raise ValidationError("不支持的原生值编码")
     for key in ("colorspace_id", "uv_id"):
@@ -110,9 +116,11 @@ class Dictionary:
                 "materialx_export",
                 "materialx_extensions",
                 "materialx_lowerings",
+                "materialx_recipes",
                 "texture_coordinates",
                 "texture_alpha_modes",
                 "texture_image_channels",
+                "texture_alpha_behavior",
             },
         )
         if value["schema_version"] != "1":
@@ -132,6 +140,12 @@ class Dictionary:
                 or len(set(channels)) != len(channels)
             ):
                 raise ValidationError("图片通道能力必须为不重复的 1/3/4 列表")
+        behavior = value.get("texture_alpha_behavior", "independent")
+        choices = list(behavior.values()) if isinstance(behavior, dict) else [behavior]
+        if not choices or any(
+            type(v) is not str or v not in {"premultiplied", "independent"} for v in choices
+        ):
+            raise ValidationError("未知的原生图片颜色关联行为")
         if "materialx_lowerings" in value:
             rules = value["materialx_lowerings"]
             if not isinstance(rules, dict):
@@ -149,6 +163,13 @@ class Dictionary:
                         text(key, "组合规则的输入")
                         if type(expected) not in (float, int, str, bool):
                             raise ValidationError("组合规则只接受标量常量条件")
+        if "materialx_recipes" in value:
+            recipes = value["materialx_recipes"]
+            if not isinstance(recipes, dict) or any(
+                k not in value["nodes"] or v not in {"blender.color_ramp", "blender.normal_map"}
+                for k, v in recipes.items()
+            ):
+                raise ValidationError("未知或未绑定的原生计算配方")
         if "materialx_export" in value:
             rules = fields(value["materialx_export"], {"color_to_float"})
             if rules["color_to_float"] != "scene_linear_luminance":
@@ -156,12 +177,31 @@ class Dictionary:
         if "materialx_extensions" in value:
             text(value["materialx_extensions"], "内联 MaterialX 扩展库")
         if "texture_coordinates" in value:
-            coordinates = fields(value["texture_coordinates"], {"named_uv", "transforms"})
+            coordinates = fields(
+                value["texture_coordinates"], {"named_uv", "transforms"}, {"sampler"}
+            )
             if type(coordinates["named_uv"]) is not bool or coordinates["transforms"] not in (
                 "none",
                 "trs",
+                "trs2d",
             ):
                 raise ValidationError("未知的贴图坐标目标能力")
+            if "sampler" in coordinates:
+                sampler = fields(
+                    coordinates["sampler"], {"rotation_unit", "pivot", "order", "verified"}
+                )
+                if (
+                    coordinates["transforms"] != "trs2d"
+                    or sampler["rotation_unit"] not in {"degrees", "radians"}
+                    or sampler["order"] != "scale_rotate_translate"
+                    or type(sampler["verified"]) is not bool
+                    or not isinstance(sampler["pivot"], list)
+                    or len(sampler["pivot"]) != 2
+                    or any(type(v) not in (float, int) for v in sampler["pivot"])
+                ):
+                    raise ValidationError("未知的二维采样器坐标约定")
+            elif coordinates["transforms"] == "trs2d":
+                raise ValidationError("二维采样器须声明坐标约定")
         if "texture_alpha_modes" in value:
             modes = value["texture_alpha_modes"]
             if (
@@ -202,7 +242,7 @@ class Dictionary:
             fields(
                 node,
                 {"semantic", "inputs", "outputs"},
-                {"native", "approximation", "target_default"},
+                {"native", "approximation", "target_default", "source_default"},
             )
             if "native" in node:
                 native_binding(node["native"])
@@ -211,6 +251,8 @@ class Dictionary:
             semantic = text(node["semantic"], "节点语义")
             if type(node.get("target_default", False)) is not bool:
                 raise ValidationError("target_default 必须为布尔值")
+            if type(node.get("source_default", False)) is not bool:
+                raise ValidationError("source_default 必须为布尔值")
             if node.get("target_default"):
                 if semantic in defaults:
                     raise ValidationError(f"通用功能存在多个默认目标实现：{semantic}")
@@ -229,6 +271,7 @@ class Dictionary:
                                 "range",
                                 "transform",
                                 "adjustable",
+                                "adjustment_range",
                                 "native",
                                 "omit_if_default",
                                 "nullable",
@@ -271,8 +314,10 @@ class Dictionary:
                         raise ValidationError("adjustable 必须为布尔值")
                     if rule.get("adjustable") and rule["type"] not in {"float", "color", "vector"}:
                         raise ValidationError("首版校正只开放数值和向量输入")
-                    if "range" in rule:
-                        bounds = rule["range"]
+                    for range_name in ("range", "adjustment_range"):
+                        if range_name not in rule:
+                            continue
+                        bounds = rule[range_name]
                         if (
                             rule["type"] not in {"float", "color", "vector"}
                             or not isinstance(bounds, list)
@@ -281,6 +326,8 @@ class Dictionary:
                             or bounds[0] > bounds[1]
                         ):
                             raise ValidationError("无效的输入范围")
+                        if range_name == "adjustment_range" and not rule.get("adjustable"):
+                            raise ValidationError("校正范围只允许用于已开放的数值端口")
                     validate_value(rule["default"], rule)
             for port_name, rule in node["inputs"].items():
                 if "inactive_when" not in rule:
@@ -320,12 +367,16 @@ class Dictionary:
             )
         return candidates[0] if candidates else None
 
-    def identify(self, native_id, properties, implementation_hint=None):
+    def identify(
+        self, native_id, properties, implementation_hint=None, prefer_source_default=False
+    ):
         """依据当前原生证据识别；可选提示只在匹配实现内消解宿主投影歧义。"""
         if type(native_id) not in (str, int) or native_id == "":
             raise ValidationError("原生节点 ID 必须为非空字符串或整数")
         if not isinstance(properties, dict):
             raise ValidationError("原生配置必须为对象")
+        if type(prefer_source_default) is not bool:
+            raise ValidationError("prefer_source_default 必须为布尔值")
         candidates = [
             (key, rule)
             for key, rule in self.nodes.items()
@@ -347,6 +398,10 @@ class Dictionary:
             }:
                 raise ValidationError("实现提示与当前原生类型或配置不符", "NATIVE_HINT_MISMATCH")
             matches = [entry for entry in matches if entry[0] == implementation_hint]
+        elif prefer_source_default and len(matches) > 1:
+            defaults = [entry for entry in matches if entry[1].get("source_default")]
+            if len(defaults) == 1:
+                matches = defaults
         if not matches:
             raise ValidationError(
                 f"原生节点配置未支持或缺失：{native_id}", "UNSUPPORTED_NODE_CONFIGURATION"
@@ -369,6 +424,16 @@ class Dictionary:
             "renderer": deepcopy(self.data["renderer"]),
             "host": deepcopy(self.data.get("host")),
             "fingerprint": self.fingerprint,
+            "conversion_scope": {
+                "evidence": "dictionary_declaration",
+                "native_node_bindings": len(self.nodes),
+                "semantics": sorted({rule["semantic"] for rule in self.nodes.values()}),
+                "texture_image_channels": deepcopy(self.data.get("texture_image_channels", [])),
+                "texture_coordinates": deepcopy(self.data.get("texture_coordinates", {})),
+                "texture_alpha_behavior": deepcopy(self.data.get("texture_alpha_behavior", {})),
+                "runtime_preflight_required": True,
+                "appearance_verified": False,
+            },
         }
 
 

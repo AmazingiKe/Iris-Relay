@@ -69,7 +69,10 @@ def test_target_without_coordinate_capability_blocks_before_host_creation(engine
     api, source = setup({"kind": "uv", "set": "UVMap.001", "transforms": [SCALE]})
     document = call(api, "materialx.export", material=source)["result"]["document"]
     profile = json.loads(next((ROOT / "dictionaries").glob(f"*{engine}*.json")).read_text("utf-8"))
-    result = call(api, "materialx.convert", document=document, target=renderer(profile))
+    profile["texture_coordinates"] = {"named_uv": False, "transforms": "none"}
+    result = call(
+        RelayAPI([profile]), "materialx.convert", document=document, target=renderer(profile)
+    )
     assert result["status"] == "error"
     assert result["result"]["material"] is None
     assert result["result"]["source"] == document

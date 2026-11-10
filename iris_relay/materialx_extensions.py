@@ -1,5 +1,8 @@
 """字典声明的内联 NodeDef 与标准子图；原生回导前核验实际实现，避免仅凭名字匹配。"""
 
+from collections import OrderedDict
+from hashlib import sha256
+
 import MaterialX as mx
 
 from .conversion import status_for
@@ -11,6 +14,17 @@ def load_extensions(core, dictionary):
     source = dictionary.data.get("materialx_extensions")
     if source is None:
         return None
+    key = sha256(source.encode("utf-8")).hexdigest()
+    cache = getattr(core, "_extension_cache", None)
+    if cache is None:
+        cache = core._extension_cache = OrderedDict()
+    if key in cache:
+        cached = cache.pop(key)
+        cache[key] = cached
+        document = mx.createDocument()
+        document.copyContentFrom(cached)
+        document.setDataLibrary(core.library)
+        return document
     document = core.read(source)
     if any(not isinstance(c, (mx.NodeDef, mx.NodeGraph)) for c in document.getChildren()):
         raise ValidationError(
@@ -30,6 +44,12 @@ def load_extensions(core, dictionary):
     probe.copyContentFrom(document)
     probe.setDataLibrary(core.library)
     core.flatten(probe)
+    cached = mx.createDocument()
+    cached.copyContentFrom(document)
+    cached.setDataLibrary(core.library)
+    cache[key] = cached
+    while len(cache) > 32:
+        cache.popitem(last=False)
     return document
 
 
@@ -40,10 +60,31 @@ def install_extensions(document, extensions, bindings, semantic):
         if extensions is not None
         else set()
     )
-    if any(
-        bindings[n["type"]][0] in definitions for n in semantic["nodes"] if n["type"] in bindings
-    ):
-        document.importLibrary(extensions)
+    needed = {
+        bindings[n["type"]][0]
+        for n in semantic["nodes"]
+        if n["type"] in bindings and bindings[n["type"]][0] in definitions
+    }
+    if not needed:
+        return
+    graphs = {g.getNodeDefString(): g for g in extensions.getNodeGraphs()}
+    pending = list(needed)
+    while pending:
+        name = pending.pop()
+        declared = extensions.getNodeDef(name)
+        dependency_names = {declared.getInheritString()}
+        for node in graphs[name].getNodes():
+            nd = node.getNodeDef()
+            if nd is not None:
+                dependency_names.add(nd.getName())
+        for dependency in dependency_names & definitions - needed:
+            needed.add(dependency)
+            pending.append(dependency)
+    # 只复制实际依赖，文件不携带所有未使用模式，外部工具也无需解析无关扩展。
+    children = needed | {graphs[name].getName() for name in needed}
+    for child in extensions.getChildren():
+        if child.getName() in children:
+            document.addChildOfCategory(child.getCategory(), child.getName()).copyContentFrom(child)
 
 
 def preserved_extensions(document, extensions, bindings):

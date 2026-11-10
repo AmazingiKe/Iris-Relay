@@ -234,7 +234,12 @@ def test_custom_surface_graph_expands_to_supported_nodes():
         RelayAPI(PROFILES), "materialx.convert", document=document, target=renderer(PROFILES[0])
     )
     assert response["status"] == "warning", response
-    assert response["result"]["material"]["nodes"][0]["inputs"]["Roughness"] == pytest.approx(0.42)
+    material = response["result"]["material"]
+    surface = material["output"]["node"]
+    edge = next(e for e in material["links"] if e["to"] == {"node": surface, "socket": "Roughness"})
+    control = next(n for n in material["nodes"] if n["id"] == edge["from"]["node"])
+    assert control["metadata"]["editor"]["control"] == "roughness"
+    assert control["inputs"]["value"] == pytest.approx(0.42)
 
 
 def test_deep_target_graph_does_not_depend_on_python_recursion_limit():

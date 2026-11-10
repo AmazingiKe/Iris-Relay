@@ -11,17 +11,32 @@ from dataclasses import dataclass, field
 import MaterialX as mx
 
 from .conversion import issue, status_for, transcode
-from .materialx_coordinates import check_target_coordinates, export_coordinates, import_coordinates
+from .materialx_coordinates import (
+    check_target_coordinates,
+    export_coordinates,
+    import_coordinates,
+    prepare_source_coordinates,
+    prepare_target_coordinates,
+)
+from .materialx_editor import (
+    decorate_material,
+    export_editor,
+    get_editor,
+    get_text_attribute,
+    set_text_attribute,
+)
 from .materialx_extensions import install_extensions, load_extensions, preserved_extensions
 from .materialx_images import (
     IMAGE_TYPES,
     ImageGraphReader,
+    adapt_target_image_graphs,
     add_image_outputs,
     alpha_description,
     alpha_warning,
     check_target_alpha,
 )
 from .materialx_lowerings import apply_lowerings
+from .materialx_recipes import prepare_recipes
 from .model import Material, ValidationError
 
 # 这里只声明已核验的语义对应，不复制 MaterialX 的类型和默认值定义。
@@ -96,7 +111,7 @@ def bindings_for(core, dictionary, extensions=None):
                 f"标准库与字典扩展均没有 NodeDef：{name}", "MATERIALX_BINDING_INVALID"
             )
         outputs = definition.getActiveOutputs()
-        if len(outputs) != 1 or types.get(outputs[0].getType()) is None:
+        if not outputs or any(types.get(p.getType()) is None for p in outputs):
             raise ValidationError(
                 f"直接绑定尚不支持该输出类型：{name}", "MATERIALX_BINDING_INVALID"
             )
@@ -122,7 +137,13 @@ def bindings_for(core, dictionary, extensions=None):
                     inputs[key] = key
             if direction == "outputs" and supplied != set(ports):
                 raise ValidationError(f"直接绑定缺少输出：{name}", "MATERIALX_BINDING_INVALID")
-        binding = (name, inputs, outputs[0].getName())
+        binding = (
+            name,
+            inputs,
+            outputs[0].getName()
+            if len(outputs) == 1
+            else {p.getName(): p.getName() for p in outputs},
+        )
         if semantic in bindings and bindings[semantic] != binding:
             raise ValidationError(
                 f"同一标准节点的绑定端口不一致：{name}", "MATERIALX_BINDING_INVALID"
@@ -167,6 +188,29 @@ def add_value(node, name, value):
             value = int(value)
         port.setValueString(value_string(value))
     return port
+
+
+def connect_endpoint(port, endpoint):
+    """保留多输出节点的显式端口；单输出继续使用标准默认连接。"""
+    node, output = endpoint if isinstance(endpoint, tuple) else (endpoint, None)
+    port.setConnectedNode(node)
+    if output is not None:
+        port.setOutputString(output)
+    return port
+
+
+def endpoint_output(port):
+    """沿图输出引用读取最终选择；循环与未声明输出交由文档校验拒绝。"""
+    seen = set()
+    while port is not None:
+        if port.getNamePath() in seen:
+            raise ValidationError("输出引用包含循环", "MATERIALX_CYCLE")
+        seen.add(port.getNamePath())
+        connected = port.getConnectedOutput()
+        if connected is None:
+            return port.getOutputString()
+        port = connected
+    return ""
 
 
 def report(issues):
@@ -230,6 +274,20 @@ def export_material(core, source, dictionary):
     result = {"source": source.to_dict(), "document": None, "report": report(issues)}
     result["report"]["source_dictionary_fingerprint"] = dictionary.fingerprint
     try:
+        prepared, dictionary, compiled = prepare_recipes(core, dictionary, source=source.data)
+        prepared = prepare_source_coordinates(prepared, dictionary, issues)
+        for record in prepared["nodes"]:
+            if record["type"] in compiled and record["inputs"].get("uv_map"):
+                issues.append(
+                    issue(
+                        "NORMAL_UV_ALIAS_VERIFIED",
+                        "所有已读网格的命名法线 UV 与渲染默认集一致；目标几何须使用对应默认 UV",
+                        record["id"],
+                        "uv_map",
+                        "warning",
+                    )
+                )
+        source = Material.parse(prepared)
         extensions = load_extensions(core, dictionary)
         bindings = bindings_for(core, dictionary, extensions)
         casts, coefficients = explicit_color_casts(source.data, dictionary)
@@ -259,7 +317,7 @@ def export_material(core, source, dictionary):
         doc = mx.createDocument()
         doc.setDataLibrary(core.library)
         install_extensions(doc, extensions, bindings, semantic)
-        doc.setAttribute("iris_material_name", source.data["name"])
+        set_text_attribute(doc, "iris_material_name", source.data["name"])
         index = _create_export_nodes(core, doc, semantic, bindings, issues)
         _connect_export_links(
             core, doc, source.data, semantic, index, casts, coefficients, issues, transforms
@@ -276,7 +334,7 @@ def export_material(core, source, dictionary):
         # 5. 整图通过校验后才序列化；这里返回 XML 字符串，尚未保存文件。
         issues.extend(core.inspect(doc))
         if status_for(issues) != "error":
-            result["document"] = mx.writeToXmlString(doc)
+            result["document"] = core.serialize(doc)
             result["report"]["status"] = "exported"
     except (ValidationError, mx.Exception) as exc:
         issues.append(issue(getattr(exc, "code", "MATERIALX_INVALID"), str(exc)))
@@ -311,9 +369,15 @@ def _create_export_nodes(core, doc, semantic, bindings, issues):
         node = doc.addNodeInstance(
             doc.getNodeDef(definition) or core.library.getNodeDef(definition), name
         )
-        node.setAttribute("iris_source_name", record["id"])
+        set_text_attribute(node, "iris_source_name", record["id"])
+        export_editor(node, record)
         index.nodes[record["id"]] = node
-        index.outputs[(record["id"], output)] = node
+        if isinstance(output, dict):
+            index.outputs.update(
+                {(record["id"], semantic): (node, name) for name, semantic in output.items()}
+            )
+        else:
+            index.outputs[(record["id"], output)] = node
         if description is not None:
             outputs = add_image_outputs(
                 core, doc, node, description, used_alpha, resource["color_space"], add_value
@@ -399,9 +463,9 @@ def _connect_export_links(
                 core.library.getNodeDef("ND_convert_float_color3"),
                 doc.createValidChildName("scalar_to_color"),
             )
-            add_value(gray, "in", None).setConnectedNode(upstream)
+            connect_endpoint(add_value(gray, "in", None), upstream)
             upstream = gray
-        port.setConnectedNode(upstream)
+        connect_endpoint(port, upstream)
 
 
 def _add_luminance_cast(core, doc, upstream, coefficients):
@@ -411,7 +475,7 @@ def _add_luminance_cast(core, doc, upstream, coefficients):
         core.library.getNodeDef("ND_luminance_color3"),
         doc.createValidChildName("color_to_luminance"),
     )
-    add_value(luma, "in", None).setConnectedNode(upstream)
+    connect_endpoint(add_value(luma, "in", None), upstream)
     add_value(luma, "lumacoeffs", coefficients)
     scalar = doc.addNodeInstance(
         core.library.getNodeDef("ND_extract_color3"),
@@ -452,6 +516,63 @@ def require_defaults(node, supported):
                 f"目标桥接尚不能表达：{node.getNamePath()}.{port.getName()}",
                 "MATERIALX_INPUT_UNSUPPORTED",
             )
+
+
+def explicit_default_basis(node, visited, issues):
+    """只合并官方世界空间第零基底；其他索引、空间或动态来源不能变成默认法线。"""
+    supported = set()
+    for name in ("tangent", "bitangent"):
+        port = node.getInput(name)
+        upstream = connected_node(port)
+        definition = upstream.getNodeDef() if upstream is not None else None
+        if definition is None or definition.getName() != "ND_" + name + "_vector3":
+            continue
+        space, space_source = _read_input(upstream, "space")
+        index, index_source = _read_input(upstream, "index")
+        if space != "world" or index != 0 or space_source is not None or index_source is not None:
+            continue
+        require_defaults(upstream, {"space", "index"})
+        supported.add(name)
+        visited.add(upstream.getNamePath())
+    if supported:
+        issues.append(
+            issue(
+                "NORMAL_DEFAULT_BASIS_EXPLICIT",
+                "显式世界空间第零 UV 基底映射为目标默认基底；目标几何须使用对应默认 UV",
+                node.getNamePath(),
+                severity="warning",
+            )
+        )
+    return supported
+
+
+def scalar_broadcast(node):
+    """只合并明确的标量复制；三个通道须来自同一端口或完全相同的常量。"""
+    definition = node.getNodeDef()
+    if definition is None:
+        return None
+    if definition.getName() == "ND_convert_float_color3":
+        require_defaults(node, {"in"})
+        value, upstream = _read_input(node, "in")
+        return value, upstream, node.getInput("in")
+    if definition.getName() == "ND_combine3_color3":
+        require_defaults(node, {"in1", "in2", "in3"})
+        values = []
+        for key in ("in1", "in2", "in3"):
+            value, upstream = _read_input(node, key)
+            port = node.getInput(key)
+            values.append((value, upstream, port))
+        identities = [
+            (
+                value if upstream is None else None,
+                upstream.getNamePath() if upstream else None,
+                endpoint_output(port),
+            )
+            for value, upstream, port in values
+        ]
+        if identities[0] == identities[1] == identities[2]:
+            return values[0]
+    return None
 
 
 def _luminance_source(node):
@@ -508,11 +629,12 @@ def to_semantic(core, doc, material_name, issues, bindings, scalar_inputs, trans
                     f"尚未处理的解释属性：{element.getNamePath()}.{attribute}",
                     "MATERIALX_CONTEXT_UNSUPPORTED",
                 )
-        if element.getAttribute("colorspace") and not (
+        if element.getAttribute("colorspace") not in {"", "lin_rec709"} and not (
             isinstance(element, mx.Input) and element.getType() == "filename"
         ):
             raise ValidationError(
-                "首版桥接仅接受图片文件输入上的色彩空间", "MATERIALX_CONTEXT_UNSUPPORTED"
+                "仅接受线性 Rec.709 的计算上下文及图片文件上的显式色彩解释",
+                "MATERIALX_CONTEXT_UNSUPPORTED",
             )
     # 2. 展开自定义子图并重新校验，然后选定唯一表面材质。
     core.flatten(doc, preserve=preserve)
@@ -532,7 +654,7 @@ def to_semantic(core, doc, material_name, issues, bindings, scalar_inputs, trans
         raise ValidationError("材质缺少表面连接", "MATERIALX_MATERIAL_SELECTION")
     data = {
         "schema_version": "1",
-        "name": doc.getAttribute("iris_material_name") or material.getName(),
+        "name": get_text_attribute(doc, "iris_material_name") or material.getName(),
         "renderer": {"id": "iris.semantic", "version": "1"},
         "nodes": [],
         "links": [],
@@ -571,8 +693,16 @@ def to_semantic(core, doc, material_name, issues, bindings, scalar_inputs, trans
         else:
             input_node = node
         supported = set(ports.values()) | ({"texcoord"} if semantic == "texture.image" else set())
+        if semantic == "normal.tangent":
+            supported |= explicit_default_basis(input_node, visited, issues)
         require_defaults(input_node, supported)
-        record = {"id": name, "type": semantic, "inputs": {}, "outputs": [output], "metadata": {}}
+        record = {
+            "id": name,
+            "type": semantic,
+            "inputs": {},
+            "outputs": list(output.values()) if isinstance(output, dict) else [output],
+            "metadata": {"editor": get_editor(input_node)},
+        }
         if image_info:
             record["outputs"] = list(image_info["outputs"])
             visited.update(image_info["helpers"])
@@ -580,6 +710,7 @@ def to_semantic(core, doc, material_name, issues, bindings, scalar_inputs, trans
         # 3. 逐项读取常量、图片与连接，显式还原颜色转向量的辅助节点。
         for port_name, mx_name in ports.items():
             value, upstream = _read_input(input_node, mx_name)
+            source_port = input_node.getInput(mx_name)
             if semantic == "texture.image":
                 if upstream is not None or not value:
                     raise ValidationError(
@@ -608,15 +739,15 @@ def to_semantic(core, doc, material_name, issues, bindings, scalar_inputs, trans
                 (semantic, port_name) == ("color.weighted_sum", "color") and input_node == node
             )
             if needs_color_vector and upstream is not None:
+                source_port = upstream.getInput("in")
                 value, upstream = _unwrap_color_vector(upstream, visited)
             if semantic == "color.weighted_sum" and port_name == "weights" and upstream is not None:
                 raise ValidationError("加权求和暂只支持常量系数", "MATERIALX_INPUT_UNSUPPORTED")
             if (semantic, port_name) in scalar_inputs and upstream is not None:
-                definition = upstream.getNodeDef()
-                if definition is not None and definition.getName() == "ND_convert_float_color3":
-                    require_defaults(upstream, {"in"})
+                broadcast = scalar_broadcast(upstream)
+                if broadcast is not None:
                     visited.add(upstream.getNamePath())
-                    scalar, upstream = _read_input(upstream, "in")
+                    scalar, upstream, source_port = broadcast
                     value = [scalar] * 3
                     if upstream is not None:
                         transforms.add((name, port_name))
@@ -636,9 +767,17 @@ def to_semantic(core, doc, material_name, issues, bindings, scalar_inputs, trans
                         f"目标桥接尚不支持节点：{upstream.getNamePath()}",
                         "MATERIALX_NODE_UNSUPPORTED",
                     )
+                output_socket = upstream_binding[2]
+                if isinstance(output_socket, dict):
+                    selected = endpoint_output(source_port)
+                    if selected not in output_socket:
+                        raise ValidationError(
+                            "多输出节点必须选择实际输出端口", "MATERIALX_OUTPUT_UNSUPPORTED"
+                        )
+                    output_socket = output_socket[selected]
                 data["links"].append(
                     {
-                        "from": {"node": upstream.getNamePath(), "socket": upstream_binding[2]},
+                        "from": {"node": upstream.getNamePath(), "socket": output_socket},
                         "to": {"node": name, "socket": port_name},
                     }
                 )
@@ -680,8 +819,13 @@ def to_semantic(core, doc, material_name, issues, bindings, scalar_inputs, trans
 def convert_document(core, source, dictionary, target, material_name=None):
     """反向转换入口：解析和校验文档 → 提取语义图 → 编码目标原生材质。"""
     issues = []
-    result = {"source": source, "material": None, "report": report(issues)}
+    result = {"source": source, "intermediate": None, "material": None, "report": report(issues)}
     result["report"]["target_dictionary_fingerprint"] = dictionary.fingerprint
+    result["report"]["dictionary_versions"] = {
+        "source": "MaterialX/1.39.5",
+        "target": dictionary.data["version"],
+    }
+    result["report"]["calibration"] = {"status": "not_requested", "model_id": None, "changes": []}
     try:
         # 1. 保存完整来源，检查文档结构，拒绝带阻断问题的输入。
         doc = core.read(source)
@@ -696,10 +840,17 @@ def convert_document(core, source, dictionary, target, material_name=None):
             )
             return result
         # 2. 提取可转换部分，再按目标字典生成原生参数与连接。
+        _, dictionary, recipe_types = prepare_recipes(core, dictionary, document=doc)
         extensions = load_extensions(core, dictionary)
         bindings = bindings_for(core, dictionary, extensions)
         preserve = preserved_extensions(doc, extensions, bindings)
         preserve = apply_lowerings(core, doc, dictionary, extensions, bindings, preserve, issues)
+        if adapt_target_image_graphs(
+            core, doc, dictionary, _read_input, require_defaults, add_value, issues
+        ):
+            preserve = apply_lowerings(
+                core, doc, dictionary, extensions, bindings, preserve, issues
+            )
         scalar_inputs = set()
         for semantic_type in {rule["semantic"] for rule in dictionary.nodes.values()}:
             try:
@@ -717,6 +868,8 @@ def convert_document(core, source, dictionary, target, material_name=None):
             core, doc, material_name, issues, bindings, scalar_inputs, transforms, preserve
         )
         check_target_coordinates(semantic, dictionary)
+        semantic = prepare_target_coordinates(semantic, dictionary, issues)
+        result["intermediate"] = deepcopy(semantic)
         check_target_alpha(semantic, dictionary)
         candidate = transcode(
             semantic,
@@ -729,7 +882,9 @@ def convert_document(core, source, dictionary, target, material_name=None):
         )
         # 3. 最终协议通过校验后才标记为 converted；并不自动写入 DCC。
         if status_for(issues) != "error":
-            result["material"] = Material.parse(candidate).to_dict()
+            for record in candidate["nodes"]:
+                record["type"] = recipe_types.get(record["type"], record["type"])
+            result["material"] = Material.parse(decorate_material(candidate, dictionary)).to_dict()
             result["report"]["status"] = "converted"
     except (ValidationError, mx.Exception) as exc:
         issues.append(issue(getattr(exc, "code", "MATERIALX_INVALID"), str(exc)))

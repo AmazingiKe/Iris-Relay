@@ -91,6 +91,9 @@ class RelayAPI:
                         "materialx.export",
                         "materialx.preserve",
                         "materialx.convert",
+                        "materialx.resources",
+                        "materialx.rewrite_resources",
+                        "materialx.diff",
                     ],
                     "semantic_schema_version": "1",
                     "material_schema_version": "1",
@@ -102,6 +105,17 @@ class RelayAPI:
             elif operation == "materialx.definitions":
                 result = self._mx.definitions(payload)
                 status = "ok"
+            elif operation == "materialx.diff":
+                from .materialx_diff import compare
+
+                result = compare(self._mx, payload)
+                status = status_for(result["issues"])
+            elif operation in {"materialx.resources", "materialx.rewrite_resources"}:
+                from .materialx_assets import resources, rewrite_resources
+
+                handler = resources if operation == "materialx.resources" else rewrite_resources
+                result = handler(self._mx, payload)
+                status = status_for(result["issues"])
             elif operation in {"materialx.validate", "materialx.normalize"}:
                 result = self._mx.process(payload, normalize=operation == "materialx.normalize")
                 status = status_for(result["issues"])
@@ -124,7 +138,15 @@ class RelayAPI:
                 core = self._mx
                 from .materialx_bridge import convert_document
 
-                fields(payload, {"document", "target"}, {"material_name"})
+                fields(
+                    payload,
+                    {"document", "target"},
+                    {"material_name", "calibrate", "calibration_context"},
+                )
+                if type(payload.get("calibrate", False)) is not bool:
+                    raise ValidationError("calibrate 必须为布尔值")
+                if not isinstance(payload.get("calibration_context", {}), dict):
+                    raise ValidationError("校正上下文必须为声明式对象")
                 target = renderer_ref(payload["target"])
                 name = (
                     text(payload["material_name"], "材质名称")
@@ -133,16 +155,26 @@ class RelayAPI:
                 )
                 dictionary = self._registry.get(target)
                 result = convert_document(core, payload["document"], dictionary, target, name)
+                if payload.get("calibrate", False):
+                    result["calibration_context"] = deepcopy(payload.get("calibration_context", {}))
+                    calibrate(result, dictionary, self._predictor)
                 status = status_for(result["report"]["issues"])
             elif operation == "semantics":
                 fields(payload, set())
                 result = describe_semantics()
                 status = "ok"
             elif operation == "identify":
-                fields(payload, {"renderer", "native_id", "properties"}, {"implementation_hint"})
+                fields(
+                    payload,
+                    {"renderer", "native_id", "properties"},
+                    {"implementation_hint", "prefer_source_default"},
+                )
                 dictionary = self._registry.get(renderer_ref(payload["renderer"]))
                 result = dictionary.identify(
-                    payload["native_id"], payload["properties"], payload.get("implementation_hint")
+                    payload["native_id"],
+                    payload["properties"],
+                    payload.get("implementation_hint"),
+                    payload.get("prefer_source_default", False),
                 )
                 status = "ok"
             elif operation == "describe":

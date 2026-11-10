@@ -35,11 +35,21 @@ def describe(service, renderer):
     return response["result"]["dictionary"]
 
 
-def identify(service, renderer, native_id, properties, implementation_hint=None):
+def identify(
+    service,
+    renderer,
+    native_id,
+    properties,
+    implementation_hint=None,
+    *,
+    prefer_source_default=False,
+):
     """请求核心识别当前宿主证据；提示不能替代原生类型与配置。"""
     payload = {"renderer": renderer, "native_id": native_id, "properties": properties}
     if implementation_hint is not None:
         payload["implementation_hint"] = implementation_hint
+    if prefer_source_default:
+        payload["prefer_source_default"] = True
     response = request(service, "identify", **payload)
     if response["status"] != "ok":
         raise ValidationError(response["error"]["message"], response["error"]["code"])

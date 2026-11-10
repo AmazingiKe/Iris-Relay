@@ -211,7 +211,45 @@ class MaterialXCore:
                         )
         return issues
 
-    def flatten(self, doc, *, preserve=frozenset()):
+    def serialize(self, doc):
+        """写出后复核 XML；SDK 对特殊字符串未转义时用等价的标准 XML 写出补足。"""
+        unsafe = any(
+            any(c in '<>&"\r\n\t' for c in element.getAttribute(name))
+            for element in doc.traverseTree()
+            for name in element.getAttributeNames()
+        )
+        if not unsafe:
+            content = mx.writeToXmlString(doc)
+            try:
+                ET.fromstring(content)
+                return content
+            except ET.ParseError:
+                pass
+
+        def element_xml(element):
+            """只序列化 SDK 已有元素和属性，转义不改变原始字符串值。"""
+            attributes = {name: element.getAttribute(name) for name in element.getAttributeNames()}
+            if element.getName():
+                attributes["name"] = element.getName()
+            result = ET.Element(element.getCategory(), attributes)
+            for child in element.getChildren():
+                result.append(element_xml(child))
+            return result
+
+        content = ET.tostring(element_xml(doc), encoding="unicode", xml_declaration=True)
+        restored = self.read(content)
+        if not doc.isEquivalent(restored, mx.ElementEquivalenceOptions())[0]:
+            raise ValidationError("XML 字符串转义后与原图不等价", "MATERIALX_SERIALIZATION_FAILED")
+        return content
+
+    def flatten(
+        self,
+        doc,
+        *,
+        preserve=frozenset(),
+        editable=False,
+        editable_types=frozenset({"float", "color3"}),
+    ):
         """展开自定义实现；标准节点及调用方已核验的原生绑定子图保持完整。"""
         own_graphs = [g for g in doc.getNodeGraphs() if g.getDocument() == doc]
         graphs = {g.getNodeDefString(): g for g in own_graphs if g.getNodeDefString()}
@@ -259,7 +297,12 @@ class MaterialXCore:
         for graph in [doc, *own_graphs]:
             if isinstance(graph, mx.NodeGraph) and graph.getNodeDefString() in preserve:
                 continue
-            graph.flattenSubgraphs("", custom)
+            if editable and graph == doc:
+                from .materialx_editor import flatten_editable
+
+                flatten_editable(graph, self, preserve, controls=editable_types)
+            else:
+                graph.flattenSubgraphs("", custom)
             if sum(1 for _ in doc.traverseTree()) > MAX_ELEMENTS:
                 raise ValidationError("展开后的 MaterialX 图超限", "MATERIALX_LIMIT")
 
@@ -284,7 +327,8 @@ class MaterialXCore:
                 result["issues"] = self.inspect(doc)
             result["valid"] = status_for(result["issues"]) != "error"
             if result["valid"] and normalize:
-                result["document"] = mx.writeToXmlString(doc)
+                result["document"] = self.serialize(doc)
         except (ValidationError, mx.Exception) as exc:
+            result["valid"] = False
             result["issues"].append(issue(getattr(exc, "code", "MATERIALX_INVALID"), str(exc)))
         return result

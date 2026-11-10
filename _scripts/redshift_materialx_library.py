@@ -88,4 +88,10 @@ def build_library():
         graph,
         node(graph, "ND_combine3_color3", in1=channels[0], in2=channels[1], in3=channels[2]),
     )
+    from _scripts.materialx_extension_library import rgb_separation_library
+
+    rgb = mx.createDocument()
+    mx.readFromXmlString(rgb, rgb_separation_library())
+    doc.importLibrary(rgb)
+    lowerings["ND_separate3_color3"] = [{"when": {}, "replacement": "ND_iris_separate3_color3"}]
     return mx.writeToXmlString(doc), lowerings

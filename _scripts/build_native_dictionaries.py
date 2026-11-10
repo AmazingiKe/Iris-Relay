@@ -409,6 +409,21 @@ def build(catalog):
         add_blender_standard_math(profile, catalog)
         add_blender_invert(profile, catalog)
         add_blender_hsv(profile, catalog)
+        from _scripts.blender_materialx_nodes import (
+            add_blender_color_adjustments,
+            add_blender_mix,
+            add_blender_normal_uv,
+            add_blender_rgb_outputs,
+        )
+
+        add_blender_mix(profile, catalog)
+        add_blender_normal_uv(profile)
+        add_blender_rgb_outputs(profile, catalog)
+        add_blender_color_adjustments(profile, catalog)
+        from _scripts.build_blender_math import extend
+
+        extend(profile, catalog)
+        profile["version"] = "0.4.0"
     else:
         profile["version"] = "0.3.1"
         add_c4d_weighted_sum(profile, catalog)

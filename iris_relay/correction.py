@@ -50,6 +50,7 @@ def calibrate(result: dict, dictionary: Dictionary, predictor: JointPredictor | 
                 "intermediate": result["intermediate"],
                 "target": result["material"],
                 "dictionary_versions": report["dictionary_versions"],
+                "material_context": result.get("calibration_context", {}),
             }
         )
         proposal = predictor.predict(context)
@@ -75,6 +76,8 @@ def calibrate(result: dict, dictionary: Dictionary, predictor: JointPredictor | 
             if rule is None or not rule.get("adjustable", False):
                 raise ValidationError("校正端口不在字典允许范围内")
             validate_value(change.value, rule)
+            if "adjustment_range" in rule:
+                validate_value(change.value, {**rule, "range": rule["adjustment_range"]})
             if node["inputs"][change.port] != change.value:
                 changes.append(
                     {
