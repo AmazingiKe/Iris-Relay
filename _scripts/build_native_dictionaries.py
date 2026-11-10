@@ -2,8 +2,13 @@
 
 import argparse
 import json
+import sys
 from copy import deepcopy
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from _scripts.materialx_extension_library import blender_hsv_library  # noqa: E402
 
 RS = "com.redshift3d.redshift4c4d.nodes.core."
 
@@ -399,6 +404,7 @@ def build(catalog):
         add_blender_weighted_sum(profile, catalog)
         add_blender_standard_math(profile, catalog)
         add_blender_invert(profile, catalog)
+        add_blender_hsv(profile, catalog)
     else:
         profile["version"] = "0.3.1"
         add_c4d_weighted_sum(profile, catalog)
@@ -544,6 +550,43 @@ def add_blender_invert(profile, catalog):
         "Blender 5.2.3 ShaderNodeInvert 实机端口；仅 Fac=1 且未连接，RGB 为 1-color。"
         "对应 MaterialX ND_invert_color3 的 amount 默认值；不把 amount 误映射成 Fac。"
         "https://github.com/blender/blender/blob/v5.2.3/source/blender/gpu/shaders/material/gpu_shader_material_invert.glsl"
+    )
+
+
+def add_blender_hsv(profile, catalog):
+    """将 HSV 原生端口绑定内联标准子图，保持各参数及连接，不误用 hsvadjust。"""
+    observed = catalog["nodes"]["ShaderNodeHueSaturation"]
+    if observed["status"] != "instantiated":
+        raise ValueError("HSV 缺少本版本原生端口证据")
+    semantics = {
+        "Hue": "hue",
+        "Saturation": "saturation",
+        "Value": "value",
+        "Fac": "factor",
+        "Color": "color",
+    }
+    inputs = {p["id"]: infer_rule(p, "cycles", semantics[p["id"]]) for p in observed["inputs"]}
+    for rule in inputs.values():
+        rule.pop("adjustable", None)
+    profile["nodes"]["ShaderNodeHueSaturation"] = {
+        "semantic": "materialx.ND_iris_blender_hsv_color3",
+        "native": {"id": observed["id"], "label": observed["label"], "properties": {}},
+        "inputs": inputs,
+        "outputs": {
+            "Color": {
+                "semantic": "out",
+                "type": "color",
+                "native": {"id": "Color", "kind": "socket", "codec": "rgb"},
+            }
+        },
+    }
+    profile["materialx_extensions"] = blender_hsv_library(inputs)
+    profile["version"] = "0.3.8"
+    profile["evidence"]["hsv"] = (
+        "Cycles 5.2.3 HSV：色相环绕、饱和度钳制、Value 乘法、Fac 混合及非负输出。"
+        "内联标准数学子图，回导须核对实际定义与实现；不采用存在边界差异的 hsvadjust。"
+        "https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/hsv.h "
+        "https://github.com/blender/blender/blob/v5.2.3/intern/cycles/util/color.h"
     )
 
 

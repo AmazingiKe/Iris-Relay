@@ -1,8 +1,7 @@
 {
   "schema_version": "1",
   "id": "blender.cycles.native",
-  "version": "0.3.7",
-  "texture_alpha_modes": ["STRAIGHT", "PREMUL", "CHANNEL_PACKED", "NONE"],
+  "version": "0.3.8",
   "semantic_schema_version": "1",
   "description": "真实原生绑定；标准表面、图片、切线法线、高度凹凸与显式 R 通道提取。其余节点见探测目录。",
   "renderer": {
@@ -25,7 +24,8 @@
     "principled_variants": "Blender 5.2.3 对 A1.blend 全部 1803 个材质的原生读取；新增五种 distribution / subsurface_method 组合，样本中 SSS 权重均为零。",
     "weighted_sum": "Blender 5.2.3 DOT_PRODUCT 实机端口核验；https://github.com/blender/blender/blob/v5.2.3/source/blender/nodes/shader/nodes/node_shader_vector_math.cc",
     "standard_math": "本版本 ShaderNodeMath 实机枚举与端口；ADD、SUBTRACT、MULTIPLY 且 use_clamp=false。对应官方 float 数学 NodeDef，未声明其他模式或外观验证。",
-    "full_invert": "Blender 5.2.3 ShaderNodeInvert 实机端口；仅 Fac=1 且未连接，RGB 为 1-color。对应 MaterialX ND_invert_color3 的 amount 默认值；不把 amount 误映射成 Fac。https://github.com/blender/blender/blob/v5.2.3/source/blender/gpu/shaders/material/gpu_shader_material_invert.glsl"
+    "full_invert": "Blender 5.2.3 ShaderNodeInvert 实机端口；仅 Fac=1 且未连接，RGB 为 1-color。对应 MaterialX ND_invert_color3 的 amount 默认值；不把 amount 误映射成 Fac。https://github.com/blender/blender/blob/v5.2.3/source/blender/gpu/shaders/material/gpu_shader_material_invert.glsl",
+    "hsv": "Cycles 5.2.3 HSV：色相环绕、饱和度钳制、Value 乘法、Fac 混合及非负输出。内联标准数学子图，回导须核对实际定义与实现；不采用存在边界差异的 hsvadjust。https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/hsv.h https://github.com/blender/blender/blob/v5.2.3/intern/cycles/util/color.h"
   },
   "nodes": {
     "ShaderNodeBsdfPrincipled": {
@@ -3995,13 +3995,100 @@
           }
         }
       }
+    },
+    "ShaderNodeHueSaturation": {
+      "semantic": "materialx.ND_iris_blender_hsv_color3",
+      "native": {
+        "id": "ShaderNodeHueSaturation",
+        "label": "Hue/Saturation/Value",
+        "properties": {}
+      },
+      "inputs": {
+        "Hue": {
+          "semantic": "hue",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Hue",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        },
+        "Saturation": {
+          "semantic": "saturation",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "Saturation",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        },
+        "Value": {
+          "semantic": "value",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "Value",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        },
+        "Fac": {
+          "semantic": "factor",
+          "type": "float",
+          "default": 1.0,
+          "native": {
+            "id": "Fac",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        },
+        "Color": {
+          "semantic": "color",
+          "type": "color",
+          "default": [
+            0.800000011920929,
+            0.800000011920929,
+            0.800000011920929
+          ],
+          "native": {
+            "id": "Color",
+            "kind": "socket",
+            "codec": "rgb"
+          },
+          "omit_if_default": false
+        }
+      },
+      "outputs": {
+        "Color": {
+          "semantic": "out",
+          "type": "color",
+          "native": {
+            "id": "Color",
+            "kind": "socket",
+            "codec": "rgb"
+          }
+        }
+      }
     }
   },
+  "texture_alpha_modes": [
+    "STRAIGHT",
+    "PREMUL",
+    "CHANNEL_PACKED",
+    "NONE"
+  ],
   "texture_coordinates": {
     "named_uv": true,
     "transforms": "trs"
   },
   "materialx_export": {
     "color_to_float": "scene_linear_luminance"
-  }
+  },
+  "materialx_extensions": "<?xml version=\"1.0\"?>\n<materialx version=\"1.39\">\n  <nodedef name=\"ND_iris_blender_hsv_color3\" node=\"iris_blender_hsv\">\n    <output name=\"out\" type=\"color3\" />\n    <input name=\"hue\" type=\"float\" value=\"0.5\" />\n    <input name=\"saturation\" type=\"float\" value=\"1.0\" />\n    <input name=\"value\" type=\"float\" value=\"1.0\" />\n    <input name=\"factor\" type=\"float\" value=\"1.0\" />\n    <input name=\"color\" type=\"color3\" value=\"0.800000011920929, 0.800000011920929, 0.800000011920929\" />\n  </nodedef>\n  <nodegraph name=\"NG_iris_blender_hsv_color3\" nodedef=\"ND_iris_blender_hsv_color3\">\n    <extract name=\"red\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"color\" />\n      <input name=\"index\" type=\"integer\" value=\"0\" />\n    </extract>\n    <extract name=\"green\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"color\" />\n      <input name=\"index\" type=\"integer\" value=\"1\" />\n    </extract>\n    <extract name=\"blue\" type=\"float\" nodedef=\"ND_extract_color3\">\n      <input name=\"in\" type=\"color3\" interfacename=\"color\" />\n      <input name=\"index\" type=\"integer\" value=\"2\" />\n    </extract>\n    <max name=\"maximum_gb\" type=\"float\" nodedef=\"ND_max_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"green\" />\n      <input name=\"in2\" type=\"float\" nodename=\"blue\" />\n    </max>\n    <max name=\"maximum\" type=\"float\" nodedef=\"ND_max_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"red\" />\n      <input name=\"in2\" type=\"float\" nodename=\"maximum_gb\" />\n    </max>\n    <min name=\"minimum_gb\" type=\"float\" nodedef=\"ND_min_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"green\" />\n      <input name=\"in2\" type=\"float\" nodename=\"blue\" />\n    </min>\n    <min name=\"minimum\" type=\"float\" nodedef=\"ND_min_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"red\" />\n      <input name=\"in2\" type=\"float\" nodename=\"minimum_gb\" />\n    </min>\n    <subtract name=\"chroma\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"maximum\" />\n      <input name=\"in2\" type=\"float\" nodename=\"minimum\" />\n    </subtract>\n    <ifequal name=\"nonzero_maximum\" type=\"float\" nodedef=\"ND_ifequal_float\">\n      <input name=\"value1\" type=\"float\" nodename=\"maximum\" />\n      <input name=\"value2\" type=\"float\" value=\"0.0\" />\n      <input name=\"in1\" type=\"float\" value=\"1.0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"maximum\" />\n    </ifequal>\n    <divide name=\"saturation_ratio\" type=\"float\" nodedef=\"ND_divide_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"chroma\" />\n      <input name=\"in2\" type=\"float\" nodename=\"nonzero_maximum\" />\n    </divide>\n    <ifequal name=\"source_saturation\" type=\"float\" nodedef=\"ND_ifequal_float\">\n      <input name=\"value1\" type=\"float\" nodename=\"maximum\" />\n      <input name=\"value2\" type=\"float\" value=\"0.0\" />\n      <input name=\"in1\" type=\"float\" value=\"0.0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"saturation_ratio\" />\n    </ifequal>\n    <ifequal name=\"nonzero_chroma\" type=\"float\" nodedef=\"ND_ifequal_float\">\n      <input name=\"value1\" type=\"float\" nodename=\"chroma\" />\n      <input name=\"value2\" type=\"float\" value=\"0.0\" />\n      <input name=\"in1\" type=\"float\" value=\"1.0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"chroma\" />\n    </ifequal>\n    <subtract name=\"difference_0\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"maximum\" />\n      <input name=\"in2\" type=\"float\" nodename=\"red\" />\n    </subtract>\n    <divide name=\"relative_0\" type=\"float\" nodedef=\"ND_divide_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"difference_0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"nonzero_chroma\" />\n    </divide>\n    <subtract name=\"difference_1\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"maximum\" />\n      <input name=\"in2\" type=\"float\" nodename=\"green\" />\n    </subtract>\n    <divide name=\"relative_1\" type=\"float\" nodedef=\"ND_divide_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"difference_1\" />\n      <input name=\"in2\" type=\"float\" nodename=\"nonzero_chroma\" />\n    </divide>\n    <subtract name=\"difference_2\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"maximum\" />\n      <input name=\"in2\" type=\"float\" nodename=\"blue\" />\n    </subtract>\n    <divide name=\"relative_2\" type=\"float\" nodedef=\"ND_divide_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"difference_2\" />\n      <input name=\"in2\" type=\"float\" nodename=\"nonzero_chroma\" />\n    </divide>\n    <subtract name=\"red_hue\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"relative_2\" />\n      <input name=\"in2\" type=\"float\" nodename=\"relative_1\" />\n    </subtract>\n    <add name=\"green_offset\" type=\"float\" nodedef=\"ND_add_float\">\n      <input name=\"in1\" type=\"float\" value=\"2.0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"relative_0\" />\n    </add>\n    <subtract name=\"green_hue\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"green_offset\" />\n      <input name=\"in2\" type=\"float\" nodename=\"relative_2\" />\n    </subtract>\n    <add name=\"blue_offset\" type=\"float\" nodedef=\"ND_add_float\">\n      <input name=\"in1\" type=\"float\" value=\"4.0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"relative_1\" />\n    </add>\n    <subtract name=\"blue_hue\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"blue_offset\" />\n      <input name=\"in2\" type=\"float\" nodename=\"relative_0\" />\n    </subtract>\n    <ifequal name=\"hue_green_or_blue\" type=\"float\" nodedef=\"ND_ifequal_float\">\n      <input name=\"value1\" type=\"float\" nodename=\"green\" />\n      <input name=\"value2\" type=\"float\" nodename=\"maximum\" />\n      <input name=\"in1\" type=\"float\" nodename=\"green_hue\" />\n      <input name=\"in2\" type=\"float\" nodename=\"blue_hue\" />\n    </ifequal>\n    <ifequal name=\"hue_sector\" type=\"float\" nodedef=\"ND_ifequal_float\">\n      <input name=\"value1\" type=\"float\" nodename=\"red\" />\n      <input name=\"value2\" type=\"float\" nodename=\"maximum\" />\n      <input name=\"in1\" type=\"float\" nodename=\"red_hue\" />\n      <input name=\"in2\" type=\"float\" nodename=\"hue_green_or_blue\" />\n    </ifequal>\n    <divide name=\"hue_fraction\" type=\"float\" nodedef=\"ND_divide_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"hue_sector\" />\n      <input name=\"in2\" type=\"float\" value=\"6.0\" />\n    </divide>\n    <add name=\"hue_plus_one\" type=\"float\" nodedef=\"ND_add_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"hue_fraction\" />\n      <input name=\"in2\" type=\"float\" value=\"1.0\" />\n    </add>\n    <ifgreater name=\"positive_hue\" type=\"float\" nodedef=\"ND_ifgreater_float\">\n      <input name=\"value1\" type=\"float\" value=\"0.0\" />\n      <input name=\"value2\" type=\"float\" nodename=\"hue_fraction\" />\n      <input name=\"in1\" type=\"float\" nodename=\"hue_plus_one\" />\n      <input name=\"in2\" type=\"float\" nodename=\"hue_fraction\" />\n    </ifgreater>\n    <ifequal name=\"source_hue\" type=\"float\" nodedef=\"ND_ifequal_float\">\n      <input name=\"value1\" type=\"float\" nodename=\"source_saturation\" />\n      <input name=\"value2\" type=\"float\" value=\"0.0\" />\n      <input name=\"in1\" type=\"float\" value=\"0.0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"positive_hue\" />\n    </ifequal>\n    <add name=\"hue_parameter\" type=\"float\" nodedef=\"ND_add_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"source_hue\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"hue\" />\n    </add>\n    <add name=\"hue_shift\" type=\"float\" nodedef=\"ND_add_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"hue_parameter\" />\n      <input name=\"in2\" type=\"float\" value=\"0.5\" />\n    </add>\n    <floor name=\"hue_floor\" type=\"float\" nodedef=\"ND_floor_float\">\n      <input name=\"in\" type=\"float\" nodename=\"hue_shift\" />\n    </floor>\n    <subtract name=\"hue_wrap\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"hue_shift\" />\n      <input name=\"in2\" type=\"float\" nodename=\"hue_floor\" />\n    </subtract>\n    <multiply name=\"saturation_parameter\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"source_saturation\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"saturation\" />\n    </multiply>\n    <clamp name=\"saturation_clamp\" type=\"float\" nodedef=\"ND_clamp_float\">\n      <input name=\"in\" type=\"float\" nodename=\"saturation_parameter\" />\n      <input name=\"low\" type=\"float\" value=\"0.0\" />\n      <input name=\"high\" type=\"float\" value=\"1.0\" />\n    </clamp>\n    <multiply name=\"value_parameter\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"maximum\" />\n      <input name=\"in2\" type=\"float\" interfacename=\"value\" />\n    </multiply>\n    <multiply name=\"hue_six\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"hue_wrap\" />\n      <input name=\"in2\" type=\"float\" value=\"6.0\" />\n    </multiply>\n    <floor name=\"sector_index\" type=\"float\" nodedef=\"ND_floor_float\">\n      <input name=\"in\" type=\"float\" nodename=\"hue_six\" />\n    </floor>\n    <subtract name=\"sector_fraction\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"hue_six\" />\n      <input name=\"in2\" type=\"float\" nodename=\"sector_index\" />\n    </subtract>\n    <subtract name=\"one_minus_s\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" value=\"1.0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"saturation_clamp\" />\n    </subtract>\n    <multiply name=\"rgb_p\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"value_parameter\" />\n      <input name=\"in2\" type=\"float\" nodename=\"one_minus_s\" />\n    </multiply>\n    <multiply name=\"sf\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"saturation_clamp\" />\n      <input name=\"in2\" type=\"float\" nodename=\"sector_fraction\" />\n    </multiply>\n    <subtract name=\"one_minus_sf\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" value=\"1.0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"sf\" />\n    </subtract>\n    <multiply name=\"rgb_q\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"value_parameter\" />\n      <input name=\"in2\" type=\"float\" nodename=\"one_minus_sf\" />\n    </multiply>\n    <subtract name=\"one_minus_f\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" value=\"1.0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"sector_fraction\" />\n    </subtract>\n    <multiply name=\"s_one_minus_f\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"saturation_clamp\" />\n      <input name=\"in2\" type=\"float\" nodename=\"one_minus_f\" />\n    </multiply>\n    <subtract name=\"one_minus_s_one_minus_f\" type=\"float\" nodedef=\"ND_subtract_float\">\n      <input name=\"in1\" type=\"float\" value=\"1.0\" />\n      <input name=\"in2\" type=\"float\" nodename=\"s_one_minus_f\" />\n    </subtract>\n    <multiply name=\"rgb_t\" type=\"float\" nodedef=\"ND_multiply_float\">\n      <input name=\"in1\" type=\"float\" nodename=\"value_parameter\" />\n      <input name=\"in2\" type=\"float\" nodename=\"one_minus_s_one_minus_f\" />\n    </multiply>\n    <combine3 name=\"sector_color_0\" type=\"color3\" nodedef=\"ND_combine3_color3\">\n      <input name=\"in1\" type=\"float\" nodename=\"value_parameter\" />\n      <input name=\"in2\" type=\"float\" nodename=\"rgb_t\" />\n      <input name=\"in3\" type=\"float\" nodename=\"rgb_p\" />\n    </combine3>\n    <combine3 name=\"sector_color_1\" type=\"color3\" nodedef=\"ND_combine3_color3\">\n      <input name=\"in1\" type=\"float\" nodename=\"rgb_q\" />\n      <input name=\"in2\" type=\"float\" nodename=\"value_parameter\" />\n      <input name=\"in3\" type=\"float\" nodename=\"rgb_p\" />\n    </combine3>\n    <combine3 name=\"sector_color_2\" type=\"color3\" nodedef=\"ND_combine3_color3\">\n      <input name=\"in1\" type=\"float\" nodename=\"rgb_p\" />\n      <input name=\"in2\" type=\"float\" nodename=\"value_parameter\" />\n      <input name=\"in3\" type=\"float\" nodename=\"rgb_t\" />\n    </combine3>\n    <combine3 name=\"sector_color_3\" type=\"color3\" nodedef=\"ND_combine3_color3\">\n      <input name=\"in1\" type=\"float\" nodename=\"rgb_p\" />\n      <input name=\"in2\" type=\"float\" nodename=\"rgb_q\" />\n      <input name=\"in3\" type=\"float\" nodename=\"value_parameter\" />\n    </combine3>\n    <combine3 name=\"sector_color_4\" type=\"color3\" nodedef=\"ND_combine3_color3\">\n      <input name=\"in1\" type=\"float\" nodename=\"rgb_t\" />\n      <input name=\"in2\" type=\"float\" nodename=\"rgb_p\" />\n      <input name=\"in3\" type=\"float\" nodename=\"value_parameter\" />\n    </combine3>\n    <combine3 name=\"sector_color_5\" type=\"color3\" nodedef=\"ND_combine3_color3\">\n      <input name=\"in1\" type=\"float\" nodename=\"value_parameter\" />\n      <input name=\"in2\" type=\"float\" nodename=\"rgb_p\" />\n      <input name=\"in3\" type=\"float\" nodename=\"rgb_q\" />\n    </combine3>\n    <ifequal name=\"select_sector_4\" type=\"color3\" nodedef=\"ND_ifequal_color3\">\n      <input name=\"value1\" type=\"float\" nodename=\"sector_index\" />\n      <input name=\"value2\" type=\"float\" value=\"4.0\" />\n      <input name=\"in1\" type=\"color3\" nodename=\"sector_color_4\" />\n      <input name=\"in2\" type=\"color3\" nodename=\"sector_color_5\" />\n    </ifequal>\n    <ifequal name=\"select_sector_3\" type=\"color3\" nodedef=\"ND_ifequal_color3\">\n      <input name=\"value1\" type=\"float\" nodename=\"sector_index\" />\n      <input name=\"value2\" type=\"float\" value=\"3.0\" />\n      <input name=\"in1\" type=\"color3\" nodename=\"sector_color_3\" />\n      <input name=\"in2\" type=\"color3\" nodename=\"select_sector_4\" />\n    </ifequal>\n    <ifequal name=\"select_sector_2\" type=\"color3\" nodedef=\"ND_ifequal_color3\">\n      <input name=\"value1\" type=\"float\" nodename=\"sector_index\" />\n      <input name=\"value2\" type=\"float\" value=\"2.0\" />\n      <input name=\"in1\" type=\"color3\" nodename=\"sector_color_2\" />\n      <input name=\"in2\" type=\"color3\" nodename=\"select_sector_3\" />\n    </ifequal>\n    <ifequal name=\"select_sector_1\" type=\"color3\" nodedef=\"ND_ifequal_color3\">\n      <input name=\"value1\" type=\"float\" nodename=\"sector_index\" />\n      <input name=\"value2\" type=\"float\" value=\"1.0\" />\n      <input name=\"in1\" type=\"color3\" nodename=\"sector_color_1\" />\n      <input name=\"in2\" type=\"color3\" nodename=\"select_sector_2\" />\n    </ifequal>\n    <ifequal name=\"select_sector_0\" type=\"color3\" nodedef=\"ND_ifequal_color3\">\n      <input name=\"value1\" type=\"float\" nodename=\"sector_index\" />\n      <input name=\"value2\" type=\"float\" value=\"0.0\" />\n      <input name=\"in1\" type=\"color3\" nodename=\"sector_color_0\" />\n      <input name=\"in2\" type=\"color3\" nodename=\"select_sector_1\" />\n    </ifequal>\n    <mix name=\"factor_mix\" type=\"color3\" nodedef=\"ND_mix_color3\">\n      <input name=\"fg\" type=\"color3\" nodename=\"select_sector_0\" />\n      <input name=\"bg\" type=\"color3\" interfacename=\"color\" />\n      <input name=\"mix\" type=\"float\" interfacename=\"factor\" />\n    </mix>\n    <max name=\"nonnegative\" type=\"color3\" nodedef=\"ND_max_color3FA\">\n      <input name=\"in1\" type=\"color3\" nodename=\"factor_mix\" />\n      <input name=\"in2\" type=\"float\" value=\"0.0\" />\n    </max>\n    <output name=\"out\" type=\"color3\" nodename=\"nonnegative\" />\n  </nodegraph>\n</materialx>\n"
 }
