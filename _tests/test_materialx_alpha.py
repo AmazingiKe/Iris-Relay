@@ -245,3 +245,45 @@ def test_unused_ambiguous_target_function_does_not_block_alpha_import():
         RelayAPI([profile]), "materialx.convert", document=document, target=source["renderer"]
     )
     assert result["status"] == "warning", result
+
+
+def test_color_driven_opacity_preserves_luminance_then_gray_conversion():
+    """A1 也有 Color 驱动 Alpha，必须先使用源亮度系数，再展开灰度透明颜色。"""
+    api, source = setup(linked=False)
+    image = next(n for n in source["nodes"] if n["type"] == "ShaderNodeTexImage")
+    surface = next(n for n in source["nodes"] if n["type"] == "ShaderNodeBsdfPrincipled")
+    source["links"].append(
+        {
+            "from": {"node": image["id"], "socket": "Color"},
+            "to": {"node": surface["id"], "socket": "Alpha"},
+        }
+    )
+    weights = [0.2126729, 0.7151522, 0.0721750]
+    source["metadata"]["color_to_float"] = {
+        "working_space": "lin_rec709_scene",
+        "coefficients": weights,
+    }
+    result = call(api, "materialx.export", material=source)
+    assert result["status"] == "warning", result
+    doc = mx.createDocument()
+    mx.readFromXmlString(doc, result["result"]["document"])
+    surface = next(n for n in doc.getNodes() if n.getCategory() == "standard_surface")
+    gray = surface.getInput("opacity").getConnectedNode()
+    assert gray.getCategory() == "convert" and gray.getType() == "color3"
+    scalar = gray.getInput("in").getConnectedNode()
+    assert scalar.getCategory() == "extract" and scalar.getInput("index").getValue() == 0
+    luma = scalar.getInput("in").getConnectedNode()
+    assert luma.getCategory() == "luminance"
+    assert list(luma.getInput("lumacoeffs").getValue()) == pytest.approx(weights)
+    converted = call(
+        api, "materialx.convert", document=result["result"]["document"], target=source["renderer"]
+    )
+    assert converted["status"] == "warning", converted
+    material = converted["result"]["material"]
+    weighted = next(n for n in material["nodes"] if n["type"] == "ShaderNodeVectorMath.dot_product")
+    assert weighted["inputs"]["Vector_001"] == pytest.approx(weights)
+    assert any(
+        link["from"] == {"node": weighted["id"], "socket": "Value"}
+        and link["to"]["socket"] == "Alpha"
+        for link in material["links"]
+    )
