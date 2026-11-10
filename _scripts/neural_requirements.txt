@@ -1,0 +1,8 @@
+# 首轮实验的独立 Python 3.11 环境；不加入核心或 DCC 运行时依赖。
+torch==2.7.1
+numpy==2.2.6
+pillow==11.2.1
+scipy==1.15.3
+materialx==1.39.5
+OpenEXR==3.3.5
+matplotlib==3.10.3
