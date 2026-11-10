@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "id": "blender.cycles.native",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "semantic_schema_version": "1",
   "description": "真实原生绑定；标准表面、图片、切线法线、高度凹凸与显式 R 通道提取。其余节点见探测目录。",
   "renderer": {
@@ -22,7 +22,8 @@
     "appearance_verified": false,
     "implicit_color_to_float": "https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/convert.h",
     "principled_variants": "Blender 5.2.3 对 A1.blend 全部 1803 个材质的原生读取；新增五种 distribution / subsurface_method 组合，样本中 SSS 权重均为零。",
-    "weighted_sum": "Blender 5.2.3 DOT_PRODUCT 实机端口核验；https://github.com/blender/blender/blob/v5.2.3/source/blender/nodes/shader/nodes/node_shader_vector_math.cc"
+    "weighted_sum": "Blender 5.2.3 DOT_PRODUCT 实机端口核验；https://github.com/blender/blender/blob/v5.2.3/source/blender/nodes/shader/nodes/node_shader_vector_math.cc",
+    "standard_math": "本版本 ShaderNodeMath 实机枚举与端口；ADD、SUBTRACT、MULTIPLY 且 use_clamp=false。对应官方 float 数学 NodeDef，未声明其他模式或外观验证。"
   },
   "nodes": {
     "ShaderNodeBsdfPrincipled": {
@@ -3799,6 +3800,144 @@
       "outputs": {
         "Value": {
           "semantic": "value",
+          "type": "float",
+          "native": {
+            "id": "Value",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ShaderNodeMath.add": {
+      "semantic": "materialx.ND_add_float",
+      "native": {
+        "id": "ShaderNodeMath",
+        "label": "Math",
+        "properties": {
+          "operation": "ADD",
+          "use_clamp": false
+        }
+      },
+      "inputs": {
+        "Value": {
+          "semantic": "in1",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Value",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        },
+        "Value_001": {
+          "semantic": "in2",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Value_001",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        }
+      },
+      "outputs": {
+        "Value": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "Value",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ShaderNodeMath.subtract": {
+      "semantic": "materialx.ND_subtract_float",
+      "native": {
+        "id": "ShaderNodeMath",
+        "label": "Math",
+        "properties": {
+          "operation": "SUBTRACT",
+          "use_clamp": false
+        }
+      },
+      "inputs": {
+        "Value": {
+          "semantic": "in1",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Value",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        },
+        "Value_001": {
+          "semantic": "in2",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Value_001",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        }
+      },
+      "outputs": {
+        "Value": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "Value",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "ShaderNodeMath.multiply": {
+      "semantic": "materialx.ND_multiply_float",
+      "native": {
+        "id": "ShaderNodeMath",
+        "label": "Math",
+        "properties": {
+          "operation": "MULTIPLY",
+          "use_clamp": false
+        }
+      },
+      "inputs": {
+        "Value": {
+          "semantic": "in1",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Value",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        },
+        "Value_001": {
+          "semantic": "in2",
+          "type": "float",
+          "default": 0.5,
+          "native": {
+            "id": "Value_001",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        }
+      },
+      "outputs": {
+        "Value": {
+          "semantic": "out",
           "type": "float",
           "native": {
             "id": "Value",

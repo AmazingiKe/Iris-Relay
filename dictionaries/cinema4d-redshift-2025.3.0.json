@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "id": "cinema4d.redshift.native",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "semantic_schema_version": "1",
   "description": "真实原生绑定；标准表面、图片、切线法线、高度凹凸与显式 R 通道提取。其余节点见探测目录。",
   "renderer": {
@@ -1796,6 +1796,141 @@
           "type": "float",
           "native": {
             "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathdotvector.out",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "com.redshift3d.redshift4c4d.nodes.core.rsmathadd": {
+      "semantic": "materialx.ND_add_float",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathadd",
+        "label": "rsmathadd",
+        "properties": {
+          "com.redshift3d.redshift4c4d.nodes.core.rsmathadd.math_op": 3
+        }
+      },
+      "inputs": {
+        "com.redshift3d.redshift4c4d.nodes.core.rsmathadd.input1": {
+          "semantic": "in1",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathadd.input1",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.rsmathadd.input2": {
+          "semantic": "in2",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathadd.input2",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        }
+      },
+      "outputs": {
+        "com.redshift3d.redshift4c4d.nodes.core.rsmathadd.out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathadd.out",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "com.redshift3d.redshift4c4d.nodes.core.rsmathsub": {
+      "semantic": "materialx.ND_subtract_float",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathsub",
+        "label": "rsmathsub",
+        "properties": {
+          "com.redshift3d.redshift4c4d.nodes.core.rsmathsub.math_op": 4
+        }
+      },
+      "inputs": {
+        "com.redshift3d.redshift4c4d.nodes.core.rsmathsub.input1": {
+          "semantic": "in1",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathsub.input1",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.rsmathsub.input2": {
+          "semantic": "in2",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathsub.input2",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        }
+      },
+      "outputs": {
+        "com.redshift3d.redshift4c4d.nodes.core.rsmathsub.out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathsub.out",
+            "kind": "socket",
+            "codec": "identity"
+          }
+        }
+      }
+    },
+    "com.redshift3d.redshift4c4d.nodes.core.rsmathmul": {
+      "semantic": "materialx.ND_multiply_float",
+      "native": {
+        "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmul",
+        "label": "rsmathmul",
+        "properties": {
+          "com.redshift3d.redshift4c4d.nodes.core.rsmathmul.math_op": 5
+        }
+      },
+      "inputs": {
+        "com.redshift3d.redshift4c4d.nodes.core.rsmathmul.input1": {
+          "semantic": "in1",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmul.input1",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        },
+        "com.redshift3d.redshift4c4d.nodes.core.rsmathmul.input2": {
+          "semantic": "in2",
+          "type": "float",
+          "default": 0.0,
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmul.input2",
+            "kind": "socket",
+            "codec": "identity"
+          },
+          "omit_if_default": false
+        }
+      },
+      "outputs": {
+        "com.redshift3d.redshift4c4d.nodes.core.rsmathmul.out": {
+          "semantic": "out",
+          "type": "float",
+          "native": {
+            "id": "com.redshift3d.redshift4c4d.nodes.core.rsmathmul.out",
             "kind": "socket",
             "codec": "identity"
           }

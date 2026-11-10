@@ -172,7 +172,7 @@ def build(catalog):
     if "color_context" in catalog:
         profile["evidence"]["color_context"] = catalog["color_context"]
     if engine == "cycles":
-        profile["version"] = "0.3.3"
+        profile["version"] = "0.3.4"
         profile["materialx_export"] = {"color_to_float": "scene_linear_luminance"}
         profile["evidence"]["implicit_color_to_float"] = (
             "https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/convert.h"
@@ -395,9 +395,13 @@ def build(catalog):
         profile["nodes"][shader_key + ".ggx_burley"] = legacy
         add_blender_principled_variants(profile, catalog, shader_key)
         add_blender_weighted_sum(profile, catalog)
+        add_blender_standard_math(profile, catalog)
     else:
         profile["version"] = "0.3.1"
         add_c4d_weighted_sum(profile, catalog)
+        if engine == "redshift":
+            profile["version"] = "0.3.2"
+            add_redshift_standard_math(profile, catalog)
     return profile
 
 
@@ -472,6 +476,82 @@ def add_blender_weighted_sum(profile, catalog):
         "https://github.com/blender/blender/blob/v5.2.3/"
         "source/blender/nodes/shader/nodes/node_shader_vector_math.cc"
     )
+
+
+def add_blender_standard_math(profile, catalog):
+    """把有直接对应的三个未钳制数学模式绑定到官方 NodeDef，其他模式仍显式阻断。"""
+    observed = catalog["nodes"]["ShaderNodeMath"]
+    ports = {p["id"]: p for p in observed["inputs"]}
+    output = next(p for p in observed["outputs"] if p["id"] == "Value")
+    for operation in ("ADD", "SUBTRACT", "MULTIPLY"):
+        if (
+            observed["status"] != "instantiated"
+            or operation not in observed["properties"]["operation"]["items"]
+        ):
+            raise ValueError(f"数学模式缺少实机证据：{operation}")
+        rule = {
+            "semantic": f"materialx.ND_{operation.lower()}_float",
+            "native": {
+                "id": observed["id"],
+                "label": observed["label"],
+                "properties": {"operation": operation, "use_clamp": False},
+            },
+            "inputs": {},
+            "outputs": {
+                "Value": {
+                    "semantic": "out",
+                    "type": "float",
+                    "native": {"id": output["id"], "kind": "socket", "codec": "identity"},
+                }
+            },
+        }
+        for identifier, semantic in (("Value", "in1"), ("Value_001", "in2")):
+            rule["inputs"][identifier] = infer_rule(ports[identifier], "cycles", semantic)
+            rule["inputs"][identifier].pop("adjustable", None)
+        profile["nodes"][f"ShaderNodeMath.{operation.lower()}"] = rule
+    profile["evidence"]["standard_math"] = (
+        "本版本 ShaderNodeMath 实机枚举与端口；ADD、SUBTRACT、MULTIPLY 且 use_clamp=false。"
+        "对应官方 float 数学 NodeDef，未声明其他模式或外观验证。"
+    )
+
+
+def add_redshift_standard_math(profile, catalog):
+    """绑定实机标量加减乘节点；保留运算模式，不将向量或颜色数学节点当成标量。"""
+    for operation, suffix in (
+        ("add", "rsmathadd"),
+        ("subtract", "rsmathsub"),
+        ("multiply", "rsmathmul"),
+    ):
+        key = RS + suffix
+        observed = catalog["nodes"][key]
+        if observed["status"] != "instantiated":
+            raise ValueError(f"标量数学节点缺少宿主证据：{key}")
+        ports = {p["id"].rsplit(".", 1)[-1]: p for p in observed["inputs"]}
+        output = next(p for p in observed["outputs"] if p["id"] == key + ".out")
+        mode = ports["math_op"]
+        rule = {
+            "semantic": f"materialx.ND_{operation}_float",
+            "native": {
+                "id": key,
+                "label": observed["label"],
+                "properties": {mode["id"]: mode["default"]},
+            },
+            "inputs": {},
+            "outputs": {
+                output["id"]: {
+                    "semantic": "out",
+                    "type": "float",
+                    "native": {"id": output["id"], "kind": "socket", "codec": "identity"},
+                }
+            },
+        }
+        for name, semantic in (("input1", "in1"), ("input2", "in2")):
+            port = infer_rule(ports[name], "redshift", semantic)
+            if port["type"] != "float":
+                raise ValueError(f"数学端口不是标量：{key}.{name}")
+            port.pop("adjustable", None)
+            rule["inputs"][ports[name]["id"]] = port
+        profile["nodes"][key] = rule
 
 
 def add_c4d_weighted_sum(profile, catalog):

@@ -1,5 +1,6 @@
 """版本化的通用节点功能契约；不依赖宿主、不含原生 ID 或着色实现。"""
 
+import re
 from copy import deepcopy
 
 from .model import ValidationError
@@ -117,7 +118,11 @@ def describe_semantics():
 
 
 def validate_contract(node):
+    """校验旧功能契约；官方 NodeDef 引用在 MaterialX 请求中按 SDK 校验。"""
     semantic = node["semantic"]
+    # 宿主可以在没有 SDK 的进程查询原生绑定；不在这里复制官方节点与端口定义。
+    if re.fullmatch(r"materialx\.ND_[A-Za-z0-9_]+", semantic):
+        return
     if semantic not in _NODES:
         raise ValidationError(f"未定义的通用功能：{semantic}", "UNKNOWN_SEMANTIC")
     definition = _NODES[semantic]

@@ -60,6 +60,61 @@ COLOR_TO_MX = {"Raw": "raw", "sRGB": "srgb_texture"}
 COLOR_FROM_MX = {v: k for k, v in COLOR_TO_MX.items()}
 
 
+def bindings_for(core, dictionary):
+    """合并旧桥接与官方 NodeDef 直接绑定；名称、端口及类型以当前 SDK 为准。"""
+    bindings = dict(BINDINGS)
+    types = {
+        "float": "float",
+        "color3": "color",
+        "color4": "color4",
+        "vector3": "vector",
+        "boolean": "bool",
+        "string": "string",
+    }
+    for rule in dictionary.nodes.values():
+        semantic = rule["semantic"]
+        if not semantic.startswith("materialx."):
+            continue
+        name = semantic.removeprefix("materialx.")
+        definition = core.library.getNodeDef(name)
+        if definition is None:
+            raise ValidationError(f"官方库没有 NodeDef：{name}", "MATERIALX_BINDING_INVALID")
+        outputs = definition.getActiveOutputs()
+        if len(outputs) != 1 or types.get(outputs[0].getType()) is None:
+            raise ValidationError(
+                f"直接绑定尚不支持该输出类型：{name}", "MATERIALX_BINDING_INVALID"
+            )
+        inputs = {}
+        for direction, declared in (("inputs", definition.getActiveInputs()), ("outputs", outputs)):
+            ports = {p.getName(): p for p in declared}
+            supplied = set()
+            for port in rule[direction].values():
+                key = port["semantic"]
+                if (
+                    direction == "inputs"
+                    and key.startswith("native.")
+                    and port.get("omit_if_default")
+                ):
+                    continue
+                datatype = "color" if port.get("transform") == "scalar_to_color" else port["type"]
+                if key not in ports or types.get(ports[key].getType()) != datatype:
+                    raise ValidationError(
+                        f"原生绑定与官方端口不符：{name}.{key}", "MATERIALX_BINDING_INVALID"
+                    )
+                supplied.add(key)
+                if direction == "inputs":
+                    inputs[key] = key
+            if direction == "outputs" and supplied != set(ports):
+                raise ValidationError(f"直接绑定缺少输出：{name}", "MATERIALX_BINDING_INVALID")
+        binding = (name, inputs, outputs[0].getName())
+        if semantic in bindings and bindings[semantic] != binding:
+            raise ValidationError(
+                f"同一标准节点的绑定端口不一致：{name}", "MATERIALX_BINDING_INVALID"
+            )
+        bindings[semantic] = binding
+    return bindings
+
+
 def value_string(value):
     """将 Python 标量、布尔值或向量编码为 MaterialX 属性文本。"""
     if isinstance(value, list):
@@ -139,6 +194,7 @@ class _ExportNodes:
     nodes: dict = field(default_factory=dict)
     inputs: dict = field(default_factory=dict)
     outputs: dict = field(default_factory=dict)
+    bindings: dict = field(default_factory=dict)
 
 
 def export_material(core, source, dictionary):
@@ -148,6 +204,7 @@ def export_material(core, source, dictionary):
     result = {"source": source.to_dict(), "document": None, "report": report(issues)}
     result["report"]["source_dictionary_fingerprint"] = dictionary.fingerprint
     try:
+        bindings = bindings_for(core, dictionary)
         casts, coefficients = explicit_color_casts(source.data, dictionary)
     except ValidationError as exc:
         issues.append(issue(exc.code, str(exc)))
@@ -168,7 +225,7 @@ def export_material(core, source, dictionary):
         doc = mx.createDocument()
         doc.setDataLibrary(core.library)
         doc.setAttribute("iris_material_name", source.data["name"])
-        index = _create_export_nodes(core, doc, semantic)
+        index = _create_export_nodes(core, doc, semantic, bindings)
         _connect_export_links(core, doc, source.data, semantic, index, casts, coefficients, issues)
 
         # 4. 增加材质根节点，把选定的表面连接到 surfaceshader。
@@ -189,13 +246,13 @@ def export_material(core, source, dictionary):
     return result
 
 
-def _create_export_nodes(core, doc, semantic):
+def _create_export_nodes(core, doc, semantic, bindings):
     """创建所有标准节点及输入，返回端口索引；未知节点或被使用的未知输出阻断。"""
-    index = _ExportNodes()
+    index = _ExportNodes(bindings=bindings)
     used = {(link["from"]["node"], link["from"]["socket"]) for link in semantic["links"]}
     used.add((semantic["output"]["node"], semantic["output"]["socket"]))
     for record in semantic["nodes"]:
-        binding = BINDINGS.get(record["type"])
+        binding = bindings.get(record["type"])
         if binding is None:
             raise ValidationError(
                 f"尚无 MaterialX 对应：{record['type']}", "MATERIALX_NODE_UNSUPPORTED"
@@ -264,7 +321,7 @@ def _connect_export_links(core, doc, source, semantic, index, casts, coefficient
             # 原来省略的几何默认输入现在有连接，需要先创建空端口。
             record = next(n for n in semantic["nodes"] if n["id"] == target_key[0])
             port = add_value(
-                index.nodes[target_key[0]], BINDINGS[record["type"]][1][target_key[1]], None
+                index.nodes[target_key[0]], index.bindings[record["type"]][1][target_key[1]], None
             )
         port.removeAttribute("value")
         upstream = index.outputs[(link["from"]["node"], link["from"]["socket"])]
@@ -376,7 +433,7 @@ def _unwrap_color_vector(upstream, visited):
     return _read_input(upstream, "in")
 
 
-def to_semantic(core, doc, material_name, issues):
+def to_semantic(core, doc, material_name, issues, bindings):
     """反向读取 MaterialX 可达图，返回既有字典能处理的语义数据；未知含义阻断。"""
     # 1. 拒绝尚不能解释的单位、前缀和色彩上下文。
     for element in doc.traverseTree():
@@ -419,7 +476,7 @@ def to_semantic(core, doc, material_name, issues):
     }
     visited, pending = set(), [surface]
     reverse = {
-        binding[0]: (semantic, binding[1], binding[2]) for semantic, binding in BINDINGS.items()
+        binding[0]: (semantic, binding[1], binding[2]) for semantic, binding in bindings.items()
     }
 
     def visit(node):
@@ -532,7 +589,8 @@ def convert_document(core, source, dictionary, target, material_name=None):
         if status_for(issues) == "error":
             return result
         # 2. 提取可转换部分，再按目标字典生成原生参数与连接。
-        semantic = to_semantic(core, doc, material_name, issues)
+        bindings = bindings_for(core, dictionary)
+        semantic = to_semantic(core, doc, material_name, issues, bindings)
         candidate = transcode(
             semantic, dictionary, encode=True, renderer=deepcopy(target), issues=issues
         )
