@@ -231,13 +231,13 @@ def main():
             {"name": material.name, "source_unchanged": True, "instances_and_links_verified": True}
         )
         write_json(args.out / (material.name + "-source.json"), native)
-    # 常量向量连接与未连接图片的默认 UV 含义不同，不能在展开时合并。
+    # 坐标读取可取得组向量字面量，但纯常量仍不能冒充未连接图片的默认 UV。
     tree = image_material.node_tree
     tree.links.remove(group.inputs[0].links[0])
     rejected = controller.check_material(BlenderAdapter(image_material, service), service)
     assert rejected.status == "error" and any(
-        i["code"] == "GROUP_DEFAULT_UNSUPPORTED" for i in rejected.issues
-    )
+        i["code"] == "UV_UNSUPPORTED" for i in rejected.issues
+    ), rejected
     write_json(
         args.out / "summary.json",
         {"version": bpy.app.version_string, "cases": cases, "appearance_verified": False},
