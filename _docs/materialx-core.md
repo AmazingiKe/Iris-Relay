@@ -68,14 +68,14 @@ Blender 导出新增一项受限规则：字典明确声明颜色到标量连接
 
 依据为 Blender 5.2.3 的 [隐式转换实现](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/convert.h)、[工作空间 XYZ 矩阵](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/util/colorspace.cpp)及 [RGB → Y 初始化](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/scene/shader.cpp)。适配器通过当前 OCIO 配置读取 ACES AP0 → 工作空间的矩阵，并按该版本 Cycles 的 XYZ D65 常量求出系数，不更改色彩设置。
 
-GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶层节点、属性、输入、图片引用和连接保留于完整报告的 `source_snapshot`。该快照用于诊断，不是递归节点组备份，也不会嵌入 `.mtlx`；原 `.blend` 始终保留。未连接活动表面的节点有信息提示；非恒等 Mapping、体积、活动图中的未知节点和节点组仍阻断。
+GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶层节点、属性、输入、图片引用和连接保留于完整报告的 `source_snapshot`。该快照用于诊断，不是递归节点组备份，也不会嵌入 `.mtlx`；原 `.blend` 始终保留。未连接活动表面的节点有信息提示；动态坐标链、体积、活动图中的未知节点和节点组仍阻断。静态 POINT 与命名 UV 的范围见下文。
 
 文档可保存的范围大于当前目标可转换的范围。桥接支持三套字典共有的六类功能：
 
 | MaterialX | 既有字典语义 | 限制 |
 | --- | --- | --- |
 | `standard_surface`，默认版本 1.0.1 | `surface.standard` | 已映射基础参数；其他参数仅允许官方默认值，非默认或连接阻断 |
-| `image`，color3 | `texture.image` | 非空外部路径、默认 UV／采样；文件输入明确 `raw` 或 `srgb_texture`；不处理 Alpha |
+| `image`，color3 | `texture.image` | 非空外部路径、默认采样；UV 能力按目标检查，见下文；文件输入明确 `raw` 或 `srgb_texture`；不处理 Alpha |
 | `normalmap`，float scale | `normal.tangent` | 颜色连接须显式 `convert(color3→vector3)`；几何法线／切线使用默认值 |
 | `bump`，vector3 | `bump.height` | 标量高度；高度幅度和空间导数只作近似对应 |
 | `extract`，color3→float | `channel.red` | 仅 index=0 |
@@ -101,6 +101,29 @@ GUI 可明确选择仅导出表面，排除的位移会产生警告，宿主顶�
 旧 `convert` 继续使用旧语义链路；新路径显式使用 `materialx.export`／`materialx.convert`。Maya Arnold 的原生读取和字典尚未实现，不应把 C4DtoA 字典套用到 Maya。当前不会生成 USD、自动训练网络或证明外观一致。
 
 ## 验证与复现
+
+### UV 与静态 Mapping
+
+默认 UV 的旧文档保持不变。命名 UV 使用官方 `geompropvalue(vector2)`，显式默认 UV 使用 `texcoord(vector2,index=0)`。
+静态 POINT Mapping 链表示为 `vector2 → vector3 → transformmatrix(vector3,matrix44) 序列 → vector2`，每步对应一个矩阵；只在进入图片采样前舍弃 Z。
+这些都是 SDK 标准节点，输出不依赖 Iris 私有 NodeDef。矩阵按 MaterialX 行向量顺序保存，平移位于最后一行。
+
+图片资源的 `coordinates` 可带 `transforms`：最多 64 个按应用顺序排列的 16 元素仿射矩阵。目标字典须明确声明坐标能力；Blender 支持命名 UV 和逐步非退化 TRS，未声明能力的 C4D 目标明确阻断。
+完整三维静态 POINT 链可以保存，剪切和退化矩阵不能强行分解为 Blender Mapping。
+动态矩阵、实例 UV、Generated／Object 坐标、其他 Mapping 模式和非零 UV 索引目前没有对应目标规则。
+
+Blender 回读创建 UV 和可编辑 Mapping 节点，不依赖原生源图快照。矩阵的分解不保证还原原来的欧拉角数值，但必须重建同一变换；节点名称、布局、恒等节点和多个图片之间的共享坐标节点身份不作为该桥接的保留项。
+命名 UV 保留属性名称，目标几何体需提供对应 UV；本轮不创建或修改几何体。
+
+坐标夹具覆盖中文 UV 名称、连续变换、非均匀与负缩放、三个采样点、共享坐标输入、失败清理及源图／图片保护。
+运行 `_scripts/verify_blender_coordinates.py -- --out "新夹具目录"` 后，将该目录交给下面的独立回读脚本；三份文档已通过创建、保存重开和 108 个输入、9 条功能连接核对。坐标节点连接由读回资源矩阵与来源名称另行核对，不计入这 9 条功能连接。
+
+```powershell
+& "Blender程序路径" --background --factory-startup --disable-autoexec --python-exit-code 1 --python _scripts/verify_blender_coordinates.py -- --out "新夹具目录"
+& "Blender程序路径" --background --factory-startup --disable-autoexec --python-exit-code 1 --python _scripts/verify_blender_batch.py -- --documents "夹具目录" --out "新回读目录"
+```
+
+### 既有验证入口
 
 ```powershell
 uv run pytest _tests/test_materialx_core.py _tests/test_materialx_bridge.py -q

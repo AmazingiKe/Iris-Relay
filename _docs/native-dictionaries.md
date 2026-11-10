@@ -63,7 +63,7 @@ USD/UsdShade 与 MaterialX 的早期职责评估见 [ADR-0004](adr/0004-统一�
 - Cycles 的 Specular IOR Level 使用声明式 `scale` 映射到反射权重，仅是基础近似。Alpha 可展开成灰度颜色；反向遇到非灰度透明颜色时阻断。
 - 未建立共同语义的输入只在等于原生默认值且未连接时允许省略，并保留源快照和 `NATIVE_DEFAULT_OMITTED` 记录。修改后的 SSS、透射、特殊采样等参数不会静默丢弃；目标不能表达时阻断。
 - 非恒等变换驱动的连接仍然阻断，尚未自动插入反相、缩放等节点。未使用的已知输出允许省略；参与连接或作为最终输出的端口不能丢弃。
-- 图片验证限定存在的外部单张文件、明确色彩空间和默认 UV。Blender 适配器拒绝内嵌图、序列、UDIM、非默认投影／采样配置及未知节点。Redshift 的部分二维 UV 控件尚不能可靠读回，不能据此声称支持任意现有图片节点导出。
+- 图片验证限定存在的外部单张文件和明确色彩空间。Blender 另支持默认／命名 UV 与静态 POINT Mapping 序列；C4D 两端目前只声明默认 UV。Blender 适配器仍拒绝内嵌图、序列、UDIM、非默认投影／采样配置及未知节点。Redshift 的部分二维 UV 控件尚不能可靠读回，不能据此声称支持任意现有图片节点导出。
 - 切线法线与高度凹凸分开定义。高度幅度是有近似警告的基础映射，不证明各宿主单位和空间导数等价；Blender Strength、Filter Width 等无共同映射的非默认参数继续阻断。
 - 高度输入要求标量。显式 `channel.red` 可以形成图片 → R 通道 → 高度凹凸的连接；旧 `convert` 的直接 RGB → 高度仍返回类型错误，不隐式取平均。MaterialX 导出的受限亮度规则见下节，其他通道或任意颜色计算尚未覆盖。数据纹理保留 `Raw` 等解释，不修改场景色彩管理。
 - 尚未验证任意法线贴图的方向、切线重建和视觉结果，连接正确不等于外观一致。
@@ -111,6 +111,12 @@ fingerprint = response["result"]["fingerprint"]
 2026-11-10 C4D 两套字典升为 `0.3.1`，加入 Redshift `rsmathdotvector`（`math_op=24`）及 Arnold `dot`（code `193489676`）的加权求和绑定。Arnold 向量输入 Input1、Input2 的 code 分别为 `729976059`、`729976060`，由 `GetDescription` 取得；数值按向量原样写入。A1 文档合计 748 个 C4D 目标通过保存重开与读回，详见 [A1 记录](a1-materialx-roundtrip.md)。
 
 2026-11-10 Cycles 字典升为 `0.3.4`、Redshift 升为 `0.3.2`，增加标量加减乘。Blender 使用 Math 的 `ADD`、`SUBTRACT`、`MULTIPLY` 且 `use_clamp=false`；Redshift 使用 `rsmathadd`、`rsmathsub`、`rsmathmul`，实机运算码分别为 3、4、5。字典直接引用 `materialx.ND_add_float` 等官方定义，不扩充手工通用节点清单。三组独立夹具在两端保存重开通过；Arnold 这三种标量映射仍未实现。
+
+2026-11-10 Cycles 字典升为 `0.3.5`，声明 `texture_coordinates: {"named_uv": true, "transforms": "trs"}`。
+该字段供 MaterialX 目标转换检查坐标能力；未声明时只接受默认 UV。`trs` 表示每一步可分解为非退化平移、旋转、缩放，剪切和零缩放仍阻断目标转换。
+Blender 原生读写使用 `ShaderNodeUVMap.uv_map`、`ShaderNodeTexCoord` 的 UV 输出和 `ShaderNodeMapping.vector_type=POINT`，坐标节点没有被收录成新的通用功能大全。
+POINT 的处理顺序依据 [Blender 5.2.3 Cycles 源码](https://github.com/blender/blender/blob/v5.2.3/intern/cycles/kernel/svm/mapping_util.h)，原生模式与端口由本版本后台夹具验证。
+C4D 两套字典尚未声明命名 UV 或矩阵能力，相关文档在调用宿主前明确阻断。
 
 ## 复现实机验证
 

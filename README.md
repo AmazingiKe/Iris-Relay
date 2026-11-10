@@ -61,7 +61,7 @@ python -m venv .venv
 
 GUI 按需加载核心；重复运行入口会重新加载宿主模块、清空输入和诊断。关闭 Blender 后不会自动启用。需要在当前会话移除界面时，在 Blender Python 控制台执行 `from plugins.blender import ui; ui.unregister()`。
 
-当前受已实现功能及精确版本字典限制。读取所选表面的上游图，解析转接点、整理框及 `UV → POINT 恒等 Mapping → 图片`；未参与表面的节点有信息提示并保留顶层源快照。参与表面的未知节点、节点组、非恒等坐标变换、未支持的参数或连接仍会阻断。Blender 旧 Principled `GGX + BURLEY` 配置已加入识别；关闭 SSS 时未连接的 SSS 辅助值按字典条件报告为未启用。具体范围见[原生字典文档](_docs/native-dictionaries.md)。
+当前受已实现功能及精确版本字典限制。读取所选表面的上游图，解析转接点、整理框、默认／命名 UV 及静态 POINT Mapping 序列；坐标通过标准 MaterialX 几何属性和矩阵节点导出，Blender 导入后重建可编辑链路。未参与表面的节点有信息提示并保留顶层源快照。参与表面的未知节点、节点组、动态坐标变换、其他坐标来源、未支持的参数或连接仍会阻断。Blender 旧 Principled `GGX + BURLEY` 配置已加入识别；关闭 SSS 时未连接的 SSS 辅助值按字典条件报告为未启用。具体范围见[原生字典文档](_docs/native-dictionaries.md)。
 
 颜色接粗糙度等标量输入时，由宿主读取当前工作空间的亮度系数，核心按字典规则生成显式 MaterialX `luminance → extract`，不猜测 R 通道。目前只核验 Linear Rec.709；缺失或不支持的色彩上下文会阻断。此链可通过 `materialx.convert` 转回 Blender 的 `Vector Math / DOT_PRODUCT`，保留文档中的三个常量系数；GUI 和独立脚本共用该 API。位移和渲染外观仍未验证。
 
@@ -72,7 +72,7 @@ GUI 按需加载核心；重复运行入口会重新加载宿主模块、清空�
 & "本机blender.exe路径" --background --factory-startup --disable-autoexec --python-exit-code 1 --python _scripts/verify_blender_read.py
 ```
 
-检查覆盖入口重复运行、真实导出及文档校验、导入警告策略、新材质保存重开、缺图与坏文档阻断、已有文件保护、活动图未知节点阻断、源材质保护、图片法线／高度链路、位移排除、恒等 UV 与非恒等拒绝、注册卸载和 Python 导入兼容。
+检查覆盖入口重复运行、真实导出及文档校验、导入警告策略、新材质保存重开、缺图与坏文档阻断、已有文件保护、活动图未知节点阻断、源材质保护、图片法线／高度链路、位移排除、UV 与静态 POINT 矩阵保留、未知坐标来源拒绝、注册卸载和 Python 导入兼容。更多坐标夹具见 `_scripts/verify_blender_coordinates.py`。
 
 2026-11-06 木地板样本验证：196 项自动测试通过，核心及导出控制层合计覆盖率 92%（控制层 95%）。原有 15 组 Blender 5.2.3 LTS GUI 操作检查及新增读取回归通过。用户提供的 `raw_wooden_floor_01_4k.blend` 在独立进程完成“默认阻断位移 → 选择表面 → 确认警告 → 保存”的 GUI 操作流程，文件读回通过 MaterialX 1.39.5 校验。源 `.blend` 与四张贴图的 SHA-256 前后相同。底色、粗糙度、法线链路已导出；位移排除并报告，未进行渲染外观对照。样本保留原位置，输出与报告位于本地忽略目录，均不提交仓库。此前的独立前台界面验证记录保留在 Git 历史中。
 

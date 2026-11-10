@@ -107,7 +107,9 @@ response = api.handle({
 
 真实配置的宿主三个字段必须一起提供，`target` 和 `describe.payload.renderer` 使用相同引用结构。`nullable: true` 的输入可使用 `null` 表示隐式值。
 
-每项贴图描述包含 `uri`、`color_space`、`coordinates` 对象，可含 `metadata`。核心保留它们，但不读取贴图像素、不自动转换色彩空间、不解析 UV、不下载资源，也不更改资源路径。真实适配器须根据共同约定解析这些信息。示例使用的 `memory://reference/albedo` 只代表参考资源，并无附带图像文件。
+每项贴图描述包含 `uri`、`color_space`、`coordinates` 对象，可含 `metadata`。旧 `convert` 保留这些描述，不读取贴图像素、不自动转换色彩空间、不下载资源，也不更改资源路径。真实适配器须根据共同约定解析这些信息。示例使用的 `memory://reference/albedo` 只代表参考资源，并无附带图像文件。
+
+`materialx.export`／`materialx.convert` 另解析受限 UV 描述：`{"kind":"uv","set":"UV名称或空字符串","transforms":[矩阵1,矩阵2]}`。`transforms` 可省略；每个矩阵为按 MaterialX 行向量约定展平的 16 个有限数值，按列表顺序应用。只支持仿射矩阵，数量最多 64。命名 UV 和变换的目标能力由字典的可选 `texture_coordinates` 声明，缺省只接受默认 UV；目前 `transforms` 能力取值为 `none` 或 `trs`。实际标准节点及宿主限制见 [MaterialX 坐标说明](materialx-core.md#uv-与静态-mapping)。
 
 源图中未列出的已知输入由源字典默认值补全。源图含未知输入或输出时阻断转换。目标端增加了源端没有的语义时，使用目标字典默认值并发出 `TARGET_DEFAULT` 警告；目标端丢失源语义则阻断。
 
