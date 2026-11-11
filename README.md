@@ -32,7 +32,7 @@ uv run python _examples/materialx_demo.py --out .local/materialx-demo-新编号
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install "materialx==1.39.5"
+.\.venv\Scripts\python.exe -m pip install "materialx==1.39.5" "pypinyin==0.55.0"
 .\.venv\Scripts\python.exe -m iris_relay --dictionaries _examples/dictionaries --request _examples/convert-request.json
 ```
 
