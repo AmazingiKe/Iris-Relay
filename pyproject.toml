@@ -38,6 +38,7 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.ruff.per-file-target-version]
 "plugins/maya/*.py" = "py37"
 "plugins/core.py" = "py37"
+"plugins/presentation.py" = "py37"
 "plugins/resources.py" = "py37"
 "_examples/maya_demo_gui.py" = "py37"
 "iris_relay/{__init__,protocol,transport,native,model}.py" = "py37"
@@ -52,5 +53,6 @@ select = ["E", "F", "I", "UP", "B"]
 "_scripts/render_maya_experiment.py" = "py37"
 "_scripts/render_maya_predictions.py" = "py37"
 "_scripts/verify_maya_editor_ui.py" = "py37"
+"_scripts/verify_maya_panel_ui.py" = "py37"
 "_scripts/verify_maya_native.py" = "py37"
 "_scripts/verify_host_transactions.py" = "py37"

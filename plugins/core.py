@@ -23,9 +23,17 @@ def http_service_from_environment():
     return HttpRelayService(url.strip(), timeout=60)
 
 
-def create_service(root=ROOT):
+def create_service(root=ROOT, *, transport=None, url=None):
     """显式选择 HTTP，否则隔离宿主 Python 并清理核心子进程的宿主环境。"""
-    service = http_service_from_environment()
+    if transport not in (None, "AUTO", "LOCAL", "HTTP"):
+        raise ValidationError("不支持的服务连接方式")
+    service = None
+    if transport == "HTTP":
+        from iris_relay.http_client import HttpRelayService
+
+        service = HttpRelayService(url, timeout=60)
+    elif transport in (None, "AUTO"):
+        service = http_service_from_environment()
     if service is not None:
         return service
     root = Path(root).resolve()
@@ -104,8 +112,8 @@ def check_import(adapter, service, path, target):
     return result
 
 
-def export_material(adapter, service, surface, path, *, accept_warnings=False):
-    """重新读取当前宿主图并排他保存；转换与文档校验均通过统一 API。"""
+def check_export(adapter, service, surface):
+    """只读当前原生图并检查导出文档；不创建文件或修改材质。"""
     result = {
         "status": "error",
         "issues": [],
@@ -116,12 +124,7 @@ def export_material(adapter, service, surface, path, *, accept_warnings=False):
         "appearance_verified": False,
     }
     try:
-        # 1. 验证新输出位置，再从当前节点读取，禁止使用导入时的缓存文档。
-        path = Path(path).expanduser()
-        if not path.is_absolute() or path.suffix.lower() != ".mtlx":
-            raise ValidationError("输出须为绝对路径的 .mtlx 文件", "INVALID_PATH")
-        if path.exists():
-            raise ValidationError("输出文件已存在，原文件未修改", "FILE_EXISTS")
+        # 1. 每次读取当前原生图，不沿用上一次检查或导入缓存。
         result["material"] = adapter.read_material(surface)
         response = request(service, "materialx.export", material=result["material"])
         result["response"] = response
@@ -135,6 +138,42 @@ def export_material(adapter, service, surface, path, *, accept_warnings=False):
         if validation["status"] == "error" or not (validation.get("result") or {}).get("valid"):
             raise ValidationError("导出文档未通过校验", "MATERIALX_INVALID")
         result["status"] = response["status"]
+        result["message"] = (
+            "存在警告，请查看报告" if response["status"] == "warning" else "检查通过，可导出"
+        )
+    except Exception as exc:
+        result.update(status="error", message=str(exc))
+        result["issues"].append(
+            {
+                "severity": "error",
+                "code": getattr(exc, "code", "EXPORT_CHECK_FAILED"),
+                "message": str(exc),
+            }
+        )
+    return result
+
+
+def export_material(adapter, service, surface, path, *, accept_warnings=False):
+    """检查当前材质后排他保存；输出冲突先拒绝，不沿用界面的旧检查结果。"""
+    result = {
+        "status": "error",
+        "issues": [],
+        "message": "尚未导出",
+        "saved_path": None,
+        "material": None,
+        "response": None,
+        "appearance_verified": False,
+    }
+    try:
+        # 1. 先保护输出文件，再重新读取和校验当前材质。
+        path = Path(path).expanduser()
+        if not path.is_absolute() or path.suffix.lower() != ".mtlx":
+            raise ValidationError("输出须为绝对路径的 .mtlx 文件", "INVALID_PATH")
+        if path.exists():
+            raise ValidationError("输出文件已存在，原文件未修改", "FILE_EXISTS")
+        result = check_export(adapter, service, surface)
+        if result["status"] == "error":
+            return result
         if result["status"] == "warning" and not accept_warnings:
             result["message"] = "存在警告；明确允许后才保存"
             return result
@@ -143,7 +182,7 @@ def export_material(adapter, service, surface, path, *, accept_warnings=False):
         try:
             with path.open("x", encoding="utf-8", newline="\n") as stream:
                 opened = True
-                stream.write(payload["document"])
+                stream.write(result["response"]["result"]["document"])
         except OSError:
             if opened:
                 path.unlink()
