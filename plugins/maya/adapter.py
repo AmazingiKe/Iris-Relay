@@ -215,19 +215,27 @@ class MayaAdapter:
         try:
             # 1. 创建原生节点并写入已由核心确定的属性和输入。
             prefix = "Iris_" + re.sub(r"[^A-Za-z0-9_]", "_", material["name"])[:40]
-            for index, record in enumerate(material["nodes"]):
+            for record in material["nodes"]:
                 rule = self.profile["nodes"][record["type"]]
                 node = cmds.shadingNode(
                     rule["native"]["id"],
                     asShader=rule["semantic"] == "surface.standard",
                     asUtility=rule["semantic"] != "surface.standard",
-                    name=prefix + "_" + str(index) + "_" + record["type"],
+                    name=record["id"],
                 )
                 created.append(node)
                 validate_node_interface(node, rule)
                 nodes[record["id"]] = node
                 cmds.addAttr(node, longName="irisImplementation", dataType="string")
                 set_value(node + ".irisImplementation", record["type"])
+                cmds.addAttr(node, longName="irisSourceName", dataType="string")
+                set_value(
+                    node + ".irisSourceName",
+                    json.dumps(
+                        record.get("metadata", {}).get("source_name", record["id"]),
+                        ensure_ascii=True,
+                    ),
+                )
                 editor = record.get("metadata", {}).get("editor", {})
                 if editor:
                     cmds.addAttr(node, longName="irisEditor", dataType="string")
@@ -535,6 +543,11 @@ class MayaAdapter:
                 if cmds.attributeQuery("irisEditor", node=node, exists=True)
                 else {}
             )
+            if cmds.attributeQuery("irisSourceName", node=node, exists=True):
+                # Maya ASCII 保存非 BMP 字符可能变成问号；备份用 JSON 转义传递。
+                record["metadata"]["source_name"] = json.loads(
+                    cmds.getAttr(node + ".irisSourceName")
+                )
             if cmds.attributeQuery("notes", node=node, exists=True):
                 label = cmds.getAttr(node + ".notes")
                 if label:

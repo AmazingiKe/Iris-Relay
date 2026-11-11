@@ -582,7 +582,8 @@ class BlenderAdapter:
         }
         raw_editor = node.native.get("irisEditor")
         editor = json.loads(raw_editor) if isinstance(raw_editor, str) else {}
-        editor.setdefault("source_label", editor.get("label", node.label or node.diagnostic_name))
+        if "irisSourceName" in node.native:
+            record["metadata"]["source_name"] = node.native["irisSourceName"]
         editor["label"] = node.label or node.diagnostic_name
         position = list(node.location)
         parent = node.parent
@@ -681,6 +682,7 @@ class BlenderAdapter:
                 rule = schema["nodes"][record["type"]]
                 node = tree.nodes.new(rule["native"]["id"])
                 node.name = record["id"]
+                node["irisSourceName"] = record.get("metadata", {}).get("source_name", record["id"])
                 if node.name != record["id"]:
                     node["irisNodeId"] = record["id"]
                 editor = record.get("metadata", {}).get("editor", {})

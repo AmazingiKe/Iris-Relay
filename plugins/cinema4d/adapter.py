@@ -13,6 +13,31 @@ SPACE = "com.redshift3d.redshift4c4d.class.nodespace"
 OUTPUT = "com.redshift3d.redshift4c4d.node.output"
 
 
+def source_names(material, values=None):
+    """读写唯一的原名备份表；名称只用于溯源，不用于节点创建或显示。"""
+    import c4d
+
+    label = "Iris Relay 原始节点名"
+    for identifier, description in material.GetUserDataContainer():
+        if description[c4d.DESC_NAME] == label:
+            if values is not None:
+                material[identifier] = json.dumps(values, ensure_ascii=True)
+                return values
+            result = json.loads(material[identifier])
+            if not isinstance(result, dict) or any(
+                not isinstance(k, str) or not isinstance(v, str) for k, v in result.items()
+            ):
+                raise ValidationError("原始节点名备份不是字符串映射", "INVALID_NODE_NAME")
+            return result
+    if values is not None:
+        description = c4d.GetCustomDataTypeDefault(c4d.DTYPE_STRING)
+        description[c4d.DESC_NAME] = label
+        # C4D 字符串保存会替换部分非 BMP 字符，使用 JSON 转义完整保留表情等原名。
+        material[material.AddUserData(description)] = json.dumps(values, ensure_ascii=True)
+        return values
+    return {}
+
+
 def set_implementation_hints(material, values):
     """持久保存可校验的实现提示；不储存源文档，也不能替代实际节点和端口证据。"""
     import c4d
@@ -328,6 +353,7 @@ class Cinema4DAdapter:
         hints = implementation_hints(material)
         if origins:
             hints = {key: value["hint"] for key, value in origins.items() if value["hint"]}
+        backups = source_names(material)
         # 1. 当前图反向遍历，不使用导入时的源文档或常量缓存。
         while pending:
             name = pending.pop()
@@ -371,6 +397,10 @@ class Cinema4DAdapter:
                 },
             }
             consumed = set()
+            original_id = origins.get(name, {}).get("id", name)
+            record["metadata"]["native_name"] = record["metadata"]["editor"]["label"]
+            if original_id in backups:
+                record["metadata"]["source_name"] = backups[original_id]
             for key, binding in rule["inputs"].items():
                 native = binding["native"]
                 if binding["type"] == "texture":
@@ -593,10 +623,7 @@ class Cinema4DAdapter:
                     if node.IsNullValue() or not node.IsValid():
                         raise ValidationError("原生资产无法创建：" + rule["native"]["id"])
                     nodes[record["id"]], rules[record["id"]] = node, rule
-                    editor = record.get("metadata", {}).get("editor", {})
-                    node.SetValue(
-                        maxon.NODE.BASE.NAME, maxon.String(editor.get("label", record["id"]))
-                    )
+                    node.SetValue(maxon.NODE.BASE.NAME, maxon.String(record["id"]))
                     for code, value in rule["native"].get("properties", {}).items():
                         written.append(set_value(node, code, value))
                     validate_node_interface(node, rule)
@@ -663,6 +690,13 @@ class Cinema4DAdapter:
                         )
             set_implementation_hints(
                 created, {record["id"]: record["type"] for record in material["nodes"]}
+            )
+            source_names(
+                created,
+                {
+                    record["id"]: record.get("metadata", {}).get("source_name", record["id"])
+                    for record in material["nodes"]
+                },
             )
             groups = self.create_editing_groups(graph, material, nodes, projections)
             created.Remove()
