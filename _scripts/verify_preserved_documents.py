@@ -27,7 +27,17 @@ def verify_native(root, snapshot):
     """直接从实际 XML 接口与连线还原逻辑边，不把快照自身当作拓扑证明。"""
     definitions = {d.get("name"): d for d in root.findall("nodedef")}
     nodes = {n.get("name"): n for n in root if n.get("nodedef")}
-    native = {decode(n, "iris_native_id"): n for n in nodes.values() if n.get("iris_native_id")}
+
+    def native_id(node):
+        """新文件用快照索引追溯身份，兼容旧文件的重复名称字段。"""
+        index = node.get("iris_snapshot_index")
+        return (
+            snapshot["nodes"][int(index)]["id"]
+            if index is not None
+            else decode(node, "iris_native_id")
+        )
+
+    native = {native_id(n): n for n in nodes.values() if native_id(n)}
     expected = {n["id"]: n for n in snapshot["nodes"]}
     assert set(native) == set(expected)
     edges = []
@@ -62,7 +72,7 @@ def verify_native(root, snapshot):
                 continue
             origin = nodes[upstream]
             incoming = port
-            if not origin.get("iris_native_id"):
+            if not native_id(origin):
                 incoming = origin.find("input")
                 origin = nodes[incoming.get("nodename")]
             origin_nd = definitions[origin.get("nodedef")]
@@ -74,7 +84,7 @@ def verify_native(root, snapshot):
             edges.append(
                 {
                     "from": {
-                        "node": decode(origin, "iris_native_id"),
+                        "node": native_id(origin),
                         "socket": decode(output, "iris_native_socket"),
                     },
                     "to": {

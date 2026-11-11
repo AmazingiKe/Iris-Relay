@@ -8,6 +8,7 @@ from hashlib import sha256
 import MaterialX as mx
 
 from .dictionary import Dictionary
+from .materialx_editor import equivalent_computation
 from .model import ValidationError, fields, json_value, parse_json
 
 DEFAULT_RAMP = {
@@ -277,10 +278,7 @@ def prepare_recipes(core, dictionary, source=None, document=None):
             # 2. 只认可本核心从配置重新产生的计算，禁止通过自定义名称伪装为原生节点。
             for expected in generated.getChildren():
                 observed = document.getChild(expected.getName())
-                if (
-                    observed is None
-                    or not observed.isEquivalent(expected, mx.ElementEquivalenceOptions())[0]
-                ):
+                if observed is None or not equivalent_computation(observed, expected):
                     raise ValidationError(
                         "渐变配置与实际标准子图不一致", "MATERIALX_BINDING_INVALID"
                     )

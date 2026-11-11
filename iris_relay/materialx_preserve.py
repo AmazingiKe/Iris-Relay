@@ -7,7 +7,9 @@ from copy import deepcopy
 import MaterialX as mx
 
 from .conversion import issue, status_for
+from .materialx_editor import finalize_node_names, set_text_attribute
 from .model import ValidationError, fields, json_value, text
+from .naming import normalize_names
 
 TYPES = {
     "float",
@@ -68,6 +70,7 @@ def preserve_snapshot(core, snapshot):
         doc.setAttribute("iris_native_snapshot_encoding", "base64-utf8-json")
         nodes, inputs, outputs = {}, {}, {}
         linked = {(e["to"]["node"], e["to"]["socket"]) for e in snapshot["links"]}
+        normalized = normalize_names({"nodes": snapshot["nodes"]})["nodes"]
         # 1. 每个原生实例有显式接口与原生标识；未知实现不会被按名称套到标准功能。
         for index, record in enumerate(snapshot["nodes"]):
             fields(record, {"id", "type", "inputs", "outputs"}, {"properties", "metadata"})
@@ -98,8 +101,11 @@ def preserve_snapshot(core, snapshot):
                     )
                     _native_attribute(declared, "iris_native_socket", key)
                     port_names[(direction, key)] = safe
-            node = doc.addNodeInstance(nd, doc.createValidChildName(mx.createValidName(name)))
-            _native_attribute(node, "iris_native_id", name)
+            node = doc.addNodeInstance(nd, doc.createValidChildName(normalized[index]["id"]))
+            node.setAttribute("iris_snapshot_index", str(index))
+            set_text_attribute(
+                node, "iris_source_name", normalized[index]["metadata"]["source_name"]
+            )
             _native_attribute(node, "iris_native_type", record["type"])
             nodes[name] = node
             for specification in record["inputs"]:
@@ -161,6 +167,7 @@ def preserve_snapshot(core, snapshot):
             if source.getType() == "multioutput":
                 target.setOutputString(output)
         # 3. 使用与正常文档相同的 SDK、类型、循环和规模检查，只有通过才返回文本。
+        finalize_node_names(doc)
         xml = core.serialize(doc)
         checked = core.read(xml)
         issues.extend(core.inspect(checked))

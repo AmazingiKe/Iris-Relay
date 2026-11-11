@@ -9,6 +9,37 @@ from copy import deepcopy
 from .model import ValidationError
 
 
+def computation_equivalence_options():
+    """核验内联实现时仅排除编辑和溯源属性，计算值、端口及连接仍须完全一致。"""
+    import MaterialX as mx
+
+    options = mx.ElementEquivalenceOptions()
+    options.attributeExclusionList = {
+        "iris_source_name",
+        "iris_source_name_encoding",
+        "iris_editor",
+        "uiname",
+    }
+    return options
+
+
+def equivalent_computation(actual, expected):
+    """在副本中统一内部节点名，再核验实现；兼容旧文档中的数字开头名称。"""
+    import MaterialX as mx
+
+    options = computation_equivalence_options()
+    if actual.isEquivalent(expected, options)[0]:
+        return True
+    copies = []
+    for element in (actual, expected):
+        document = mx.createDocument()
+        copied = document.addChildOfCategory(element.getCategory(), element.getName())
+        copied.copyContentFrom(element)
+        finalize_node_names(document)
+        copies.append((document, copied))
+    return copies[0][1].isEquivalent(copies[1][1], options)[0]
+
+
 def set_text_attribute(element, key, value):
     """特殊字符用明确的 UTF-8 编码保留，避免 SDK 直接写出非法属性。"""
     if any(c in '<>&"\r\n\t' or ord(c) < 32 for c in value):
@@ -90,10 +121,7 @@ def get_editor(node):
             raise ValidationError("编辑元数据编码无效", "MATERIALX_METADATA_INVALID") from exc
         return checked_editor(value)
     return {
-        "label": node.getAttribute("uiname")
-        or get_text_attribute(node, "iris_source_name")
-        or node.getName(),
-        "source_id": node.getName(),
+        "label": node.getAttribute("uiname") or node.getName(),
     }
 
 
@@ -101,12 +129,57 @@ def export_editor(node, record):
     """从宿主已读标签创建非执行来源信息，稳定 ID 与显示名分开。"""
     editor = checked_editor(record.get("metadata", {}).get("editor", {}))
     editor.setdefault("label", record["id"])
-    editor.setdefault("source_id", record["id"])
     path = record.get("metadata", {}).get("source_group_path", [])
     if path and "function_path" not in editor:
         editor["function_path"] = path[:-1]
         editor["function_label"] = " / ".join(path[:-1])
     set_editor(node, editor)
+
+
+def finalize_node_names(doc):
+    """覆盖主图、内联子图和生成节点；每个节点仅一个原名字段，改名同步连接。"""
+    import MaterialX as mx
+
+    from .naming import normalize_names
+
+    nodes = [n for n in doc.traverseTree() if isinstance(n, mx.Node)]
+    connections = [
+        (port, port.getConnectedNode(), port.getNodeName())
+        for port in doc.traverseTree()
+        if isinstance(port, (mx.Input, mx.Output)) and port.getNodeName()
+    ]
+    parents = {}
+    for node in nodes:
+        parents.setdefault(node.getParent().getNamePath(), []).append(node)
+    for siblings in parents.values():
+        records = []
+        for node in siblings:
+            records.append(
+                {
+                    "id": node.getName(),
+                    "type": node.getCategory(),
+                    "metadata": {
+                        "source_name": get_text_attribute(node, "iris_source_name")
+                        if node.hasAttribute("iris_source_name")
+                        else node.getName(),
+                        "editor": get_editor(node),
+                    },
+                }
+            )
+        normalized = normalize_names({"nodes": records})["nodes"]
+        parent = siblings[0].getParent()
+        for node, record in zip(siblings, normalized, strict=True):
+            if node.getName() != record["id"]:
+                node.setName(parent.createValidChildName("iris_rename"))
+        for node, record in zip(siblings, normalized, strict=True):
+            if node.getName() != record["id"]:
+                node.setName(parent.createValidChildName(record["id"]))
+            set_text_attribute(node, "iris_source_name", record["metadata"]["source_name"])
+            export_editor(node, record)
+    for port, upstream, reference in connections:
+        if upstream is not None:
+            prefix, separator, _ = reference.rpartition("/")
+            port.setNodeName(prefix + separator + upstream.getName())
 
 
 def flatten_editable(graph, core, preserve, *, controls=False):

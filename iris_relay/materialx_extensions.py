@@ -6,6 +6,7 @@ from hashlib import sha256
 import MaterialX as mx
 
 from .conversion import status_for
+from .materialx_editor import equivalent_computation
 from .model import ValidationError
 
 
@@ -101,7 +102,6 @@ def preserved_extensions(document, extensions, bindings):
         g.getNodeDefString(): g for g in extensions.getNodeGraphs() if g.getDocument() == extensions
     }
     pending, checked = list(names), set()
-    options = mx.ElementEquivalenceOptions()
     while pending:
         name = pending.pop()
         if name in checked:
@@ -111,7 +111,7 @@ def preserved_extensions(document, extensions, bindings):
         expected_definition = extensions.getNodeDef(name)
         for expected in (expected_definition, expected_graph):
             actual = document.getChild(expected.getName())
-            if actual is None or not actual.isEquivalent(expected, options)[0]:
+            if actual is None or not equivalent_computation(actual, expected):
                 raise ValidationError(
                     f"文档中的扩展实现与目标原生绑定不同：{expected.getName()}",
                     "MATERIALX_BINDING_INVALID",

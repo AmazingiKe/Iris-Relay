@@ -210,7 +210,9 @@ def test_nodegraph_output_connection_and_material_selection():
         material_name="first",
     )
     assert response["status"] == "warning", response
-    assert response["result"]["material"]["links"][0]["from"]["node"] == "NG/img"
+    assert response["result"]["material"]["links"][0]["from"]["node"] == "NGimg"
+    image = next(n for n in response["result"]["material"]["nodes"] if n["id"] == "NGimg")
+    assert image["metadata"]["source_name"] == "img"
 
 
 def test_custom_surface_graph_expands_to_supported_nodes():

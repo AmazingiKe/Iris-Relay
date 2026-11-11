@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "materialx==1.39.5",
+    "pypinyin==0.55.0",
 ]
 
 [project.optional-dependencies]
@@ -56,3 +57,4 @@ select = ["E", "F", "I", "UP", "B"]
 "_scripts/verify_maya_panel_ui.py" = "py37"
 "_scripts/verify_maya_native.py" = "py37"
 "_scripts/verify_host_transactions.py" = "py37"
+"_scripts/verify_node_names.py" = "py37"

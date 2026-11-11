@@ -21,6 +21,7 @@ from .materialx_coordinates import (
 from .materialx_editor import (
     decorate_material,
     export_editor,
+    finalize_node_names,
     get_editor,
     get_text_attribute,
     set_text_attribute,
@@ -274,7 +275,11 @@ def export_material(core, source, dictionary):
     result = {"source": source.to_dict(), "document": None, "report": report(issues)}
     result["report"]["source_dictionary_fingerprint"] = dictionary.fingerprint
     try:
-        prepared, dictionary, compiled = prepare_recipes(core, dictionary, source=source.data)
+        from .naming import normalize_names
+
+        prepared, dictionary, compiled = prepare_recipes(
+            core, dictionary, source=normalize_names(source.data)
+        )
         prepared = prepare_source_coordinates(prepared, dictionary, issues)
         for record in prepared["nodes"]:
             if record["type"] in compiled and record["inputs"].get("uv_map"):
@@ -332,6 +337,7 @@ def export_material(core, source, dictionary):
         )
 
         # 5. 整图通过校验后才序列化；这里返回 XML 字符串，尚未保存文件。
+        finalize_node_names(doc)
         issues.extend(core.inspect(doc))
         if status_for(issues) != "error":
             result["document"] = core.serialize(doc)
@@ -365,11 +371,11 @@ def _create_export_nodes(core, doc, semantic, bindings, issues):
                 )
             if description is not None:
                 definition = "ND_image_" + IMAGE_TYPES[description["channels"]]
-        name = doc.createValidChildName(mx.createValidName(record["id"]))
+        name = doc.createValidChildName(record["id"])
         node = doc.addNodeInstance(
             doc.getNodeDef(definition) or core.library.getNodeDef(definition), name
         )
-        set_text_attribute(node, "iris_source_name", record["id"])
+        set_text_attribute(node, "iris_source_name", record["metadata"]["source_name"])
         export_editor(node, record)
         index.nodes[record["id"]] = node
         if isinstance(output, dict):
@@ -701,7 +707,12 @@ def to_semantic(core, doc, material_name, issues, bindings, scalar_inputs, trans
             "type": semantic,
             "inputs": {},
             "outputs": list(output.values()) if isinstance(output, dict) else [output],
-            "metadata": {"editor": get_editor(input_node)},
+            "metadata": {
+                "editor": get_editor(input_node),
+                "source_name": get_text_attribute(input_node, "iris_source_name")
+                if input_node.hasAttribute("iris_source_name")
+                else input_node.getName(),
+            },
         }
         if image_info:
             record["outputs"] = list(image_info["outputs"])
@@ -884,7 +895,11 @@ def convert_document(core, source, dictionary, target, material_name=None):
         if status_for(issues) != "error":
             for record in candidate["nodes"]:
                 record["type"] = recipe_types.get(record["type"], record["type"])
-            result["material"] = Material.parse(decorate_material(candidate, dictionary)).to_dict()
+            from .naming import normalize_names
+
+            result["material"] = Material.parse(
+                decorate_material(normalize_names(candidate), dictionary)
+            ).to_dict()
             result["report"]["status"] = "converted"
     except (ValidationError, mx.Exception) as exc:
         issues.append(issue(getattr(exc, "code", "MATERIALX_INVALID"), str(exc)))

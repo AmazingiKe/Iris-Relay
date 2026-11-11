@@ -249,7 +249,9 @@ def convert(
         )
         if not any(item["severity"] == "error" for item in issues):
             try:
-                target = Material.parse(candidate).to_dict()
+                from .naming import normalize_names
+
+                target = Material.parse(normalize_names(candidate)).to_dict()
             except ValidationError as exc:
                 issues.append(issue(exc.code, str(exc)))
     return {
