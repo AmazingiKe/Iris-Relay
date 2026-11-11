@@ -9,7 +9,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<10", "coverage[toml]>=7,<8", "ruff>=0.12,<1"]
+http = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1"]
+dev = ["pytest>=8,<10", "coverage[toml]>=7,<8", "ruff>=0.12,<1", "httpx>=0.28,<1"]
 
 [tool.uv]
 package = false
@@ -40,7 +41,9 @@ select = ["E", "F", "I", "UP", "B"]
 "plugins/resources.py" = "py37"
 "_examples/maya_demo_gui.py" = "py37"
 "iris_relay/{__init__,protocol,transport,native,model}.py" = "py37"
+"iris_relay/http_client.py" = "py37"
 "_scripts/verify_maya_import.py" = "py37"
+"_scripts/verify_http_host.py" = "py37"
 "_scripts/probe_maya.py" = "py37"
 "_scripts/probe_maya_render.py" = "py37"
 "_scripts/probe_maya_texture.py" = "py37"
