@@ -11,8 +11,23 @@ from iris_relay.transport import JsonSessionService
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def http_service_from_environment():
+    """显式配置 HTTP 时创建轻量客户端；未配置返回 None，配置错误不回退。"""
+    url = os.environ.get("IRIS_RELAY_HTTP_URL")
+    if url is None:
+        return None
+    if not url.strip():
+        raise ValidationError("IRIS_RELAY_HTTP_URL 不能为空；使用默认调用时请移除此变量")
+    from iris_relay.http_client import HttpRelayService
+
+    return HttpRelayService(url.strip(), timeout=60)
+
+
 def create_service(root=ROOT):
-    """隔离宿主与核心 Python，清理仅传给核心子进程的宿主环境变量。"""
+    """显式选择 HTTP，否则隔离宿主 Python 并清理核心子进程的宿主环境。"""
+    service = http_service_from_environment()
+    if service is not None:
+        return service
     root = Path(root).resolve()
     python = root / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
     if not python.is_file():

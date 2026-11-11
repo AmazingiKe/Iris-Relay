@@ -9,7 +9,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from iris_relay import RelayAPI  # noqa: E402
 from iris_relay.plugin import JsonCommandService, convert_material  # noqa: E402
 
 
@@ -30,12 +29,17 @@ class ReferenceAdapter:
 
 def main():
     parser = argparse.ArgumentParser(description="演示插件通过统一 API 转换材质")
-    parser.add_argument("--transport", choices=["python", "process"], default="python")
+    parser.add_argument("--transport", choices=["python", "process", "http"], default="python")
+    parser.add_argument("--url", default="http://127.0.0.1:8765", help="HTTP 服务根地址")
     args = parser.parse_args()
     root = Path(__file__).resolve().parent
     request = json.loads((root / "convert-request.json").read_text(encoding="utf-8"))
     adapter = ReferenceAdapter(request["payload"]["material"])
-    if args.transport == "process":
+    if args.transport == "http":
+        from iris_relay.http_client import HttpRelayService
+
+        service = HttpRelayService(args.url)
+    elif args.transport == "process":
         service = JsonCommandService(
             [
                 sys.executable,
@@ -47,6 +51,8 @@ def main():
             cwd=ROOT,
         )
     else:
+        from iris_relay import RelayAPI
+
         service = RelayAPI.from_directory(root / "dictionaries")
     result = convert_material(adapter, service, request["payload"]["target"])
     summary = {

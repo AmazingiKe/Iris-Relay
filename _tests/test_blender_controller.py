@@ -185,8 +185,6 @@ def test_file_created_during_validation_is_never_overwritten(setup_export, tmp_p
 
 @pytest.mark.parametrize("version", ["1.39.4", None])
 def test_service_rejects_incompatible_or_missing_sdk(tmp_path, monkeypatch, version):
-    from plugins.blender import controller
-
     class Service:
         def handle(self, request):
             return {
@@ -196,6 +194,6 @@ def test_service_rejects_incompatible_or_missing_sdk(tmp_path, monkeypatch, vers
                 "result": {"materialx": {"available": version is not None, "version": version}},
             }
 
-    monkeypatch.setattr(controller.RelayAPI, "from_directory", lambda path: Service())
+    monkeypatch.setattr(RelayAPI, "from_directory", lambda path: Service())
     with pytest.raises(ValidationError, match="1.39.5"):
         create_service(tmp_path)

@@ -10,9 +10,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from uuid import uuid4
 
-from iris_relay import RelayAPI
 from iris_relay.model import Material, ValidationError
 from iris_relay.transport import JsonSessionService
+from plugins.core import http_service_from_environment
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -66,11 +66,12 @@ def request(service, operation, **payload):
 
 
 def create_service(root=ROOT):
-    """优先使用仓库环境，避免向 Blender 安装依赖或替换它自带的 SDK。"""
-    # 1. 选择仓库虚拟环境的 JSON 子进程服务，或回退到当前进程服务。
+    """显式 HTTP 或原有本地服务均通过能力查询，不在连接失败后切换后端。"""
+    # 1. HTTP 为显式选择；未配置时保留仓库子进程优先的原有行为。
+    service = http_service_from_environment()
     root = Path(root).resolve()
     python = root / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
-    if python.is_file():
+    if service is None and python.is_file():
         service = JsonSessionService(
             [
                 str(python),
@@ -82,14 +83,16 @@ def create_service(root=ROOT):
             ],
             cwd=root,
         )
-    else:
+    elif service is None:
+        from iris_relay import RelayAPI
+
         service = RelayAPI.from_directory(root / "dictionaries")
     # 2. 通过公开能力查询确认 SDK 版本，避免等到实际导出才发现环境不兼容。
     response = request(service, "capabilities")
     materialx = (response.get("result") or {}).get("materialx", {})
     if not materialx.get("available") or materialx.get("version") != "1.39.5":
         raise ValidationError(
-            "核心需要 MaterialX 1.39.5，请检查仓库 .venv 的项目依赖；无需安装 Blender 插件",
+            "核心需要 MaterialX 1.39.5，请检查所选服务环境的项目依赖；无需安装 Blender 插件",
             "MATERIALX_UNAVAILABLE",
         )
     return service
