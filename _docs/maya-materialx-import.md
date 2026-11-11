@@ -14,10 +14,12 @@ import runpy
 runpy.run_path(r"仓库绝对路径/_examples/maya_demo_gui.py", run_name="__main__")
 ```
 
-1. 选择 `.mtlx` 文件或目录；目录只扫描直属文件，可多选。
-2. 点击“检查选中”。此时只调用核心、读取资源信息，不创建节点。
+当前面板的连接选择、导入／导出页与报告布局见[三宿主统一界面](unified-ui.md)。
+
+1. 在导入页添加 `.mtlx` 文件或目录；目录只扫描直属文件，可多选。
+2. 点击“检查材质”。此时只调用核心、读取资源信息，不创建节点。
 3. 查看报告；接受列出的近似时勾选“允许带警告导入”。错误不能绕过。
-4. 点击“导入选中为新材质”。每次重新检查文件，逐个创建独立节点网络及 shadingEngine，失败不影响其他文件。
+4. 点击“导入为新材质”。每次重新检查文件，逐个创建独立节点网络及 shadingEngine，失败不影响其他文件。
 5. 点击“选中已导入材质”，在 Hypershade 查看上游连接，按需手动绑定对象。
 6. 点击“查看节点与共享参数”，在实际 Node Editor 查看图；左侧控件直接编辑原生发布属性。修改后可选中 `aiStandardSurface`，导出当前图。
 
@@ -29,7 +31,7 @@ runpy.run_path(r"仓库绝对路径/_examples/maya_demo_gui.py", run_name="__mai
 
 调用链为 `ui → controller → RelayService.handle(materialx.convert) → MayaAdapter.create_material`。Maya 只通过公开 `describe`／原生编码辅助接口解释核心返回的目标图。语义映射集中在 Maya 专用字典；不复用 C4DtoA 的整数 code，也不从 Blender 源快照恢复隐藏信息。
 
-Maya 的 Python 3.7 使用公开 `iris_relay.transport.JsonSessionService` 调用仓库 `.venv` 中的 Python 3.11+ 核心和 MaterialX 1.39.5。核心仍不导入 `maya`；没有 HTTP 服务，也不向 Maya 安装 SDK。`iris_relay.plugin.JsonCommandService` 旧导入路径保留。
+Maya 的 Python 3.7 默认使用公开 `iris_relay.transport.JsonSessionService` 调用仓库 `.venv` 中的 Python 3.11+ 核心和 MaterialX 1.39.5；也可在面板选择 [HTTP 服务](http.md)。核心仍不导入 `maya`，不向 Maya 安装 SDK。`iris_relay.plugin.JsonCommandService` 旧导入路径保留。
 
 | MaterialX 功能 | Maya / Arnold 原生实现 |
 | --- | --- |

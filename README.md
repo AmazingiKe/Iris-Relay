@@ -10,7 +10,7 @@ Iris Relay 探索跨渲染器的材质转换：以字典建立材质语义对应
 
 已提供 Blender Cycles、C4D Redshift 和 C4DtoA 的真实节点目录与基础字典，包含节点名称、资产 ID、整数 code 和端口绑定。早期 6 组源材质完成保存重开和原生识别，随后 18 组转换完成目标创建、保存重开及参数／连接核对；最新批次另列于上述交换报告。详见[原生字典与验证范围](_docs/native-dictionaries.md)。
 
-基础语义包括标准表面、图片、切线法线、高度凹凸、通道及 RGB 加权求和；标准数学直接复用官方 NodeDef。本轮补充受限 ColorRamp／Mix 配方、RGBA、命名 UV／静态变换、原生功能分组和共享控制；支持范围按精确宿主字典与实际预检决定。Blender 与 Maya 提供脚本界面，C4D 提供适配器及独立验证入口。尚无完整生产插件或任意材质视觉一致性证明；[验收清单](_docs/overnight-acceptance-20261111.md)分别跟踪结构与首轮神经实验。示例中的 `reference.gloss` 和 `reference.rough` 仍仅用于协议测试。
+基础语义包括标准表面、图片、切线法线、高度凹凸、通道及 RGB 加权求和；标准数学直接复用官方 NodeDef。本轮补充受限 ColorRamp／Mix 配方、RGBA、命名 UV／静态变换、原生功能分组和共享控制；支持范围按精确宿主字典与实际预检决定。Blender、Maya 与 C4D 提供[统一操作界面](_docs/unified-ui.md)，包含连接选择、导入／导出和结果摘要。尚无完整生产插件或任意材质视觉一致性证明；[验收清单](_docs/overnight-acceptance-20261111.md)分别跟踪结构与首轮神经实验。示例中的 `reference.gloss` 和 `reference.rough` 仍仅用于协议测试。
 
 [首轮真实神经实验](_docs/neural-experiment-20261111.md)已完成 Cycles → Arnold 的 32 个材质族、128 组变体训练及独立渲染测试。测试平均误差下降 34.29%，但材质族置信区间跨零，且包含退化样本，尚未证明稳定改善。模型不默认启用；权重与训练数据留在仓库外。
 
@@ -36,7 +36,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m iris_relay --dictionaries _examples/dictionaries --request _examples/convert-request.json
 ```
 
-## Blender GUI demo
+## Blender 材质交换界面
 
 脚本入口为 [`_examples/blender_demo_gui.py`](_examples/blender_demo_gui.py)，现已接入真实 MaterialX 导出与导入。在 Blender 文本编辑器打开它，按需填写顶部 `REPO_ROOT` 为仓库根目录的绝对路径，然后点击“运行脚本”。从仓库原位置打开时可以留空自动定位；复制到未保存文本块或移到别处时需要填写路径。本机路径只在 Blender 中修改，不提交；不需要安装 Blender 插件。
 
@@ -51,7 +51,7 @@ python -m venv .venv
 
 导出后可直接切换到“导入”页试验往返，输入路径会自动填入刚保存的文件：
 
-1. 点击“检查导入”，校验文档、当前 Blender 版本的转换支持及贴图文件；此时不创建材质。也可以通过“选择输入文件”选取已有 `.mtlx`。
+1. 点击“检查材质”，校验文档、当前 Blender 版本的转换支持及贴图文件；此时不创建材质。也可以通过文件夹按钮选取已有 `.mtlx`。
 2. 查看诊断，按需勾选“允许带警告导入”，再点击“导入为新材质”。操作会重新读取文档和检查图片，不复用旧检查结果；错误不能通过勾选绕过。
 3. 成功后报告显示实际新材质名（带 `_IrisRelay` 后缀，同名时由 Blender 分配编号）。可在对象的材质下拉框中手动选择它。导入不要求活动对象，不自动更换已有绑定。
 
@@ -127,7 +127,9 @@ iris_relay/            核心、公开 API、插件辅助接口与命令行
 dictionaries/          真实转换字典；catalogs/ 保存原生节点探测目录
 plugins/               宿主接入层，按实际宿主分目录
   blender/             GUI（ui.py）、导入导出控制（controller.py）、材质读写（adapter.py）
-  maya/                Maya 2022 导入界面、公开 API 控制层与原生节点创建
+  maya/                Maya 2022 导入导出界面、公开 API 控制层与原生节点创建
+  cinema4d/            Redshift 原生适配器、导入导出窗口及当前场景控制层
+  presentation.py      三宿主共用的连接检查、状态文字和报告摘要
 _scripts/              节点探测、字典生成和独立宿主验证
 _examples/             可执行参考插件、GUI 测试入口、请求和示例字典
 _tests/                图转换、接口、失败回退和跨进程测试

@@ -6,6 +6,7 @@
 
 - [统一插件 API v1](api.md)：请求、响应、材质图、字典、插件接入与联合校正扩展。
 - [HTTP 服务调用](http.md)：可选本机服务、轻量客户端、宿主连接和验证边界。
+- [三宿主统一界面](unified-ui.md)：Blender、Maya 与 C4D 的连接选择、导入导出、结果报告及原生入口。
 - [MaterialX 核心](materialx-core.md)：标准与自定义节点文档、公开操作、原生桥接和验证边界。
 - [原生字典与实机验证](native-dictionaries.md)：真实节点名称／code、版本、覆盖边界和复现方法。
 - [A1 材质批量往返验证](a1-materialx-roundtrip.md)：历史批次的全量盘点、逐项问题及修复证据。
