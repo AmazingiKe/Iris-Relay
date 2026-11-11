@@ -2,6 +2,8 @@
 
 Iris Relay 0.4.0 使用官方 MaterialX 1.39.5 SDK，提供材质文档校验、节点定义查询、自定义节点保存和受限原生转换。插件仍只调用公开 Python API，不需要 HTTP，也不需要每次经过磁盘文件。
 
+实现集中在 `iris_relay/materialx/`：`core.py` 负责文档与 SDK，`bridge.py` 负责原生桥接，其余模块按贴图、坐标、子图和元数据划分。共用名称处理位于 `iris_relay/tools/naming.py`。宿主仍通过 `RelayService.handle` 调用；模块地图见[核心模块职责](core-layout.md)。
+
 通过 [Maya 2022 Arnold 入口](maya-materialx-import.md) 及 C4D Redshift 适配器创建可编辑节点，再从当前原生图导出。最新 [2026-11-11 完善报告](editable-materialx-20261111.md)记录 997 份标准／内联图、50 个材质多向保存重开、RGBA／命名 UV、功能分组和共享控制，以及外部官方文档验证。结构、实际采样和外观结论分别报告。
 
 ## 最小调用

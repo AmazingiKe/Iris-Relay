@@ -15,6 +15,7 @@
 ## 文件与目录组织
 
 - 核心 `iris_relay/`、宿主接入 `plugins/`、开发工具 `_scripts/` 在仓库根目录并列，不使用 `src/`。脚本与第三方插件通过仓库根目录定位核心，业务调用仍遵循公开 API。
+- 核心内部的 MaterialX 实现放在 `iris_relay/materialx/`，格式无关的共用工具放在 `iris_relay/tools/`；包入口保持轻量。共用命名工具为 `tools/naming.py`，MaterialX 元数据存储仍由 `materialx/editor.py` 负责。公开 API、协议和宿主辅助接口的既有导入路径保持稳定。
 - 开发辅助内容统一放在 `_docs/`、`_examples/`、`_scripts/`、`_tests/`；下划线表示内部开发用途，不属于第三方插件依赖的公开接口。运行时字典仍位于 `dictionaries/`。
 - `plugins/` 按实际接入的宿主分目录，例如 `plugins/blender/`：`ui.py` 负责界面，`adapter.py` 负责宿主 API、版本兼容及材质读写，`__init__.py` 保持对外入口。DCC 兼容逻辑留在宿主目录，`iris_relay/` 不导入 `bpy`、Maya 等宿主运行时。
 - 多宿主确有共用操作流程时，可在 `plugins/` 增加 `core.py` 等公共控制模块，通过适配接口组织宿主操作，通过公开 `RelayService` 调用材质核心；优先复用已有公开插件辅助接口，不复制转换规则。单宿主流程可放在其目录的 `controller.py`，不预建空的 `core/` 或为每个宿主统一创建 `tools/`。

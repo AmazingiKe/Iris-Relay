@@ -105,11 +105,11 @@ runpy.run_path(r"仓库绝对路径/_examples/maya_demo_gui.py", run_name="__mai
 | 1 | [`ui.run_export`](plugins/blender/ui.py) | 读取界面选择，调用控制层并显示结果 |
 | 2 | [`controller.export_material / check_material`](plugins/blender/controller.py) | 组织读取、核心请求、校验、警告确认与保存 |
 | 3 | [`BlenderAdapter.read_material`](plugins/blender/adapter.py) | 从 Blender 读取表面图、节点参数、贴图与源快照 |
-| 4 | [`materialx_bridge.export_material`](iris_relay/materialx_bridge.py) | 按字典生成标准节点和连接，返回通过校验的 XML 内容 |
+| 4 | [`materialx.bridge.export_material`](iris_relay/materialx/bridge.py) | 按字典生成标准节点和连接，返回通过校验的 XML 内容 |
 
 核心返回 XML 后，控制层才把内容保存到所选 `.mtlx` 路径；“构建 MaterialX 节点图”与“写文件”是两个步骤。
 
-回读验证可从 [`verify_materialx.main`](_scripts/verify_materialx.py) 按步骤阅读：`input_documents` 读取文档，`prepare_cases` 调用公开 API 转换，`run_host` 启动独立 Blender 创建并检查材质。核心反向入口为 [`materialx_bridge.convert_document`](iris_relay/materialx_bridge.py)，宿主创建仍由 `BlenderAdapter.create_material` 完成。
+回读验证可从 [`verify_materialx.main`](_scripts/verify_materialx.py) 按步骤阅读：`input_documents` 读取文档，`prepare_cases` 调用公开 API 转换，`run_host` 启动独立 Blender 创建并检查材质。核心反向入口为 [`materialx.bridge.convert_document`](iris_relay/materialx/bridge.py)，宿主创建仍由 `BlenderAdapter.create_material` 完成。
 
 GUI 导入入口为 `ui.run_import` → `controller.check_import / import_material` → `BlenderAdapter.create_material`，依次负责界面选择、公开 API 校验与转换、目标节点创建。控制层不读取核心桥接实现。
 
@@ -123,6 +123,8 @@ API 提供能力查询、通用功能定义查询（`semantics`）、原生模�
 
 ```text
 iris_relay/            核心、公开 API、插件辅助接口与命令行
+  materialx/           MaterialX 文档、原生桥接、贴图、子图及溯源元数据
+  tools/               核心共用工具；naming.py 负责语言与节点名称处理
   server/              可选 HTTP 接入、配置与核心实例生命周期
 dictionaries/          真实转换字典；catalogs/ 保存原生节点探测目录
 plugins/               宿主接入层，按实际宿主分目录
@@ -136,7 +138,7 @@ _tests/                图转换、接口、失败回退和跨进程测试
 _docs/                 API 文档和架构决策
 ```
 
-核心 `iris_relay/` 与宿主接入 `plugins/` 在根目录并列，不使用 `src/`。示例和验证脚本自行定位仓库根目录；第三方插件在导入核心前将仓库根目录加入 Python 搜索路径。按实际内容创建目录，不预建空目录。字典的具体 code 与支持边界见[原生字典文档](_docs/native-dictionaries.md)。
+核心 `iris_relay/` 与宿主接入 `plugins/` 在根目录并列，不使用 `src/`。核心内部按 [模块职责](_docs/core-layout.md) 分组；公开入口及宿主辅助接口的导入路径保持稳定。示例和验证脚本自行定位仓库根目录；第三方插件在导入核心前将仓库根目录加入 Python 搜索路径。按实际内容创建目录，不预建空目录。字典的具体 code 与支持边界见[原生字典文档](_docs/native-dictionaries.md)。
 
 ## 开发检查
 
