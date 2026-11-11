@@ -1,7 +1,8 @@
-"""在独立 Blender 中验证 GUI demo；使用 --background --factory-startup --python 运行。"""
+"""在独立 Blender 中验证统一界面；使用 --background --factory-startup --python 运行。"""
 
 import importlib
 import json
+import os
 import runpy
 import sys
 from pathlib import Path
@@ -59,6 +60,45 @@ def main():
     checks.append("错误入口路径不卸载现有界面")
 
     settings = bpy.context.window_manager.iris_relay_demo
+    assert settings.mode == "IMPORT"
+    settings.mode = "EXPORT"
+    assert settings.transport == "AUTO"
+    assert settings.http_url == "http://127.0.0.1:8765"
+    assert settings.connection_status == "idle"
+    assert bpy.types.IRISRELAY_PT_demo_view.bl_label == "Iris Relay"
+    previous_url = os.environ.get("IRIS_RELAY_HTTP_URL")
+    try:
+        os.environ["IRIS_RELAY_HTTP_URL"] = "http://127.0.0.1:1"
+        settings.transport = "LOCAL"
+        assert bpy.ops.iris_relay.check_connection() == {"FINISHED"}
+        assert settings.connection_status == "ok"
+        local_service = ui._service
+        settings.report_json = '{"status":"ok"}'
+        settings.status = "ok"
+        settings.transport = "HTTP"
+        assert ui._service is None
+        assert local_service.pid is None
+        assert settings.status == "idle" and not settings.report_json
+        settings.http_url = "http://127.0.0.1:1"
+        assert bpy.ops.iris_relay.check_connection() == {"CANCELLED"}
+        assert settings.connection_status == "error"
+        assert ui._service is None
+        assert os.environ["IRIS_RELAY_HTTP_URL"] == "http://127.0.0.1:1"
+        settings.transport = "LOCAL"
+        assert bpy.ops.iris_relay.check_connection() == {"FINISHED"}
+    finally:
+        if previous_url is None:
+            os.environ.pop("IRIS_RELAY_HTTP_URL", None)
+        else:
+            os.environ["IRIS_RELAY_HTTP_URL"] = previous_url
+    checks.append("统一连接界面、本地绕过环境、HTTP失败不回退及切换回收服务")
+    http_url = os.environ.get("IRIS_RELAY_UI_VERIFY_HTTP_URL")
+    if http_url:
+        settings.transport = "HTTP"
+        settings.http_url = http_url
+        assert bpy.ops.iris_relay.check_connection() == {"FINISHED"}
+        assert type(ui._service).__name__ == "HttpRelayService"
+        checks.append("真实 HTTP 检测通过，后续导入导出按钮使用 HTTP")
     material = bpy.data.materials.new("GUI验证材质")
     cube = bpy.context.active_object
     cube.data.materials.clear()

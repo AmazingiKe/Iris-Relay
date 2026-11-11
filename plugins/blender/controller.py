@@ -65,10 +65,19 @@ def request(service, operation, **payload):
     return response
 
 
-def create_service(root=ROOT):
+def create_service(root=ROOT, *, transport=None, url=None):
     """显式 HTTP 或原有本地服务均通过能力查询，不在连接失败后切换后端。"""
     # 1. HTTP 为显式选择；未配置时保留仓库子进程优先的原有行为。
-    service = http_service_from_environment()
+    if transport in (None, "AUTO"):
+        service = http_service_from_environment()
+    elif transport == "HTTP":
+        from iris_relay.http_client import HttpRelayService
+
+        service = HttpRelayService(url, timeout=60)
+    elif transport == "LOCAL":
+        service = None
+    else:
+        raise ValidationError("未知连接方式：" + str(transport))
     root = Path(root).resolve()
     python = root / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
     if service is None and python.is_file():
@@ -88,13 +97,18 @@ def create_service(root=ROOT):
 
         service = RelayAPI.from_directory(root / "dictionaries")
     # 2. 通过公开能力查询确认 SDK 版本，避免等到实际导出才发现环境不兼容。
-    response = request(service, "capabilities")
-    materialx = (response.get("result") or {}).get("materialx", {})
-    if not materialx.get("available") or materialx.get("version") != "1.39.5":
-        raise ValidationError(
-            "核心需要 MaterialX 1.39.5，请检查所选服务环境的项目依赖；无需安装 Blender 插件",
-            "MATERIALX_UNAVAILABLE",
-        )
+    try:
+        response = request(service, "capabilities")
+        materialx = (response.get("result") or {}).get("materialx", {})
+        if not materialx.get("available") or materialx.get("version") != "1.39.5":
+            raise ValidationError(
+                "核心需要 MaterialX 1.39.5，请检查所选服务环境的项目依赖；无需安装 Blender 插件",
+                "MATERIALX_UNAVAILABLE",
+            )
+    except Exception:
+        if hasattr(service, "close"):
+            service.close()
+        raise
     return service
 
 

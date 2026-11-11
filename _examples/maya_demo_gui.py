@@ -24,10 +24,12 @@ def main():
             panel.service.close()
     for name in (
         "iris_relay.transport",
+        "iris_relay.http_client",
         "iris_relay.model",
         "iris_relay.native",
         "plugins.resources",
         "plugins.core",
+        "plugins.presentation",
         "plugins.maya.controller",
         "plugins.maya.adapter",
         "plugins.maya.ui",

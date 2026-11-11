@@ -1,9 +1,19 @@
-"""Maya 脚本编辑器启动的 MaterialX 导入窗口；界面不解释转换规则。"""
+"""Maya 材质交换面板；连接、来源选择和报告与其他宿主遵循相同工作流。"""
 
 import json
+import re
 from pathlib import Path
 
 from maya import cmds
+from plugins.presentation import (
+    DEFAULT_URL,
+    TITLE,
+    TRANSPORT_ITEMS,
+    close_service,
+    connect_service,
+    format_report,
+    status_label,
+)
 
 from . import controller
 from .adapter import MayaAdapter, ensure_environment
@@ -13,179 +23,311 @@ _panel = None
 
 
 class ImportPanel:
-    """选择文件、检查与批量新建材质；每个文件独立报告失败。"""
+    """同一连接下分别处理导入与导出；宿主读写仍交给控制层与适配器。"""
 
     def __init__(self):
-        self.paths = []
-        self.results = {}
+        self.paths, self.results = [], {}
+        self.export_surfaces, self.export_results = [], []
         self.service = self.adapter = self.target = None
         if cmds.window(WINDOW, exists=True):
             cmds.deleteUI(WINDOW)
-        self.window = cmds.window(
-            WINDOW, title="Iris Relay · Maya 2022 MaterialX", widthHeight=(760, 620)
+        self.window = cmds.window(WINDOW, title=TITLE + " · Maya", widthHeight=(760, 700))
+        form = cmds.formLayout()
+        header = cmds.columnLayout(adjustableColumn=True, rowSpacing=3)
+        cmds.text(label=TITLE, align="left", font="boldLabelFont", height=20)
+        cmds.text(label="Maya · Arnold  /  可编辑材质交换", align="left", height=18)
+        cmds.frameLayout(label="服务连接", marginWidth=10, marginHeight=5)
+        cmds.columnLayout(adjustableColumn=True, rowSpacing=6)
+        cmds.rowLayout(
+            numberOfColumns=3,
+            adjustableColumn=2,
+            columnWidth3=(65, 200, 100),
+            columnAttach=[(1, "both", 0), (2, "both", 8)],
         )
-        cmds.columnLayout(adjustableColumn=True, rowSpacing=7)
-        cmds.text(label="导入为可编辑 Arnold 节点；创建新材质，不自动替换对象绑定。", align="left")
-        cmds.rowLayout(numberOfColumns=2, adjustableColumn=1, columnWidth2=(570, 180))
-        cmds.button(label="选择 .mtlx 文件…", height=32, command=self.choose_files)
-        cmds.button(label="选择目录…", width=180, height=32, command=self.choose_directory)
+        cmds.text(label="调用方式", align="left", width=65)
+        self.mode = cmds.optionMenu(changeCommand=self.change_connection)
+        for _, label in TRANSPORT_ITEMS:
+            cmds.menuItem(label=label)
+        cmds.button(label="检测连接", width=100, height=29, command=self.detect_connection)
         cmds.setParent("..")
-        self.files = cmds.textScrollList(
-            allowMultiSelection=True, height=210, selectCommand=self.show_report
+        self.url_row = cmds.rowLayout(
+            numberOfColumns=2, adjustableColumn=2, columnWidth2=(65, 200), manage=False
         )
-        self.warning = cmds.checkBox(label="允许带警告导入／导出（外观尚未验证）", value=False)
-        cmds.rowLayout(numberOfColumns=3, adjustableColumn=1, columnWidth3=(300, 240, 200))
-        cmds.button(label="检查选中", height=32, command=lambda *_: self.run(False))
-        cmds.button(
-            label="导入选中为新材质", width=240, height=32, command=lambda *_: self.run(True)
+        cmds.text(label="服务地址", align="left", width=65)
+        self.url = cmds.textField(
+            text=DEFAULT_URL,
+            changeCommand=self.change_connection,
+            annotation="HTTP 服务根地址；切换连接将清除旧报告",
+            enable=False,
         )
-        cmds.button(label="选中已导入材质", width=200, height=32, command=self.select_created)
         cmds.setParent("..")
-        self.status = cmds.text(
-            label="选择文件后检查；可多选，单个失败不影响其他文件。", align="left"
+        self.connection_status = cmds.text(
+            label="未连接 · 请选择调用方式并检测连接", align="left", height=23
         )
-        self.details = cmds.scrollField(editable=False, wordWrap=False, height=230, text="")
-        cmds.button(label="复制当前报告", height=32, command=self.copy_report)
-        cmds.button(label="查看节点与共享参数", height=32, command=self.show_created_graph)
-        cmds.button(
-            label="将场景选中的 Arnold 材质导出为 .mtlx…", height=32, command=self.export_selected
+        cmds.setParent(form)
+        self.tabs = cmds.tabLayout(innerMarginWidth=10, innerMarginHeight=10)
+        self.import_tab = self._build_import()
+        self.export_tab = self._build_export()
+        cmds.tabLayout(
+            self.tabs,
+            edit=True,
+            tabLabel=[(self.import_tab, "导入"), (self.export_tab, "导出")],
+        )
+        cmds.formLayout(
+            form,
+            edit=True,
+            attachForm=[
+                (header, "top", 10),
+                (header, "left", 14),
+                (header, "right", 14),
+                (self.tabs, "left", 4),
+                (self.tabs, "right", 4),
+                (self.tabs, "bottom", 8),
+            ],
+            attachControl=[(self.tabs, "top", 10, header)],
         )
         cmds.showWindow(self.window)
-        # Maya 英文安装的默认字体可能缺少中文字形，只调整本面板的字体。
+        self._style()
+        cmds.window(self.window, edit=True, widthHeight=(760, 700))
+        for event in ("Undo", "Redo", "SceneOpened", "NewSceneOpened"):
+            cmds.scriptJob(event=[event, self.invalidate], parent=self.window)
+        cmds.scriptJob(uiDeleted=[self.window, self.dispose], runOnce=True)
+
+    def _section(self, title):
+        """创建统一编号区块；原生布局允许窄窗滚动而不裁切内容。"""
+        frame = cmds.frameLayout(label=title, marginWidth=10, marginHeight=5)
+        column = cmds.columnLayout(adjustableColumn=True, rowSpacing=5)
+        return frame, column
+
+    def _build_import(self):
+        """导入页保留多文件检查、新建材质、原生节点查看和完整报告。"""
+        page = cmds.scrollLayout(parent=self.tabs, childResizable=True)
+        column = cmds.columnLayout(adjustableColumn=True, rowSpacing=6)
+        self._section("01 选择来源")
+        cmds.text(label="选择 MaterialX 文件，可添加多个文件或目录。", align="left", height=20)
+        cmds.rowLayout(numberOfColumns=3, adjustableColumn=1, columnWidth3=(300, 130, 105))
+        cmds.button(label="添加文件…", height=29, command=self.choose_files)
+        cmds.button(label="添加目录…", width=130, height=29, command=self.choose_directory)
+        cmds.button(label="清空列表", width=105, height=29, command=self.clear_paths)
+        cmds.setParent("..")
+        self.files = cmds.textScrollList(
+            allowMultiSelection=True, height=70, selectCommand=self.show_report
+        )
+        cmds.setParent(column)
+        self._section("02 检查与执行")
+        self.warning = cmds.checkBox(label="允许带警告导入", value=False)
+        cmds.rowLayout(numberOfColumns=2, adjustableColumn=2, columnWidth2=(150, 350))
+        cmds.button(label="检查材质", width=150, height=34, command=lambda *_: self.run(False))
+        cmds.button(
+            label="导入为新材质",
+            height=34,
+            backgroundColor=(0.18, 0.39, 0.43),
+            command=lambda *_: self.run(True),
+        )
+        cmds.setParent("..")
+        cmds.text(
+            label="新建可撤销的材质，不自动替换对象绑定；外观一致性需另行验证。",
+            align="left",
+            wordWrap=True,
+            height=24,
+        )
+        cmds.setParent(column)
+        self._section("03 结果报告")
+        self.status = cmds.text(
+            label="选择文件后点击“检查材质”。", align="left", wordWrap=True, height=20
+        )
+        self.details = cmds.scrollField(
+            editable=False, wordWrap=True, height=95, text="尚无检查结果。"
+        )
+        cmds.rowLayout(numberOfColumns=2, adjustableColumn=1, columnWidth2=(330, 150))
+        self.details_json = cmds.checkBox(
+            label="显示详细 JSON", value=False, changeCommand=self.show_report
+        )
+        cmds.button(label="复制完整报告", width=150, height=27, command=self.copy_report)
+        cmds.setParent("..")
+        cmds.rowLayout(numberOfColumns=2, adjustableColumn=2, columnWidth2=(170, 330))
+        cmds.button(label="选中已导入材质", width=170, height=29, command=self.select_created)
+        cmds.button(label="查看节点与共享参数", height=29, command=self.show_created_graph)
+        cmds.setParent(self.tabs)
+        return page
+
+    def _build_export(self):
+        """导出页使用当前选择与明确输出目录，检查不会写入文件。"""
+        page = cmds.scrollLayout(parent=self.tabs, childResizable=True)
+        column = cmds.columnLayout(adjustableColumn=True, rowSpacing=6)
+        self._section("01 选择来源")
+        cmds.text(
+            label="在场景或 Hypershade 中选中 Arnold 标准表面材质。",
+            align="left",
+            wordWrap=True,
+            height=24,
+        )
+        cmds.button(label="读取当前选中材质", height=29, command=self.select_export_materials)
+        self.export_files = cmds.textScrollList(height=90, allowMultiSelection=False)
+        self.export_directory = cmds.textFieldButtonGrp(
+            label="输出目录",
+            buttonLabel="浏览…",
+            columnWidth3=(65, 400, 75),
+            adjustableColumn=2,
+            buttonCommand=self.choose_export_directory,
+            changeCommand=self.change_export_directory,
+        )
+        cmds.text(label="每个材质保存为单独的 .mtlx；已有文件不会覆盖。", align="left", height=20)
+        cmds.setParent(column)
+        self._section("02 检查与执行")
+        self.export_warning = cmds.checkBox(label="允许带警告导出", value=False)
+        cmds.rowLayout(numberOfColumns=2, adjustableColumn=2, columnWidth2=(150, 350))
+        cmds.button(label="检查材质", width=150, height=34, command=self.check_export)
+        cmds.button(
+            label="导出 .mtlx",
+            height=34,
+            backgroundColor=(0.18, 0.39, 0.43),
+            command=self.export_selected,
+        )
+        cmds.setParent(column)
+        self._section("03 结果报告")
+        self.export_status = cmds.text(
+            label="选中材质后点击“读取当前选中材质”。", align="left", wordWrap=True, height=20
+        )
+        self.export_details = cmds.scrollField(
+            editable=False, wordWrap=True, height=115, text="尚无检查结果。"
+        )
+        cmds.rowLayout(numberOfColumns=2, adjustableColumn=1, columnWidth2=(330, 150))
+        self.export_json = cmds.checkBox(
+            label="显示详细 JSON", value=False, changeCommand=self.show_export_report
+        )
+        cmds.button(label="复制完整报告", width=150, height=27, command=self.copy_export_report)
+        cmds.setParent(self.tabs)
+        return page
+
+    def _style(self):
+        """仅为本窗口设置中文字体与字号，保留 Maya 原生深色主题。"""
         from PySide2.QtWidgets import QWidget
         from shiboken2 import wrapInstance
 
         from maya.OpenMayaUI import MQtUtil
 
         widget = wrapInstance(int(MQtUtil.findWindow(self.window)), QWidget)
-        widget.setStyleSheet('QWidget { font-family: "Microsoft YaHei UI"; font-size: 16px; }')
-        cmds.window(self.window, edit=True, widthHeight=(760, 700))
-        for event in ("Undo", "Redo", "SceneOpened", "NewSceneOpened"):
-            cmds.scriptJob(event=[event, self.invalidate], parent=self.window)
-        cmds.scriptJob(uiDeleted=[self.window, self.dispose], runOnce=True)
+        widget.setStyleSheet('QWidget { font-family: "Microsoft YaHei UI"; font-size: 13px; }')
 
     def dispose(self, *_):
-        """窗口关闭或脚本重载时回收本窗口启动的核心进程。"""
-        if self.service is not None and hasattr(self.service, "close"):
-            self.service.close()
+        """回收本窗口拥有的客户端；不会关闭外部共享 HTTP 服务。"""
+        close_service(self.service)
         self.service = self.adapter = self.target = None
 
-    def invalidate(self, *_):
-        """撤销、重做或换场景后清除旧报告，避免把已不存在的材质显示为成功。"""
+    def _reset_import_results(self, message):
+        """同时清理输入报告、列表状态与统计，避免来源变化后残留旧成功。"""
         self.results.clear()
         self.refresh()
         self.show_report()
-        cmds.text(self.status, edit=True, label="场景已变化，请重新检查文件。")
+        cmds.text(self.status, edit=True, label=message)
+
+    def _reset_export_results(self, message):
+        """同时清理导出报告与统计，保留用户选择的材质和目标目录。"""
+        self.export_results.clear()
+        self.show_export_report()
+        cmds.text(self.export_status, edit=True, label=message)
+
+    def change_connection(self, *_):
+        """连接选项变化立即丢弃旧服务及报告，不修改进程环境变量。"""
+        self.dispose()
+        mode = TRANSPORT_ITEMS[cmds.optionMenu(self.mode, query=True, select=True) - 1][0]
+        cmds.textField(self.url, edit=True, enable=mode == "HTTP")
+        cmds.rowLayout(self.url_row, edit=True, manage=mode == "HTTP")
+        self._reset_import_results("连接已变化，请重新检查材质。")
+        self._reset_export_results("连接已变化，请重新检查材质。")
+        cmds.text(self.connection_status, edit=True, label="未连接 · 配置已变化，请检测连接")
+
+    def detect_connection(self, *_):
+        """真实能力查询与宿主版本预检均成功后才显示已连接。"""
+        self.dispose()
+        self._reset_import_results("连接已重置，请重新检查材质。")
+        self._reset_export_results("连接已重置，请重新检查材质。")
+        cmds.text(self.connection_status, edit=True, label="正在检测连接…")
+        service = None
+        try:
+            mode = TRANSPORT_ITEMS[cmds.optionMenu(self.mode, query=True, select=True) - 1][0]
+            url = cmds.textField(self.url, query=True, text=True)
+            service, capabilities = connect_service(controller.create_service, mode, url)
+            target = ensure_environment()
+            adapter = MayaAdapter(service, target)
+            self.service, self.target, self.adapter = service, target, adapter
+            version = capabilities.get("materialx", {}).get("version", "未知")
+            label = "已连接 · MaterialX " + str(version) + " · Maya / Arnold 就绪"
+            cmds.text(self.connection_status, edit=True, label=label)
+            return True
+        except Exception as exc:
+            close_service(service)
+            cmds.text(self.connection_status, edit=True, label="连接失败 · " + str(exc))
+            return False
+
+    def _ensure_service(self):
+        """仅在尚未连接时检测，错误不切换到其他调用方式。"""
+        return self.service is not None or self.detect_connection()
+
+    def invalidate(self, *_):
+        """撤销、重做或换场景后清除旧报告，不把已删除材质显示为成功。"""
+        self._reset_import_results("场景已变化，请重新检查材质。")
+        self._reset_export_results("场景已变化，请重新检查材质。")
 
     def set_paths(self, paths):
-        """添加明确选择的文件，去重后全选；不递归扫描无关目录。"""
+        """设置文件列表并全选，供入口及独立验证复用。"""
         self.paths = sorted({str(Path(p).resolve()) for p in paths})
-        self.results.clear()
-        self.refresh()
+        self._reset_import_results(f"已选择 {len(self.paths)} 份文件，请检查材质。")
         if self.paths:
             cmds.textScrollList(
                 self.files, edit=True, selectIndexedItem=list(range(1, len(self.paths) + 1))
             )
+        self.show_report()
+
+    def clear_paths(self, *_):
+        """清空面板列表，不删除文件或已创建材质。"""
+        self.set_paths([])
 
     def choose_files(self, *_):
-        """由 Maya 文件选择器选择一份或多份 MaterialX。"""
+        """将明确选择的文件追加到列表。"""
         paths = cmds.fileDialog2(
-            fileMode=4, fileFilter="MaterialX (*.mtlx)", caption="选择 MaterialX 文件"
+            fileMode=4, fileFilter="MaterialX (*.mtlx)", caption="添加 MaterialX 文件"
         )
         if paths:
-            self.set_paths(paths)
-
-    def export_selected(self, *_):
-        """从当前选择读取原生图并逐材质导出；不使用列表中的导入缓存。"""
-        surfaces = [
-            node
-            for node in (cmds.ls(selection=True) or [])
-            if cmds.nodeType(node) == "aiStandardSurface"
-        ]
-        if not surfaces:
-            cmds.text(self.status, edit=True, label="请在场景中选择 aiStandardSurface 材质节点。")
-            return
-        paths = cmds.fileDialog2(fileMode=3, caption="选择新 MaterialX 文件的输出目录")
-        if not paths:
-            return
-        try:
-            if self.service is None:
-                target = ensure_environment()
-                service = controller.create_service()
-                adapter = MayaAdapter(service, target)
-                self.target, self.service, self.adapter = target, service, adapter
-            results = []
-            for index, surface in enumerate(surfaces):
-                results.append(
-                    controller.export_material(
-                        self.adapter,
-                        self.service,
-                        surface,
-                        Path(paths[0]) / f"maya_material_{index:04d}.mtlx",
-                        accept_warnings=cmds.checkBox(self.warning, query=True, value=True),
-                    )
-                )
-            cmds.scrollField(
-                self.details, edit=True, text=json.dumps(results, ensure_ascii=False, indent=2)
-            )
-            cmds.text(
-                self.status,
-                edit=True,
-                label=f"导出 {sum(bool(r['saved_path']) for r in results)} / {len(results)} 份；"
-                "已有文件不会覆盖。",
-            )
-        except (ValueError, RuntimeError) as exc:
-            cmds.text(self.status, edit=True, label="导出失败：" + str(exc))
+            self.set_paths(self.paths + paths)
 
     def choose_directory(self, *_):
-        """读取选择目录的直属 .mtlx，不触碰其他文件。"""
-        paths = cmds.fileDialog2(fileMode=3, caption="选择 MaterialX 目录")
+        """仅添加所选目录直属文件，不递归扫描。"""
+        paths = cmds.fileDialog2(fileMode=3, caption="添加 MaterialX 目录")
         if paths:
-            self.set_paths(Path(paths[0]).glob("*.mtlx"))
+            self.set_paths(self.paths + list(Path(paths[0]).glob("*.mtlx")))
 
     def selected(self):
-        """按列表索引返回路径，避免重名文件被误选。"""
+        """按列表索引返回文件路径，重名文件仍可分别处理。"""
         return [
             self.paths[i - 1]
             for i in (cmds.textScrollList(self.files, query=True, selectIndexedItem=True) or [])
+            if 0 < i <= len(self.paths)
         ]
 
     def refresh(self):
-        """显示每份文档的当前状态，保持文件完整路径可在报告中查看。"""
+        """列表只显示简明状态，完整路径保存在结果报告。"""
         selected = cmds.textScrollList(self.files, query=True, selectIndexedItem=True) or []
         cmds.textScrollList(self.files, edit=True, removeAll=True)
         for path in self.paths:
             result = self.results.get(path, {})
-            status = (
-                "已导入"
-                if result.get("created")
-                else {"error": "阻断", "warning": "警告", "ok": "可导入"}.get(
-                    result.get("status"), "未检查"
-                )
-            )
-            cmds.textScrollList(self.files, edit=True, append="[" + status + "] " + Path(path).name)
+            label = status_label(result.get("status"), created=bool(result.get("created")))
+            cmds.textScrollList(self.files, edit=True, append="[" + label + "] " + Path(path).name)
         selected = [i for i in selected if i <= len(self.paths)]
         if selected:
             cmds.textScrollList(self.files, edit=True, selectIndexedItem=selected)
 
     def run(self, create):
-        """逐文件调用统一控制层；支持取消后续文件，不中断正在创建的事务。"""
+        """逐文件重新检查并可选创建；取消只停止后续文件，不打断宿主事务。"""
         paths = self.selected()
         if not paths:
             cmds.text(self.status, edit=True, label="请先选择至少一份文件。")
             return
-        try:
-            if self.service is None:
-                target = ensure_environment()
-                service = controller.create_service()
-                adapter = MayaAdapter(service, target)
-                self.target, self.service, self.adapter = target, service, adapter
-        except Exception as exc:
-            cmds.text(self.status, edit=True, label="环境检查失败：" + str(exc))
+        if not self._ensure_service():
+            cmds.text(self.status, edit=True, label="服务未连接，请检查顶部连接状态。")
             return
-        cmds.progressWindow(
-            title="Iris Relay", progress=0, maxValue=len(paths), isInterruptable=True
-        )
+        cmds.progressWindow(title=TITLE, progress=0, maxValue=len(paths), isInterruptable=True)
         count = 0
         try:
             for path in paths:
@@ -212,23 +354,37 @@ class ImportPanel:
         cmds.text(
             self.status,
             edit=True,
-            label=f"处理 {count} / {len(paths)} 份；本次列表中已导入 {successful} 份。",
+            label=f"已处理 {count} / {len(paths)} 份 · 已导入 {successful} 份",
+        )
+
+    def _import_report(self):
+        """返回当前选中报告；没有选择时给出可读的空状态。"""
+        paths = self.selected()
+        return (
+            self.results.get(paths[0], {"source_path": paths[0], "message": "尚未检查"})
+            if paths
+            else {"message": "选择文件后检查材质。"}
         )
 
     def show_report(self, *_):
-        """显示完整问题和核心诊断，阻断不伪装成成功。"""
-        paths = self.selected()
-        result = (
-            self.results.get(paths[0], {"source_path": paths[0], "message": "尚未检查"})
-            if paths
-            else {}
+        """默认显示摘要；用户明确展开时才显示完整 JSON。"""
+        result = self._import_report()
+        detailed = cmds.checkBox(self.details_json, query=True, value=True)
+        text = (
+            json.dumps(result, ensure_ascii=False, indent=2) if detailed else format_report(result)
         )
-        cmds.scrollField(
-            self.details, edit=True, text=json.dumps(result, ensure_ascii=False, indent=2)
+        cmds.scrollField(self.details, edit=True, text=text, wordWrap=not detailed)
+
+    def copy_report(self, *_):
+        """复制完整结构化报告，不受摘要显示选项影响。"""
+        from PySide2.QtWidgets import QApplication
+
+        QApplication.clipboard().setText(
+            json.dumps(self._import_report(), ensure_ascii=False, indent=2)
         )
 
     def select_created(self, *_):
-        """只选择仍然存在的新材质，撤销后不存在的对象不会报成功。"""
+        """只选中仍然存在的本次目标材质。"""
         nodes = [
             self.results.get(p, {}).get("created", {}).get("material")
             for p in self.selected()
@@ -238,20 +394,119 @@ class ImportPanel:
         if nodes:
             cmds.select(nodes, replace=True)
 
-    def copy_report(self, *_):
-        """将当前文本报告复制到 Maya 的 Qt 剪贴板。"""
-        from PySide2.QtWidgets import QApplication
-
-        QApplication.clipboard().setText(cmds.scrollField(self.details, query=True, text=True))
-
     def show_created_graph(self, *_):
-        """打开独立节点编辑窗口，显示当前网络与仍然有效的原生发布参数。"""
+        """使用实际原生节点和已发布属性打开可编辑窗口。"""
         for path in self.selected():
             created = self.results.get(path, {}).get("created")
             if created and cmds.objExists(created["material"]):
                 show_editable_graph(created)
                 return
         cmds.text(self.status, edit=True, label="请先选择一份已导入且仍在场景中的材质。")
+
+    def select_export_materials(self, *_):
+        """只读取当前选中的 aiStandardSurface，避免隐式导出整个场景。"""
+        self._reset_export_results("来源已更新，请检查当前选中的材质。")
+        self.export_surfaces = [
+            node
+            for node in (cmds.ls(selection=True) or [])
+            if cmds.nodeType(node) == "aiStandardSurface"
+        ]
+        cmds.textScrollList(self.export_files, edit=True, removeAll=True)
+        for index, node in enumerate(self.export_surfaces):
+            cmds.textScrollList(
+                self.export_files, edit=True, append=node + "  →  " + self._export_name(index, node)
+            )
+        if not self.export_surfaces:
+            cmds.text(
+                self.export_status, edit=True, label="请在场景中选中 aiStandardSurface 材质。"
+            )
+
+    def _export_name(self, index, surface):
+        """生成不含路径分隔符的稳定文件名，序号区分规范化后的重名。"""
+        stem = re.sub(r"[^\w.-]+", "_", surface).strip(".") or "material"
+        return f"{index + 1:03d}_{stem}.mtlx"
+
+    def choose_export_directory(self, *_):
+        """明确选择输出目录，只更改面板值。"""
+        paths = cmds.fileDialog2(fileMode=3, caption="选择 MaterialX 输出目录")
+        if paths:
+            cmds.textFieldButtonGrp(self.export_directory, edit=True, text=paths[0])
+            self.change_export_directory()
+
+    def change_export_directory(self, *_):
+        """手输和浏览目录共用失效处理，不让旧文件的成功状态沿用到新目录。"""
+        self._reset_export_results("输出目录已变化，请重新检查材质。")
+
+    def check_export(self, *_):
+        """检查当前选择的材质图，不创建文件。"""
+        self._run_export(False)
+
+    def export_selected(self, *_):
+        """将当前原生图导出到明确目录，已有文件由控制层阻断。"""
+        self._run_export(True)
+
+    def _run_export(self, save):
+        """共用检查和保存入口，每次重新读取当前选择与材质参数。"""
+        self.select_export_materials()
+        self.export_results = []
+        if not self.export_surfaces:
+            self.show_export_report()
+            return
+        if not self._ensure_service():
+            self.show_export_report()
+            cmds.text(self.export_status, edit=True, label="服务未连接，请检查顶部连接状态。")
+            return
+        directory = Path(
+            cmds.textFieldButtonGrp(self.export_directory, query=True, text=True)
+        ).expanduser()
+        if save and (not directory.is_absolute() or not directory.is_dir()):
+            self.show_export_report()
+            cmds.text(self.export_status, edit=True, label="请选择存在的绝对输出目录。")
+            return
+        for index, surface in enumerate(self.export_surfaces):
+            if save:
+                result = controller.export_material(
+                    self.adapter,
+                    self.service,
+                    surface,
+                    directory / self._export_name(index, surface),
+                    accept_warnings=cmds.checkBox(self.export_warning, query=True, value=True),
+                )
+            else:
+                result = controller.check_export(self.adapter, self.service, surface)
+            result["source_material"] = surface
+            self.export_results.append(result)
+        self.show_export_report()
+        count = sum(bool(item.get("saved_path")) for item in self.export_results)
+        failed = sum(item.get("status") == "error" for item in self.export_results)
+        cmds.text(
+            self.export_status,
+            edit=True,
+            label=f"已检查 {len(self.export_results)} 份 · 已导出 {count} 份 · 阻断 {failed} 份",
+        )
+
+    def show_export_report(self, *_):
+        """汇总各材质检查结果，详细数据通过显式选项展示。"""
+        detailed = cmds.checkBox(self.export_json, query=True, value=True)
+        if detailed:
+            text = json.dumps(self.export_results, ensure_ascii=False, indent=2)
+        else:
+            text = (
+                "\n\n".join(
+                    item.get("source_material", "材质") + "\n" + format_report(item)
+                    for item in self.export_results
+                )
+                or "尚无检查结果。"
+            )
+        cmds.scrollField(self.export_details, edit=True, text=text, wordWrap=not detailed)
+
+    def copy_export_report(self, *_):
+        """复制所有当前导出结果的完整 JSON。"""
+        from PySide2.QtWidgets import QApplication
+
+        QApplication.clipboard().setText(
+            json.dumps(self.export_results, ensure_ascii=False, indent=2)
+        )
 
 
 def show_editable_graph(created):

@@ -1,4 +1,4 @@
-"""在 Blender 文本编辑器中运行，侧栏的 Iris Relay 标签显示 GUI demo。"""
+"""在 Blender 文本编辑器中运行，侧栏的 Iris Relay 标签显示材质交换界面。"""
 
 import importlib
 import sys
@@ -47,9 +47,12 @@ def main(repo_root=REPO_ROOT):
     ui.unregister()
     for name in (
         "iris_relay.transport",
+        "iris_relay.http_client",
         "iris_relay.model",
         "iris_relay.native",
         "plugins.resources",
+        "plugins.core",
+        "plugins.presentation",
         "plugins.blender.controller",
         "plugins.blender.groups",
         "plugins.blender.coordinates",
@@ -60,7 +63,7 @@ def main(repo_root=REPO_ROOT):
     ui = importlib.reload(ui)
     ui.register()
     ui.show()
-    print("Iris Relay GUI demo 已加载：文本编辑器或 3D 视图 → N 侧栏 → Iris Relay")
+    print("Iris Relay 已加载：文本编辑器或 3D 视图 → N 侧栏 → Iris Relay")
 
 
 if __name__ == "__main__":

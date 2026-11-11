@@ -2,6 +2,7 @@
 
 from plugins.core import (  # noqa: F401
     ROOT,
+    check_export,
     check_import,
     create_service,
     export_material,
