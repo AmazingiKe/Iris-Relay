@@ -1,4 +1,4 @@
-"""Maya 2022 / MtoA 的原生创建、资源核对和失败清理；不实现语义转换。"""
+"""Maya / MtoA 的原生创建、资源核对和失败清理；按实际节点接口接入。"""
 
 import json
 import math
@@ -33,13 +33,57 @@ def ensure_environment():
     """仅加载本次 Maya 的 MtoA；加载失败给出诊断，不修改系统安装或全局配置。"""
     from maya import cmds
 
-    if cmds.about(version=True) != "2022":
-        raise ValidationError("本入口当前仅验证 Maya 2022")
     if not cmds.pluginInfo("mtoa", query=True, loaded=True):
         cmds.loadPlugin("mtoa", quiet=True)
-    if cmds.pluginInfo("mtoa", query=True, version=True) != "5.3.5.3":
-        raise ValidationError("当前字典要求 MtoA 5.3.5.3，请保留实际版本信息重新探测")
     return renderer_ref()
+
+
+def validate_node_interface(node, rule):
+    """按当前原生属性核对绑定与类型；软件版本不同不阻断，接口变化必须显式失败。"""
+    from maya import cmds
+
+    types = {
+        "float": {
+            "float",
+            "double",
+            "doubleLinear",
+            "doubleAngle",
+            "long",
+            "short",
+            "byte",
+            "enum",
+        },
+        "color": {"float3", "double3"},
+        "vector": {"float3", "double3"},
+        "shader": {"float3", "double3"},
+        "bool": {"bool"},
+        "string": {"string"},
+        "texture": {"string"},
+    }
+
+    def check(attribute, expected=None):
+        if not cmds.attributeQuery(attribute, node=node, exists=True):
+            raise ValidationError(
+                "原生属性不存在：" + node + "." + attribute, "NATIVE_INTERFACE_MISMATCH"
+            )
+        if expected is not None:
+            actual = cmds.getAttr(node + "." + attribute, type=True)
+            if actual not in types.get(expected, set()):
+                raise ValidationError(
+                    "原生属性类型不匹配：" + node + "." + attribute + "（" + str(actual) + "）",
+                    "NATIVE_INTERFACE_MISMATCH",
+                )
+
+    for attribute in rule["native"].get("properties", {}):
+        check(attribute)
+    for direction in ("inputs", "outputs"):
+        for binding in rule[direction].values():
+            native = binding["native"]
+            expected = "color" if native.get("codec") == "gray" else binding["type"]
+            check(native["id"], expected)
+            for key in ("colorspace_id", "uv_id"):
+                if key in native:
+                    check(native[key], "string")
 
 
 def equal(a, b):
@@ -180,6 +224,7 @@ class MayaAdapter:
                     name=prefix + "_" + str(index) + "_" + record["type"],
                 )
                 created.append(node)
+                validate_node_interface(node, rule)
                 nodes[record["id"]] = node
                 cmds.addAttr(node, longName="irisImplementation", dataType="string")
                 set_value(node + ".irisImplementation", record["type"])
@@ -472,6 +517,7 @@ class MayaAdapter:
                 prefer_source_default=hint is None,
             )
             rule = self.profile["nodes"][match["implementation"]]
+            validate_node_interface(node, rule)
             rules[node] = rule
             if cmds.getAttr(node + ".nodeState") != 0:
                 raise ValidationError(

@@ -1,4 +1,4 @@
-"""Cinema 4D 2025.3.2 / Redshift 原生图创建；规则由公开核心字典提供。"""
+"""Cinema 4D / Redshift 原生图创建；共享规则由公开核心字典提供。"""
 
 import json
 import math
@@ -103,6 +103,22 @@ def child_nodes(parent):
     import maxon
 
     return [n for n in parent.GetChildren() if n.GetKind() == maxon.NODE_KIND.NODE]
+
+
+def validate_node_interface(node, rule):
+    """核对实际资产的全部声明端口；常量类型由写入与提交后的回读继续核验。"""
+    for identifier in rule["native"].get("properties", {}):
+        port(node, identifier)
+    for direction in ("inputs", "outputs"):
+        for binding in rule[direction].values():
+            native = binding["native"]
+            projection = native.get("properties", {}).get("output_projection")
+            # 投影输出属于按需创建的辅助资产，当前节点只核对其真实来源端口。
+            identifier = projection["source"] if projection else native["id"]
+            port(node, identifier, direction == "outputs")
+            for key in ("colorspace_id", "uv_id"):
+                if key in native:
+                    port(node, native[key])
 
 
 def flattened_copy(document, material):
@@ -337,6 +353,7 @@ class Cinema4DAdapter:
                 prefer_source_default=name not in hints,
             )
             rule = self.profile["nodes"][match["implementation"]]
+            validate_node_interface(node, rule)
             rules[name] = rule
             record = {
                 "id": name,
@@ -582,6 +599,7 @@ class Cinema4DAdapter:
                     )
                     for code, value in rule["native"].get("properties", {}).items():
                         written.append(set_value(node, code, value))
+                    validate_node_interface(node, rule)
                     for key, value in record["inputs"].items():
                         if value is None:
                             continue

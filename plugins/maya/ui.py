@@ -239,7 +239,7 @@ class ImportPanel:
         cmds.text(self.connection_status, edit=True, label="未连接 · 配置已变化，请检测连接")
 
     def detect_connection(self, *_):
-        """真实能力查询与宿主版本预检均成功后才显示已连接。"""
+        """真实能力查询与宿主插件加载均成功后才显示已连接。"""
         self.dispose()
         self._reset_import_results("连接已重置，请重新检查材质。")
         self._reset_export_results("连接已重置，请重新检查材质。")

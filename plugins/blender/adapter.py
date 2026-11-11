@@ -67,7 +67,7 @@ def write_property(node, binding, value):
 
 
 def renderer_ref():
-    """取得当前 Blender/Cycles 版本，供核心选择精确匹配的字典。"""
+    """记录当前 Blender/Cycles 环境；共享字典按宿主、渲染器和节点系统选择。"""
     version = ".".join(map(str, bpy.app.version))
     return {
         "id": "cycles",
@@ -84,6 +84,38 @@ def find_socket(sockets, identifier):
     if len(matches) != 1:
         raise ValidationError(f"原生端口不存在或不唯一：{identifier}")
     return matches[0]
+
+
+def validate_node_interface(node, rule):
+    """检查当前模式下的实际插口类型及属性存在性，避免跨版本时隐式误接端口。"""
+    types = {
+        "float": {"VALUE", "INT"},
+        "color": {"RGBA", "VECTOR"},
+        "color4": {"RGBA"},
+        "vector": {"VECTOR"},
+        "shader": {"SHADER"},
+        "bool": {"BOOLEAN"},
+        "string": {"STRING"},
+    }
+    for direction in ("inputs", "outputs"):
+        for binding in rule[direction].values():
+            native = binding["native"]
+            output = native.get("properties", {}).get("output_socket")
+            if output:
+                socket = find_socket(node.outputs, output)
+            elif native.get("kind", "socket") != "socket":
+                if not hasattr(node, native["id"]):
+                    raise ValidationError(
+                        "原生属性不存在：" + native["id"], "NATIVE_INTERFACE_MISMATCH"
+                    )
+                continue
+            else:
+                socket = find_socket(getattr(node, direction), native["id"])
+            if socket.type not in types.get(binding["type"], set()):
+                raise ValidationError(
+                    "原生插口类型不匹配：" + native["id"] + "（" + socket.type + "）",
+                    "NATIVE_INTERFACE_MISMATCH",
+                )
 
 
 def socket_value(socket):
@@ -322,7 +354,7 @@ class BlenderAdapter:
             raise ValidationError("请选择使用节点的 Blender 材质")
         self.source_snapshot = source_snapshot(material)
 
-        # 2. 向核心查询此 Blender 版本的节点及端口绑定。
+        # 2. 向核心查询当前接入身份的共享节点及端口绑定。
         schema = describe(self.service, renderer_ref())
         tree = material.node_tree
 
@@ -540,6 +572,7 @@ class BlenderAdapter:
     def _read_node(self, node, schema, textures, resolved_uv):
         """读取一个节点：先识别配置，再依照绑定读取图片资源或端口值。"""
         implementation, rule = self._identify_node(node, schema)
+        validate_node_interface(node, rule)
         record = {
             "id": node.name,
             "type": implementation,
@@ -630,11 +663,12 @@ class BlenderAdapter:
 
     def create_material(self, data):
         """根据核心返回数据新建材质；失败时清理本次创建的材质和无用户图片。"""
-        # 1. 校验原生协议与宿主版本，再查询目标节点绑定。
+        # 1. 校验接入身份，按实际运行环境查询规则；来源版本不同不阻断共享绑定。
         data = Material.parse(data).to_dict()
-        if data["renderer"] != renderer_ref():
-            raise ValidationError("目标宿主或 Blender/Cycles 版本不匹配")
-        schema = describe(self.service, data["renderer"])
+        current = renderer_ref()
+        if any(data["renderer"].get(key) != current[key] for key in ("id", "host", "node_system")):
+            raise ValidationError("目标宿主、渲染器或节点系统不匹配")
+        schema = describe(self.service, current)
         material = bpy.data.materials.new(data["name"] + "_IrisRelay")
         created_images = []
         try:
@@ -658,6 +692,7 @@ class BlenderAdapter:
                 nodes[record["id"]] = node
                 for prop, value in rule["native"].get("properties", {}).items():
                     setattr(node, prop, value)
+                validate_node_interface(node, rule)
                 for port, value in record["inputs"].items():
                     port_rule = rule["inputs"][port]
                     binding = port_rule["native"]
