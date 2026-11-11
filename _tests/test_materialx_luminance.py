@@ -153,9 +153,7 @@ def test_c4d_targets_preserve_weighted_sum_and_reexport(engine, coefficients):
 
 def test_target_without_weighted_sum_binding_is_blocked():
     _, source, document, _ = editable_document()
-    target_profile = json.loads(
-        (ROOT / "dictionaries/cinema4d-redshift-2025.3.0.json").read_text("utf-8")
-    )
+    target_profile = json.loads((ROOT / "dictionaries/cinema4d-redshift.json").read_text("utf-8"))
     target_profile["nodes"] = {
         k: n for k, n in target_profile["nodes"].items() if n["semantic"] != "color.weighted_sum"
     }

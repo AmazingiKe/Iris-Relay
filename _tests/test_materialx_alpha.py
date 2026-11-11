@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def setup(mode="STRAIGHT", channels=4, *, linked=True, space="sRGB"):
     """建立同一图片驱动颜色与透明度的原生图；不读取真实文件。"""
-    profile = json.loads((ROOT / "dictionaries/blender-cycles-5.2.3.json").read_text("utf-8"))
+    profile = json.loads((ROOT / "dictionaries/blender-cycles.json").read_text("utf-8"))
     source = fixture(profile, "alpha.png")
     image = next(n for n in source["nodes"] if n["type"] == "ShaderNodeTexImage")
     surface = next(n for n in source["nodes"] if n["type"] == "ShaderNodeBsdfPrincipled")
@@ -176,7 +176,7 @@ def test_unproven_target_alpha_modes_block_and_keep_document():
 
     api, source = setup()
     document = call(api, "materialx.export", material=source)["result"]["document"]
-    profile = json.loads((ROOT / "dictionaries/cinema4d-redshift-2025.3.0.json").read_text("utf-8"))
+    profile = json.loads((ROOT / "dictionaries/cinema4d-redshift.json").read_text("utf-8"))
     profile["texture_image_channels"] = [1, 3]
     target = renderer(profile)
     result = call(RelayAPI([profile]), "materialx.convert", document=document, target=target)
@@ -237,7 +237,7 @@ def test_unused_ambiguous_target_function_does_not_block_alpha_import():
     """目标选择只约束实际使用的功能，不能因扫描透明度规则提前拒绝无关节点。"""
     api, source = setup()
     document = call(api, "materialx.export", material=source)["result"]["document"]
-    profile = json.loads((ROOT / "dictionaries/blender-cycles-5.2.3.json").read_text("utf-8"))
+    profile = json.loads((ROOT / "dictionaries/blender-cycles.json").read_text("utf-8"))
     bump = next(rule for rule in profile["nodes"].values() if rule["semantic"] == "bump.height")
     bump.pop("target_default", None)
     profile["nodes"]["BumpAlias"] = deepcopy(bump)

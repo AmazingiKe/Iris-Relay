@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.fixture
 def setup_export():
-    profile = json.loads((ROOT / "dictionaries/blender-cycles-5.2.3.json").read_text("utf-8"))
+    profile = json.loads((ROOT / "dictionaries/blender-cycles.json").read_text("utf-8"))
     source = fixture(profile, "fixture.png")
 
     class Adapter:

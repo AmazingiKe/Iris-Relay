@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from _scripts.native_fixture import fixture, renderer
 from iris_relay import RelayAPI
 from iris_relay.dictionary import Dictionary, Registry
 from iris_relay.native import request
@@ -149,3 +150,28 @@ def test_version_independent_dictionary_through_real_subprocess(profiles, reques
     result = service.handle(request_data)
     assert result["status"] == "ok", result
     assert result == RelayAPI(profiles).handle(request_data)
+
+
+@pytest.mark.parametrize(
+    "host,engine",
+    [("blender", "cycles"), ("maya", "arnold"), ("cinema4d", "redshift"), ("cinema4d", "arnold")],
+)
+def test_shipped_dictionary_converts_after_host_and_renderer_upgrade(host, engine):
+    profiles = [json.loads(p.read_text("utf-8")) for p in (ROOT / "dictionaries").glob("*.json")]
+    profile = next(p for p in profiles if p["host"]["id"] == host and p["renderer"]["id"] == engine)
+    assert "versions" not in profile["host"] and "versions" not in profile["renderer"]
+    assert profile["evidence"]["verified_environments"]
+    source = fixture(profile)
+    source["renderer"].update(version="other-renderer-build", host_version="other-host-build")
+    target = renderer(profile)
+    target.update(version="another-renderer-build", host_version="another-host-build")
+    api = RelayAPI(profiles)
+    exported = request(api, "materialx.export", material=source)
+    assert exported["status"] != "error", exported
+    converted = request(
+        api, "materialx.convert", document=exported["result"]["document"], target=target
+    )
+    assert converted["status"] != "error", converted
+    assert converted["result"]["material"]["renderer"] == target
+    assert converted["result"]["material"]["links"]
+    assert converted["result"]["material"]["textures"]

@@ -2,25 +2,28 @@
   "schema_version": "1",
   "semantic_schema_version": "1",
   "id": "maya.arnold.native",
-  "version": "0.4.0",
-  "description": "Maya 2022 可编辑 Arnold 材质导入；结构核验，不代表外观等价。",
+  "version": "0.6.0",
+  "description": "Maya 可编辑 Arnold 材质交换；验证环境单列，不代表外观等价。",
   "renderer": {
-    "id": "arnold",
-    "versions": [
-      "7.2.5.3"
-    ]
+    "id": "arnold"
   },
   "host": {
     "id": "maya",
-    "versions": [
-      "2022"
-    ],
     "node_system": "mtoa"
   },
   "evidence": {
     "kind": "Maya 2022 standalone 创建节点并读取实际端口、类型、默认值和枚举；不代表渲染验证",
     "plugin_version": "5.3.5.3",
-    "appearance_verified": false
+    "appearance_verified": false,
+    "verified_environments": [
+      {
+        "id": "arnold",
+        "version": "7.2.5.3",
+        "host": "maya",
+        "host_version": "2022",
+        "node_system": "mtoa"
+      }
+    ]
   },
   "texture_coordinates": {
     "named_uv": true,

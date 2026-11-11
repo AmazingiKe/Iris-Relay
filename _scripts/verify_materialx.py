@@ -123,7 +123,7 @@ def main():
     output = args.out.resolve()
     output.mkdir(parents=True, exist_ok=False)
     run_id = str(uuid4())
-    profile = json.loads((ROOT / "dictionaries/blender-cycles-5.2.3.json").read_text("utf-8"))
+    profile = json.loads((ROOT / "dictionaries/blender-cycles.json").read_text("utf-8"))
     service = RelayAPI.from_directory(ROOT / "dictionaries")
     source_paths = {args.input.resolve()} if args.input else set()
     before = fingerprints(source_paths)

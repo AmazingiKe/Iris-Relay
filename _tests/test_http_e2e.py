@@ -75,13 +75,16 @@ def request(operation, **payload):
     }
 
 
-def test_real_http_matches_native_materialx_graph_and_failure(live_server):
+@pytest.mark.parametrize("upgraded", [False, True])
+def test_real_http_matches_native_materialx_graph_and_failure(live_server, upgraded):
     """真实网络往返保留贴图、连接及失败报告，业务错误不终止服务。"""
     api = RelayAPI.from_directory(ROOT / "dictionaries")
     remote = HttpRelayService(live_server)
     profiles = [json.loads(p.read_text("utf-8")) for p in (ROOT / "dictionaries").glob("*.json")]
     source_profile = next(p for p in profiles if p["renderer"]["id"] == "cycles")
     source = fixture(source_profile, "textures/中文贴图.png", normal_semantic="normal.tangent")
+    if upgraded:
+        source["renderer"].update(version="new-source-build", host_version="new-source-host")
     original = json.dumps(source, ensure_ascii=False, sort_keys=True)
     export_request = request("materialx.export", material=source)
     exported = remote.handle(export_request)
@@ -89,10 +92,14 @@ def test_real_http_matches_native_materialx_graph_and_failure(live_server):
     assert exported["result"]["document"]
     document = exported["result"]["document"]
     for target in profiles:
-        conversion = request("materialx.convert", document=document, target=renderer(target))
+        target_ref = renderer(target)
+        if upgraded:
+            target_ref.update(version="new-target-build", host_version="new-target-host")
+        conversion = request("materialx.convert", document=document, target=target_ref)
         actual = remote.handle(conversion)
         assert actual == api.handle(conversion)
         material = actual["result"]["material"]
+        assert material["renderer"] == target_ref
         assert material and material["links"] and material["textures"]
         assert next(iter(material["textures"].values()))["uri"] == "textures/中文贴图.png"
     invalid = request("unknown.operation")

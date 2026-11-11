@@ -19,9 +19,7 @@ DOCUMENT = """<materialx version="1.39" colorspace="{space}">
 </surfacematerial></materialx>"""
 
 
-@pytest.mark.parametrize(
-    "name", ["blender-cycles-5.2.3", "maya-arnold-7.2.5.3", "cinema4d-redshift-2025.3.0"]
-)
+@pytest.mark.parametrize("name", ["blender-cycles", "maya-arnold", "cinema4d-redshift"])
 def test_linear_rec709_context_accepted_without_transforming_values(name):
     profile = json.loads((ROOT / "dictionaries" / (name + ".json")).read_text("utf8"))
     result = call(
@@ -34,7 +32,7 @@ def test_linear_rec709_context_accepted_without_transforming_values(name):
 
 
 def test_unknown_color_context_is_not_silently_reinterpreted():
-    profile = json.loads((ROOT / "dictionaries/blender-cycles-5.2.3.json").read_text("utf8"))
+    profile = json.loads((ROOT / "dictionaries/blender-cycles.json").read_text("utf8"))
     result = call(
         RelayAPI([profile]),
         "materialx.convert",

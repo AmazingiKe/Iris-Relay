@@ -141,9 +141,9 @@ def test_redshift_uses_scalar_math_and_keeps_input_order(operation):
     profile, source = math_fixture(operation)
     document = export(profile, source)["result"]["document"]
     target = json.loads(
-        (
-            Path(__file__).resolve().parents[1] / "dictionaries/cinema4d-redshift-2025.3.0.json"
-        ).read_text("utf-8")
+        (Path(__file__).resolve().parents[1] / "dictionaries/cinema4d-redshift.json").read_text(
+            "utf-8"
+        )
     )
     source["renderer"] = renderer(target)
     result = convert(target, source, document)

@@ -19,7 +19,7 @@ DOCUMENT = """<materialx version="1.39"><standard_surface name="surface" type="s
 
 
 def profile():
-    path = Path(__file__).resolve().parents[1] / "dictionaries/maya-arnold-7.2.5.3.json"
+    path = Path(__file__).resolve().parents[1] / "dictionaries/maya-arnold.json"
     data = json.loads(path.read_text("utf8"))
     for name, limits in [("specularRoughness", [0.05, 0.95]), ("specular", [0, 1])]:
         data["nodes"]["standard_surface"]["inputs"][name].update(

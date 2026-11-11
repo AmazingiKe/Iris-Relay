@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def setup():
-    profile = json.loads((ROOT / "dictionaries/blender-cycles-5.2.3.json").read_text("utf-8"))
+    profile = json.loads((ROOT / "dictionaries/blender-cycles.json").read_text("utf-8"))
     source = fixture(profile, "roughness.exr")
     image = next(n for n in source["nodes"] if n["type"] == "ShaderNodeTexImage")
     surface = next(n for n in source["nodes"] if n["type"] == "ShaderNodeBsdfPrincipled")

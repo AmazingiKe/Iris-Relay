@@ -203,7 +203,7 @@ def main():
         texture = output.parent / "法线高度.png"
         write_png(texture)
         original_texture = texture.read_bytes()
-        profile = json.loads((ROOT / "dictionaries/blender-cycles-5.2.3.json").read_text("utf-8"))
+        profile = json.loads((ROOT / "dictionaries/blender-cycles.json").read_text("utf-8"))
         for semantic in ("normal.tangent", "bump.height"):
             source = BlenderAdapter(None, ui._service).create_material(
                 fixture(profile, str(texture), normal_semantic=semantic)

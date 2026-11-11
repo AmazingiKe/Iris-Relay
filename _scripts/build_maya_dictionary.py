@@ -16,13 +16,22 @@ def build(catalog):
         "semantic_schema_version": "1",
         "id": "maya.arnold.native",
         "version": "0.2.0",
-        "description": "Maya 2022 可编辑 Arnold 材质导入；结构核验，不代表外观等价。",
-        "renderer": {"id": "arnold", "versions": [catalog["renderer"]["version"]]},
-        "host": {"id": "maya", "versions": [catalog["host"]["version"]], "node_system": "mtoa"},
+        "description": "Maya 可编辑 Arnold 材质交换；验证环境单列，不代表外观等价。",
+        "renderer": {"id": "arnold"},
+        "host": {"id": "maya", "node_system": "mtoa"},
         "evidence": {
             "kind": catalog["evidence"],
             "plugin_version": catalog["renderer"]["plugin_version"],
             "appearance_verified": False,
+            "verified_environments": [
+                {
+                    "id": "arnold",
+                    "version": catalog["renderer"]["version"],
+                    "host": "maya",
+                    "host_version": catalog["host"]["version"],
+                    "node_system": "mtoa",
+                }
+            ],
         },
         "texture_coordinates": {"named_uv": True, "transforms": "trs"},
         "texture_alpha_modes": ["STRAIGHT", "PREMUL", "CHANNEL_PACKED", "NONE"],
@@ -391,7 +400,7 @@ def build(catalog):
     profile["materialx_lowerings"] = {
         "ND_separate3_color3": [{"when": {}, "replacement": "ND_iris_separate3_color3"}]
     }
-    profile["version"] = "0.4.0"
+    profile["version"] = "0.6.0"
     return profile
 
 

@@ -104,7 +104,8 @@ def test_generated_profiles_are_reproducible_and_declare_semantic_contract():
     for path in sorted((ROOT / "dictionaries/catalogs").glob("*.json")):
         catalog = json.loads(path.read_text(encoding="utf-8"))
         built = build(catalog)
-        stored = json.loads((ROOT / "dictionaries" / path.name).read_text(encoding="utf-8"))
+        filename = f"{catalog['host']['id']}-{catalog['renderer']['id']}.json"
+        stored = json.loads((ROOT / "dictionaries" / filename).read_text(encoding="utf-8"))
         assert built == stored
         assert built["semantic_schema_version"] == "1"
         assert {n["semantic"] for n in built["nodes"].values()} >= {

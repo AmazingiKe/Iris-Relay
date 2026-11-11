@@ -169,13 +169,24 @@ def build(catalog):
             "真实原生绑定；标准表面、图片、切线法线、高度凹凸与显式 R 通道提取。"
             "其余节点见探测目录。"
         ),
-        "renderer": {"id": engine, "versions": [catalog["renderer"]["version"]]},
+        "renderer": {"id": engine},
         "host": {
             "id": host["id"],
-            "versions": [host["version"]],
             "node_system": catalog["node_system"],
         },
-        "evidence": {"kind": catalog["evidence"], "appearance_verified": False},
+        "evidence": {
+            "kind": catalog["evidence"],
+            "appearance_verified": False,
+            "verified_environments": [
+                {
+                    "id": engine,
+                    "version": catalog["renderer"]["version"],
+                    "host": host["id"],
+                    "host_version": host["version"],
+                    "node_system": catalog["node_system"],
+                }
+            ],
+        },
         "nodes": {},
     }
     if "color_context" in catalog:
@@ -433,6 +444,7 @@ def build(catalog):
             from _scripts.build_redshift_dictionary import extend
 
             extend(profile, catalog)
+    profile["version"] = "0.6.0"
     return profile
 
 
@@ -723,7 +735,11 @@ def main():
             f"{catalog['host']['id']}-{catalog['renderer']['id']}-"
             f"{catalog['renderer']['version']}.json"
         )
-        for path, data in [(args.out / filename, profile), (catalog_dir / filename, catalog)]:
+        shared_filename = f"{catalog['host']['id']}-{catalog['renderer']['id']}.json"
+        for path, data in [
+            (args.out / shared_filename, profile),
+            (catalog_dir / filename, catalog),
+        ]:
             with path.open("x", encoding="utf-8") as stream:
                 json.dump(data, stream, ensure_ascii=False, indent=2, allow_nan=False)
 

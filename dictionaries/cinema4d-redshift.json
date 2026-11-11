@@ -1,25 +1,28 @@
 {
   "schema_version": "1",
   "id": "cinema4d.redshift.native",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "semantic_schema_version": "1",
   "description": "真实原生绑定；标准表面、图片、切线法线、高度凹凸与显式 R 通道提取。其余节点见探测目录。",
   "renderer": {
-    "id": "redshift",
-    "versions": [
-      "2025.3.0"
-    ]
+    "id": "redshift"
   },
   "host": {
     "id": "cinema4d",
-    "versions": [
-      "2025.3.2"
-    ],
     "node_system": "redshift.maxon"
   },
   "evidence": {
     "kind": "installed_schema_and_runtime_instantiation",
     "appearance_verified": false,
+    "verified_environments": [
+      {
+        "id": "redshift",
+        "version": "2025.3.0",
+        "host": "cinema4d",
+        "host_version": "2025.3.2",
+        "node_system": "redshift.maxon"
+      }
+    ],
     "color_context": {
       "color_management": 0,
       "color_profile": 0,

@@ -19,7 +19,7 @@ ROTATE_TRANSLATE = [0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1, 0, 4, -2, 0, 1]
 
 def setup(coordinates):
     """使用真实字典构造仅变化坐标的材质，文件 URI 不依赖测试机器。"""
-    profile = json.loads((ROOT / "dictionaries/blender-cycles-5.2.3.json").read_text("utf-8"))
+    profile = json.loads((ROOT / "dictionaries/blender-cycles.json").read_text("utf-8"))
     source = fixture(profile)
     source["textures"]["fixture"]["coordinates"] = deepcopy(coordinates)
     return RelayAPI.from_directory(ROOT / "dictionaries"), source
@@ -119,7 +119,7 @@ def test_shear_or_degenerate_matrix_is_storable_but_not_a_trs_target(matrix):
 
 @pytest.mark.parametrize("transforms", [[], {}, True, "arbitrary"])
 def test_invalid_dictionary_coordinate_capability_is_a_validation_error(transforms):
-    profile = json.loads((ROOT / "dictionaries/blender-cycles-5.2.3.json").read_text("utf-8"))
+    profile = json.loads((ROOT / "dictionaries/blender-cycles.json").read_text("utf-8"))
     profile["texture_coordinates"]["transforms"] = transforms
     with pytest.raises(ValidationError):
         RelayAPI([profile])

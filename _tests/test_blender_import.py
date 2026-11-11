@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @pytest.fixture
 def imported(tmp_path):
     """先通过导出控制层生成文档，记录输入文件与宿主创建调用。"""
-    profile = json.loads((ROOT / "dictionaries/blender-cycles-5.2.3.json").read_text("utf-8"))
+    profile = json.loads((ROOT / "dictionaries/blender-cycles.json").read_text("utf-8"))
     texture = tmp_path / "图片.png"
     texture.write_bytes(b"resource preservation fixture")
     source = fixture(profile, str(texture))
@@ -135,10 +135,18 @@ def test_bad_response_never_reaches_host(imported, problem):
 
 def test_unsupported_target_keeps_conversion_report(imported):
     adapter, service, path, target = imported
-    target = dict(target, version="0")
+    target = dict(target, id="unsupported.renderer")
     result = controller.import_material(adapter, service, path, target, accept_warnings=True)
     assert result.status == "error" and not adapter.created
     assert result.conversion_response["status"] == "error"
+
+
+def test_changed_host_version_can_reuse_dictionary_in_import_flow(imported):
+    adapter, service, path, target = imported
+    target = dict(target, version="new-build", host_version="new-host-build")
+    result = controller.import_material(adapter, service, path, target, accept_warnings=True)
+    assert result.created_material
+    assert adapter.created[0]["renderer"] == target
 
 
 def test_host_failure_is_reported_with_conversion_evidence(imported):

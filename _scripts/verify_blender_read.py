@@ -21,7 +21,7 @@ def main():
     from plugins.blender.controller import check_material, create_service, export_material
 
     service = create_service()
-    profile = json.loads((ROOT / "dictionaries/blender-cycles-5.2.3.json").read_text("utf-8"))
+    profile = json.loads((ROOT / "dictionaries/blender-cycles.json").read_text("utf-8"))
     with TemporaryDirectory(prefix="iris-read-") as directory:
         image_path = Path(directory) / "fixture.png"
         write_png(image_path)

@@ -6,6 +6,10 @@ from iris_relay.dictionary import Dictionary
 
 
 def renderer(profile):
+    """夹具使用实测环境版本；验证记录不是运行时字典的版本限制。"""
+    environments = profile.get("evidence", {}).get("verified_environments", [])
+    if environments:
+        return deepcopy(environments[0])
     return {
         "id": profile["renderer"]["id"],
         "version": profile["renderer"]["versions"][0],
