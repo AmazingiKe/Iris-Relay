@@ -3,7 +3,7 @@
 from _tests.test_materialx_extensions import EXTENSION, fixture
 from _tests.test_materialx_link_casts import export
 from _tests.test_materialx_native_nodes import convert
-from iris_relay.materialx_core import MaterialXCore
+from iris_relay.materialx.core import MaterialXCore
 
 
 def test_custom_multioutput_roundtrip_keeps_distinct_socket_routes():

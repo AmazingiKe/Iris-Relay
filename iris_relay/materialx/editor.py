@@ -6,7 +6,7 @@ import math
 from collections import defaultdict, deque
 from copy import deepcopy
 
-from .model import ValidationError
+from ..model import ValidationError
 
 
 def computation_equivalence_options():
@@ -140,7 +140,7 @@ def finalize_node_names(doc):
     """覆盖主图、内联子图和生成节点；每个节点仅一个原名字段，改名同步连接。"""
     import MaterialX as mx
 
-    from .naming import normalize_names
+    from ..tools.naming import normalize_names
 
     nodes = [n for n in doc.traverseTree() if isinstance(n, mx.Node)]
     connections = [

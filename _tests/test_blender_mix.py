@@ -5,7 +5,7 @@ import pytest
 from _tests.test_materialx_hsv import evaluate, profile
 from _tests.test_materialx_link_casts import export
 from _tests.test_materialx_native_nodes import convert, math_fixture
-from iris_relay.materialx_core import MaterialXCore
+from iris_relay.materialx.core import MaterialXCore
 
 
 def test_additional_mix_modes_match_cycles_branch_boundaries():

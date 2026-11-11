@@ -3,7 +3,7 @@
 import pytest
 
 from _tests.test_materialx_hsv import evaluate, profile
-from iris_relay.materialx_core import MaterialXCore
+from iris_relay.materialx.core import MaterialXCore
 
 
 @pytest.mark.parametrize("gamma", [0.0, 0.5, 1.0, 2.2, -1.0])

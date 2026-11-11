@@ -7,7 +7,7 @@ from copy import deepcopy
 
 from pypinyin import lazy_pinyin
 
-from .model import ValidationError
+from ..model import ValidationError
 
 MAX_NAME_LENGTH = 63
 _VALID = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")

@@ -29,7 +29,7 @@ class RelayAPI:
     def _mx(self):
         if self._materialx is None:
             try:
-                from .materialx_core import MaterialXCore
+                from .materialx.core import MaterialXCore
             except ImportError as exc:
                 raise ValidationError(
                     "当前 Python 缺少可加载的 MaterialX SDK，请安装项目依赖",
@@ -106,12 +106,12 @@ class RelayAPI:
                 result = self._mx.definitions(payload)
                 status = "ok"
             elif operation == "materialx.diff":
-                from .materialx_diff import compare
+                from .materialx.diff import compare
 
                 result = compare(self._mx, payload)
                 status = status_for(result["issues"])
             elif operation in {"materialx.resources", "materialx.rewrite_resources"}:
-                from .materialx_assets import resources, rewrite_resources
+                from .materialx.assets import resources, rewrite_resources
 
                 handler = resources if operation == "materialx.resources" else rewrite_resources
                 result = handler(self._mx, payload)
@@ -121,7 +121,7 @@ class RelayAPI:
                 status = status_for(result["issues"])
             elif operation == "materialx.export":
                 core = self._mx
-                from .materialx_bridge import export_material
+                from .materialx.bridge import export_material
 
                 fields(payload, {"material"})
                 material = Material.parse(payload["material"])
@@ -129,14 +129,14 @@ class RelayAPI:
                 result = export_material(core, material, dictionary)
                 status = status_for(result["report"]["issues"])
             elif operation == "materialx.preserve":
-                from .materialx_preserve import preserve_snapshot
+                from .materialx.preserve import preserve_snapshot
 
                 fields(payload, {"snapshot"})
                 result = preserve_snapshot(self._mx, payload["snapshot"])
                 status = status_for(result["report"]["issues"])
             elif operation == "materialx.convert":
                 core = self._mx
-                from .materialx_bridge import convert_document
+                from .materialx.bridge import convert_document
 
                 fields(
                     payload,

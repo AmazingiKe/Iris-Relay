@@ -2,9 +2,9 @@
 
 import MaterialX as mx
 
-from .conversion import issue
-from .materialx_extensions import preserved_extensions
-from .model import ValidationError
+from ..conversion import issue
+from ..model import ValidationError
+from .extensions import preserved_extensions
 
 
 def scalar_bridges(doc, dictionary, bindings):

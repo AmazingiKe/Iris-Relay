@@ -4,8 +4,8 @@ import math
 
 import MaterialX as mx
 
-from .materialx_assets import checked_document
-from .model import ValidationError, fields
+from ..model import ValidationError, fields
+from .assets import checked_document
 
 
 def value_data(port):

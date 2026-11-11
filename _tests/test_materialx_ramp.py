@@ -8,7 +8,7 @@ import pytest
 from _tests.test_materialx_hsv import evaluate, profile
 from _tests.test_materialx_link_casts import export
 from _tests.test_materialx_native_nodes import convert, math_fixture
-from iris_relay.materialx_core import MaterialXCore
+from iris_relay.materialx.core import MaterialXCore
 
 
 def ramp_source(mode="LINEAR"):
@@ -102,7 +102,7 @@ def test_tampered_compiled_ramp_cannot_restore_as_native_color_ramp():
 
 
 def test_bspline_keeps_blender_endpoint_blending():
-    from iris_relay.materialx_recipes import DEFAULT_RAMP, ramp_library
+    from iris_relay.materialx.recipes import DEFAULT_RAMP, ramp_library
 
     config = dict(DEFAULT_RAMP, interpolation="B_SPLINE")
     doc, _, _, _ = ramp_library(MaterialXCore(), config)

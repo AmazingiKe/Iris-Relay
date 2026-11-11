@@ -6,10 +6,10 @@ from copy import deepcopy
 
 import MaterialX as mx
 
-from .conversion import issue, status_for
-from .materialx_editor import finalize_node_names, set_text_attribute
-from .model import ValidationError, fields, json_value, text
-from .naming import normalize_names
+from ..conversion import issue, status_for
+from ..model import ValidationError, fields, json_value, text
+from ..tools.naming import normalize_names
+from .editor import finalize_node_names, set_text_attribute
 
 TYPES = {
     "float",

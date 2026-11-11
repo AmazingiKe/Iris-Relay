@@ -7,8 +7,8 @@ from xml.etree import ElementTree as ET
 
 import MaterialX as mx
 
-from .conversion import issue, status_for
-from .model import ValidationError, fields, text
+from ..conversion import issue, status_for
+from ..model import ValidationError, fields, text
 
 MAX_DOCUMENT_BYTES = 8 * 1024 * 1024
 MAX_ELEMENTS = 20000
@@ -298,7 +298,7 @@ class MaterialXCore:
             if isinstance(graph, mx.NodeGraph) and graph.getNodeDefString() in preserve:
                 continue
             if editable and graph == doc:
-                from .materialx_editor import flatten_editable
+                from .editor import flatten_editable
 
                 flatten_editable(graph, self, preserve, controls=editable_types)
             else:

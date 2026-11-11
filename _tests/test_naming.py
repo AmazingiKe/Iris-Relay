@@ -9,8 +9,8 @@ import pytest
 from _scripts.native_fixture import fixture, renderer
 from _tests.test_materialx_bridge import PROFILES, call
 from iris_relay import RelayAPI
-from iris_relay.materialx_editor import get_text_attribute
-from iris_relay.naming import node_name, normalize_names
+from iris_relay.materialx.editor import get_text_attribute
+from iris_relay.tools.naming import node_name, normalize_names
 
 
 @pytest.mark.parametrize(
@@ -83,8 +83,8 @@ def test_backup_is_passive_and_not_copied_to_editor():
 
 
 def test_materialx_generated_nodes_and_inline_connections_keep_valid_names():
-    from iris_relay.materialx_core import MaterialXCore
-    from iris_relay.materialx_editor import finalize_node_names
+    from iris_relay.materialx.core import MaterialXCore
+    from iris_relay.materialx.editor import finalize_node_names
 
     core = MaterialXCore()
     doc = core.read("""<materialx version="1.39">

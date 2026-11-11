@@ -236,7 +236,7 @@ def add_blender_mix(profile, catalog):
         mx.readFromXmlString(existing, profile["materialx_extensions"])
     existing.importLibrary(document)
     profile["materialx_extensions"] = mx.writeToXmlString(existing)
-    from iris_relay.materialx_recipes import DEFAULT_RAMP
+    from iris_relay.materialx.recipes import DEFAULT_RAMP
 
     profile["materialx_recipes"] = {"ShaderNodeValToRGB": "blender.color_ramp"}
     profile["nodes"]["ShaderNodeValToRGB"] = {

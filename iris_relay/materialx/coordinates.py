@@ -3,8 +3,8 @@
 import math
 from copy import deepcopy
 
-from .conversion import issue
-from .model import ValidationError
+from ..conversion import issue
+from ..model import ValidationError
 
 
 def sampler_matrix(parameters, spec):

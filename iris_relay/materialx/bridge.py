@@ -10,15 +10,16 @@ from dataclasses import dataclass, field
 
 import MaterialX as mx
 
-from .conversion import issue, status_for, transcode
-from .materialx_coordinates import (
+from ..conversion import issue, status_for, transcode
+from ..model import Material, ValidationError
+from .coordinates import (
     check_target_coordinates,
     export_coordinates,
     import_coordinates,
     prepare_source_coordinates,
     prepare_target_coordinates,
 )
-from .materialx_editor import (
+from .editor import (
     decorate_material,
     export_editor,
     finalize_node_names,
@@ -26,8 +27,8 @@ from .materialx_editor import (
     get_text_attribute,
     set_text_attribute,
 )
-from .materialx_extensions import install_extensions, load_extensions, preserved_extensions
-from .materialx_images import (
+from .extensions import install_extensions, load_extensions, preserved_extensions
+from .images import (
     IMAGE_TYPES,
     ImageGraphReader,
     adapt_target_image_graphs,
@@ -36,9 +37,8 @@ from .materialx_images import (
     alpha_warning,
     check_target_alpha,
 )
-from .materialx_lowerings import apply_lowerings
-from .materialx_recipes import prepare_recipes
-from .model import Material, ValidationError
+from .lowerings import apply_lowerings
+from .recipes import prepare_recipes
 
 # 这里只声明已核验的语义对应，不复制 MaterialX 的类型和默认值定义。
 BINDINGS = {
@@ -275,7 +275,7 @@ def export_material(core, source, dictionary):
     result = {"source": source.to_dict(), "document": None, "report": report(issues)}
     result["report"]["source_dictionary_fingerprint"] = dictionary.fingerprint
     try:
-        from .naming import normalize_names
+        from ..tools.naming import normalize_names
 
         prepared, dictionary, compiled = prepare_recipes(
             core, dictionary, source=normalize_names(source.data)
@@ -895,7 +895,7 @@ def convert_document(core, source, dictionary, target, material_name=None):
         if status_for(issues) != "error":
             for record in candidate["nodes"]:
                 record["type"] = recipe_types.get(record["type"], record["type"])
-            from .naming import normalize_names
+            from ..tools.naming import normalize_names
 
             result["material"] = Material.parse(
                 decorate_material(normalize_names(candidate), dictionary)

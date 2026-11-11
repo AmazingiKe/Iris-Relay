@@ -2,8 +2,8 @@
 
 from _tests.test_materialx_hsv import profile
 from iris_relay.dictionary import Dictionary
-from iris_relay.materialx_core import MaterialXCore
-from iris_relay.materialx_extensions import load_extensions
+from iris_relay.materialx.core import MaterialXCore
+from iris_relay.materialx.extensions import load_extensions
 
 
 def test_repeated_extensions_are_validated_once_and_remain_request_local(monkeypatch):

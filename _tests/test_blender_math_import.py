@@ -7,7 +7,7 @@ from _scripts.native_fixture import renderer
 from _tests.test_materialx_bridge import call
 from _tests.test_materialx_hsv import profile
 from iris_relay import RelayAPI
-from iris_relay.materialx_core import MaterialXCore
+from iris_relay.materialx.core import MaterialXCore
 
 
 @pytest.fixture(scope="module")

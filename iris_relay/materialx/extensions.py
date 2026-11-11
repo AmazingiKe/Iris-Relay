@@ -5,9 +5,9 @@ from hashlib import sha256
 
 import MaterialX as mx
 
-from .conversion import status_for
-from .materialx_editor import equivalent_computation
-from .model import ValidationError
+from ..conversion import status_for
+from ..model import ValidationError
+from .editor import equivalent_computation
 
 
 def load_extensions(core, dictionary):

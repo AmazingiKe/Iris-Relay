@@ -4,8 +4,8 @@ from copy import deepcopy
 
 import MaterialX as mx
 
-from .conversion import issue
-from .model import ValidationError
+from ..conversion import issue
+from ..model import ValidationError
 
 MODES = {"STRAIGHT", "PREMUL", "CHANNEL_PACKED", "NONE"}
 IMAGE_TYPES = {1: "color3", 3: "color3", 4: "color4"}

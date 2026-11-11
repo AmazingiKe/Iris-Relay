@@ -3,7 +3,7 @@
 from copy import deepcopy
 
 from iris_relay import RelayAPI
-from iris_relay.materialx_core import MaterialXCore
+from iris_relay.materialx.core import MaterialXCore
 
 
 def snapshot():

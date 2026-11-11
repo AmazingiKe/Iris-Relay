@@ -5,7 +5,7 @@ from copy import deepcopy
 import pytest
 
 from iris_relay.dictionary import Dictionary
-from iris_relay.materialx_images import alpha_description, prepare_target_images
+from iris_relay.materialx.images import alpha_description, prepare_target_images
 
 
 def material(mode, linked, space="sRGB", association=None):

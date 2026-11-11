@@ -10,8 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from _tests.test_materialx_hsv import evaluate  # noqa: E402
-from iris_relay.materialx_core import MaterialXCore  # noqa: E402
-from iris_relay.materialx_recipes import ramp_library  # noqa: E402
+from iris_relay.materialx.core import MaterialXCore  # noqa: E402
+from iris_relay.materialx.recipes import ramp_library  # noqa: E402
 
 
 def main():

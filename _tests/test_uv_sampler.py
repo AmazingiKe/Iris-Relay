@@ -2,7 +2,7 @@
 
 import pytest
 
-from iris_relay.materialx_coordinates import sampler_matrix, sampler_parameters
+from iris_relay.materialx.coordinates import sampler_matrix, sampler_parameters
 from iris_relay.model import ValidationError
 
 

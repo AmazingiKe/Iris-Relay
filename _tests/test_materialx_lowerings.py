@@ -70,7 +70,7 @@ def test_target_lowering_definition_collision_is_not_silently_overridden():
     import MaterialX as mx
 
     from _tests.test_materialx_bridge import call
-    from iris_relay.materialx_core import MaterialXCore
+    from iris_relay.materialx.core import MaterialXCore
 
     target = rs_profile()
     core = MaterialXCore()
@@ -98,7 +98,7 @@ def test_target_lowering_definition_collision_is_not_silently_overridden():
 @pytest.mark.parametrize("dtype", ["float", "color3"])
 def test_comparison_lowering_keeps_equality_and_zero_boundaries(operation, dtype):
     from _tests.test_materialx_hsv import evaluate
-    from iris_relay.materialx_core import MaterialXCore
+    from iris_relay.materialx.core import MaterialXCore
 
     core = MaterialXCore()
     doc = core.read(rs_profile()["materialx_extensions"])

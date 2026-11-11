@@ -4,8 +4,8 @@ from hashlib import sha256
 
 import MaterialX as mx
 
-from .conversion import status_for
-from .model import ValidationError, fields, text
+from ..conversion import status_for
+from ..model import ValidationError, fields, text
 
 
 def checked_document(core, document):

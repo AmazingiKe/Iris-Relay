@@ -7,9 +7,9 @@ from hashlib import sha256
 
 import MaterialX as mx
 
-from .dictionary import Dictionary
-from .materialx_editor import equivalent_computation
-from .model import ValidationError, fields, json_value, parse_json
+from ..dictionary import Dictionary
+from ..model import ValidationError, fields, json_value, parse_json
+from .editor import equivalent_computation
 
 DEFAULT_RAMP = {
     "color_mode": "RGB",

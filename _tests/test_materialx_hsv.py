@@ -10,7 +10,7 @@ import pytest
 from _scripts.build_native_dictionaries import build
 from _tests.test_materialx_link_casts import export, setup
 from _tests.test_materialx_native_nodes import convert
-from iris_relay.materialx_core import MaterialXCore
+from iris_relay.materialx.core import MaterialXCore
 
 
 def profile():
