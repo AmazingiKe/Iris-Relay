@@ -63,7 +63,7 @@ python -m venv .venv
 
 GUI 按需加载核心；重复运行入口会重新加载宿主模块、清空输入和诊断。关闭 Blender 后不会自动启用。需要在当前会话移除界面时，在 Blender Python 控制台执行 `from plugins.blender import ui; ui.unregister()`。
 
-当前受已实现功能及精确版本字典限制。读取所选表面的上游图，解析转接点、整理框、默认／命名 UV 及静态 POINT Mapping 序列；坐标通过标准 MaterialX 几何属性和矩阵节点导出，Blender 导入后重建可编辑链路。节点组按实例只读展开，保留输入覆盖值和连线，回导创建可编辑功能节点；组层级、布局及接口限制见[节点组说明](_docs/materialx-core.md#blender-节点组)。未参与表面的节点有信息提示并保留顶层源快照。参与表面的未知节点、动态坐标变换、其他坐标来源、未支持的参数或连接仍会阻断。Blender 旧 Principled `GGX + BURLEY` 配置已加入识别；关闭 SSS 时未连接的 SSS 辅助值按字典条件报告为未启用。具体范围见[原生字典文档](_docs/native-dictionaries.md)。
+当前受已实现功能及实际节点接口能力限制；字典跨软件版本复用，已验证环境单独记录。读取所选表面的上游图，解析转接点、整理框、默认／命名 UV 及静态 POINT Mapping 序列；坐标通过标准 MaterialX 几何属性和矩阵节点导出，Blender 导入后重建可编辑链路。节点组按实例只读展开，保留输入覆盖值和连线，回导创建可编辑功能节点；组层级、布局及接口限制见[节点组说明](_docs/materialx-core.md#blender-节点组)。未参与表面的节点有信息提示并保留顶层源快照。参与表面的未知节点、动态坐标变换、其他坐标来源、未支持的参数或连接仍会阻断。Blender 旧 Principled `GGX + BURLEY` 配置已加入识别；关闭 SSS 时未连接的 SSS 辅助值按字典条件报告为未启用。具体范围见[原生字典文档](_docs/native-dictionaries.md)。
 
 颜色接粗糙度等标量输入时，由宿主读取当前工作空间的亮度系数，核心按字典规则生成显式 MaterialX `luminance → extract`，不猜测 R 通道。目前只核验 Linear Rec.709；缺失或不支持的色彩上下文会阻断。此链可通过 `materialx.convert` 转回 Blender 的 `Vector Math / DOT_PRODUCT`，保留文档中的三个常量系数；GUI 和独立脚本共用该 API。位移和渲染外观仍未验证。
 
@@ -117,7 +117,7 @@ GUI 导入入口为 `ui.run_import` → `controller.check_import / import_materi
 
 可选的本机 HTTP 服务位于 `iris_relay/server/`：执行 `uv sync --extra dev --extra http`，然后运行 `uv run --extra http python -m iris_relay.server --dictionaries dictionaries`。默认监听 `127.0.0.1:8765`；宿主设置 `IRIS_RELAY_HTTP_URL=http://127.0.0.1:8765` 后重新创建服务即可使用。默认调用方式不变，连接失败不静默回退。启动、模型加载、资源约定及限制见 [HTTP 服务调用](_docs/http.md)。
 
-API 提供能力查询、通用功能定义查询（`semantics`）、原生模式识别（`identify`）、原生绑定查询、材质校验和转换。真实配置同时匹配宿主、渲染器与节点系统的版本。版本不匹配、未知节点、无法表达的连接和非法数值均有明确错误；缺少模型时可返回基础转换结果及警告。插件辅助接口默认不应用带警告的方案，也不会自动替换场景中的材质绑定。
+API 提供能力查询、通用功能定义查询（`semantics`）、原生模式识别（`identify`）、原生绑定查询、材质校验和转换。真实配置按宿主、渲染器与节点系统选择共享字典，不因软件版本变化自动阻断；实际端口缺失、类型不符、未知节点、无法表达的连接和非法数值均有明确错误。软件版本保留为运行与验证记录，第三方旧字典仍可声明显式版本限制，详见 [ADR-0010](_docs/adr/0010-共享字典与运行时接口兼容检查.md)；缺少模型时可返回基础转换结果及警告。插件辅助接口默认不应用带警告的方案，也不会自动替换场景中的材质绑定。
 
 ## 目录
 
@@ -163,6 +163,6 @@ uv run --extra dev ruff format --check iris_relay _tests _examples _scripts plug
 - [ADR-0005：MaterialX 材质图核心与自定义节点扩展](_docs/adr/0005-MaterialX材质图核心与自定义节点扩展.md)
 - [协作与开发约定](AGENTS.md)
 
-下一步继续扩展真实材质导出与节点覆盖；渲染对照及神经联合校正留待后续阶段。MaterialX 桥接已显式处理颜色转亮度、标量转灰度颜色，以及受限的图片 Alpha 模式和通道；Blender 完整颜色反相现可直接绑定官方 NodeDef，部分反相与尚未实现的端口变换仍阻断。图片双输出、资源探测及跨宿主限制见 [Alpha 说明](_docs/materialx-core.md#图片-alpha-与透明度连接)。
+下一步继续扩展真实材质导出与节点覆盖，并推进渲染对照及首轮神经实验之后的泛化验证。MaterialX 桥接已显式处理颜色转亮度、标量转灰度颜色，以及受限的图片 Alpha 模式和通道；Blender 完整颜色反相现可直接绑定官方 NodeDef，部分反相与尚未实现的端口变换仍阻断。图片双输出、资源探测及跨宿主限制见 [Alpha 说明](_docs/materialx-core.md#图片-alpha-与透明度连接)。
 
 A1 全量测试继续覆盖全部 1,803 个材质。静态 UV 读取已扩展到常量数学、向量加减乘／缩放及五种旋转模式，回导重建可编辑 Mapping；常量计算子图与共享坐标节点身份未重建，动画和跨分支共享依赖明确阻断。组接口的一次类型转换保留到展开后的连接，由核心显式表达，浮点组默认值可还原为灰度颜色。10 组坐标、3 组反相、4 组接口夹具完成独立 Blender 保存重开；完整 HSV 增加五个端口及标准数学子图，回导重建可编辑原生节点；五组 HSV 夹具完成独立回读。389 项自动测试通过，合计覆盖率 93%。实际样本累计 690 项完整导出并具备独立回读证据、1,113 项阻断；本轮新增 88 项，已按用户时间限制停止新增转换，尚未完成全量目标，详见 [A1 问题与验证记录](_docs/a1-materialx-roundtrip.md)。

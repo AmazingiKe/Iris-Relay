@@ -44,7 +44,7 @@ uv run python -m iris_relay --dictionaries _examples/dictionaries --request _exa
 
 | 操作 | payload | 结果 |
 | --- | --- | --- |
-| `capabilities` | `{}` | 已加载字典、渲染器精确版本、支持操作、校正器是否配置 |
+| `capabilities` | `{}` | 已加载字典、接入身份、可选版本限制与验证证据、支持操作、校正器是否配置 |
 | `semantics` | `{}` | 通用功能契约版本、节点含义、端口类型、必要端口、边界及标准参考；无需宿主或字典 |
 | `identify` | `{"renderer": 渲染器引用, "native_id": 原生ID, "properties": 原生配置}` | `implementation` 实现键、`semantic` 功能、`native` 绑定副本及 `dictionary_fingerprint` |
 | `describe` | `{"renderer": 渲染器引用}` | 完整声明式 `dictionary` 副本及内容 `fingerprint`，供插件查询原生绑定 |
@@ -71,7 +71,7 @@ uv run python -m iris_relay --dictionaries _examples/dictionaries --request _exa
 
 常见错误码包括 `INVALID_REQUEST`、`UNSUPPORTED_API_VERSION`、`UNSUPPORTED_SCHEMA`、`UNSUPPORTED_OPERATION`、`UNSUPPORTED_RENDERER`、`MATERIAL_REJECTED`。具体问题报告可包含 `UNSUPPORTED_NODE`、`UNSUPPORTED_INPUT`、`UNSUPPORTED_OUTPUT`、`INVALID_VALUE`、`LINK_TYPE_MISMATCH`、`LINK_TRANSFORM_UNSUPPORTED`。`TARGET_DEFAULT` 是需要插件展示的近似处理警告。
 
-`identify` 不按显示名识别，也不猜测缺失的模式。它匹配精确版本下的 `native.id` 和声明的全部 `native.properties`；属性类型和值均须一致。未知 ID 返回 `UNSUPPORTED_NODE`，缺失或未支持的配置返回 `UNSUPPORTED_NODE_CONFIGURATION`，多重匹配返回 `AMBIGUOUS_NATIVE_NODE`。属性只是适配器对宿主的读取结果，不能用目标默认模式冒充来源观测值。识别操作不读取材质，也不证明未提交参数或连接受支持；随后仍须调用 `validate`／`convert`。
+`identify` 不按显示名识别，也不猜测缺失的模式。它匹配当前接入身份字典中的 `native.id` 和声明的全部 `native.properties`；属性类型和值均须一致。未知 ID 返回 `UNSUPPORTED_NODE`，缺失或未支持的配置返回 `UNSUPPORTED_NODE_CONFIGURATION`，多重匹配返回 `AMBIGUOUS_NATIVE_NODE`。属性只是适配器对宿主的读取结果，不能用目标默认模式冒充来源观测值。识别操作不读取材质，也不证明未提交参数或连接受支持；随后仍须调用 `validate`／`convert`。
 
 `identify.payload` 可额外提交 `implementation_hint`，值为先前创建材质时保存的实现键。该键只能在当前原生 ID 与全部配置仍匹配的候选中消除歧义；失效提示返回 `NATIVE_HINT_MISMATCH`。适配器仍须读取当前节点、所有受支持属性和连接，不能借提示或源 XML 快照恢复已被用户改动的材质。
 
@@ -111,7 +111,7 @@ response = api.handle(
 | --- | --- |
 | `schema_version` | 字符串 `"1"` |
 | `name` | 非空材质名 |
-| `renderer` | `id`、`version`，可选一组 `host`、`host_version`、`node_system`；必须精确匹配字典 |
+| `renderer` | `id`、`version`，可选一组 `host`、`host_version`、`node_system`；按接入身份选择字典，软件版本仅受显式声明的限制约束 |
 | `nodes` | 节点列表，每项包含 `id`、`type`、`inputs`、`outputs`，可含 `metadata` |
 | `links` | 每项为 `{"from": {"node": "...", "socket": "..."}, "to": {"node": "...", "socket": "..."}}` |
 | `output` | 材质输出的 `node` 和 `socket` |
@@ -140,8 +140,10 @@ API 接受有限数值；JSON 文件拒绝重复键、NaN 和 Infinity，单次 
 
 完整格式见 [参考光泽度字典](../_examples/dictionaries/reference.gloss.json) 和 [参考粗糙度字典](../_examples/dictionaries/reference.rough.json)。字典目录由核心启动方指定，API 请求不能指定加载路径或可执行代码。
 
-- 顶层包含 `schema_version`、`id`、`version`、`renderer`、`nodes`；可选 `host`、`description`、`evidence`、`materialx_export`。`host` 含 `id`、`versions` 和 `node_system`。
-- `renderer` 包含 `id` 及明确列出的 `versions`；同一渲染器版本、宿主版本和节点系统组合不能由多份字典覆盖。
+- 顶层包含 `schema_version`、`id`、`version`、`renderer`、`nodes`；可选 `host`、`description`、`evidence`、`materialx_export`。`host` 必含 `id` 和 `node_system`，`versions` 为可选限制。
+- `renderer` 必含 `id`，可选 `versions`。省略版本限制表示跨版本复用；提供时必须为非空、无重复的精确版本列表，不接受通配符。旧列表继续限制匹配，不自动放宽。
+- 注册器按渲染器、宿主和节点系统选择，再应用显式版本限制；同一身份下任何重叠范围（包括共享与受限规则重叠）都在启动时拒绝。
+- 内置字典的 `evidence.verified_environments` 保存实际验证环境，与可运行范围分离；`capabilities.result.renderers[].evidence` 返回该记录。请求仍携带实际版本，未知软件版本不会单独触发警告；未知节点、模式或端口仍阻断。见 [ADR-0010](adr/0010-共享字典与运行时接口兼容检查.md)。
 - 节点键表示一种确定的原生实现配置，映射到唯一 `semantic`。多个键可以共用原生 ID，通过 `native.properties` 区分模式；多个原生实现也可以归入同一通用功能。
 - 同一功能仅一个目标实现时直接选择；多个实现须声明唯一布尔值 `target_default: true`，否则转换返回 `AMBIGUOUS_TARGET_NODE` 并保留源图。多个默认值在加载字典时拒绝。默认选择不免除参数、连接和支持边界检查。
 - 新真实字典声明 `semantic_schema_version: "1"`，加载时按核心集中契约校验功能名、端口名、类型、可空性和必要端口。`native.*` 专用输入只允许显式声明 `omit_if_default`；未声明语义版本的旧协议示例保留兼容，不作为标准定义。

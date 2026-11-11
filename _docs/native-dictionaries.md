@@ -1,23 +1,56 @@
 # 原生节点字典与实机验证
 
-真实字典位于 [`dictionaries/`](../dictionaries/)，不再使用示例节点名代替软件 API。当前包含本机已核验的 Blender Cycles、Cinema 4D Redshift、C4DtoA，以及 Maya 2022 Arnold 导入目标，版本精确匹配；尚未覆盖所有 DCC、其他版本或第三方节点。
+真实字典位于 [`dictionaries/`](../dictionaries/)，不再使用示例节点名代替软件 API。当前包含 Blender Cycles、Cinema 4D Redshift、C4DtoA 和 Maya Arnold 的共享字典，按宿主、渲染器和节点系统选择；实际验证环境单列，不承诺任意节点或软件版本都兼容。
 
-精确匹配指渲染器版本、宿主版本与节点系统。C4DtoA 4.8.3.1 是此次实机核验条件，核心目前没有独立的 C4DtoA 插件版本匹配字段。
+软件版本用于运行与验证追踪，内置字典不再声明版本白名单。`catalogs/` 保留带版本的原生探测证据，运行时字典文件名取消软件版本；第三方旧字典的显式 `versions` 限制仍有效。
+
+## 跨版本共享与验证记录
+
+采用 [ADR-0010](adr/0010-共享字典与运行时接口兼容检查.md)。例如 `blender-cycles.json` 的匹配声明只有 `renderer: {"id":"cycles"}` 和 `host: {"id":"blender","node_system":"blender.shader"}`；5.2.3 的原生探测环境保存在 `evidence.verified_environments` 中。软件升级无需另复制一份字典。节点模式仍由 `identify` 按实际 ID 和配置判断，不能因为版本放宽就跳过未知节点、端口、资源或范围检查。
+
+四份字典内容修订为 `0.6.0`。旧的带软件版本运行时文件已迁移；更新现有部署时不要新旧并存，否则注册器会明确拒绝重叠规则。`catalogs/` 文件不迁移、不删除。字典内容版本与指纹改变后，旧神经权重仍受原有字典版本约束，不自动扩大训练域。
+
+2026-11-11 本次实机检查均在独立进程、独立测试文档中执行：
+
+| 环境 | 本次直接核验 |
+| --- | --- |
+| Blender 5.3.0 | 复用 5.2.3 探测字典，两条图片法线／高度链路创建、保存重开、参数／连接读回及再次导出；既有 GUI 导入导出、缺图、未知节点和源保护回归通过 |
+| Maya 2022 / Arnold 7.2.5.3 | 图片驱动标准表面的结构往返与事务回退；另有法线／高度的源导出及 Blender 回读文档共 4 / 4 份保存重开与再导出 |
+| Maya 2026 / Arnold 7.4.4.0 | 使用同一份 `maya-arnold.json`，上述标准表面链路与事务回退通过；同样的法线／高度文档 4 / 4 份保存重开及再导出通过 |
+| C4D 2025.3.2 / Redshift 2025.3.0 | 图片标准表面 2 个节点、93 个输入、2 条连接及 1 张图片核对；保存重开、原生再导出、撤销／重做、选择／绑定／场景条件及源文件保护通过 |
+
+测试代码对未安装的软件版本使用明确的模拟版本标识，只证明匹配和协议行为，不算实机兼容证据。C4D Alpha 的辅助节点输出按所属资产检查，不能将其误当作图片节点的直接端口。上述检查没有新增渲染外观结论，也没有宣称任意版本全部节点兼容。
+
+最终完整回归覆盖全部 62 个测试文件，分四个独立进程执行，**772 项全部通过**（260 + 199 + 141 + 172）；合并分支覆盖率为 **91%**，字典模块为 **88%**。Ruff、180 个 Python 文件的格式检查、文档本地链接和 Git 差异检查通过。保留一条既有的 Starlette 测试客户端依赖弃用警告。宿主适配器的实机证据与核心覆盖率分别报告。
+
+本机报告位于忽略目录 `.local/dictionary-compatibility-01/`：`blender-02/summary.json`、`blender-gui.log`、`maya2022/summary.json`、`maya2026/summary.json`、`maya2022-graph/summary.json`、`maya2026-graph/summary.json` 和 `cinema4d-02/summary.json`。失败的初次报告保留供排查，以这些复测结果为准。
+
+最终测试清单、四组日志和合并覆盖率位于同目录的 `final-tests/`；清单覆盖全部测试文件且无重复。四份新旧字典逐字段对照确认节点与语义规则没有改变，原始探测目录无差异。
+
+自动检查可在仓库根目录执行：
+
+```powershell
+uv run --extra dev --extra http pytest -q _tests/test_dictionary_compatibility.py _tests/test_host_compatibility.py _tests/test_http_e2e.py
+uv run --extra dev --extra http coverage run -m pytest -q
+uv run --extra dev coverage report
+```
+
+独立 Blender 可用 `_scripts/verify_materialx.py --blender "本机程序路径" --out "新的输出目录"` 复现；生成的 `.mtlx` 和图片可交 `_scripts/verify_maya_import.py --documents "文档目录" --out "新的输出目录" --require-success 1 --export-documents --transactions` 在所选 Maya 的 `mayapy` 中验证。MtoA 须能在该安装环境加载；各宿主的实机执行方式仍见后续文档。
 
 ## 文件和覆盖范围
 
 | 宿主／渲染器 | 完整探测目录 | 可转换字典 | 实机结果 |
 | --- | --- | --- | --- |
-| Blender 5.2.3 LTS／Cycles 5.2.3 | [目录](../dictionaries/catalogs/blender-cycles-5.2.3.json) | [字典](../dictionaries/blender-cycles-5.2.3.json) | 发现 100 种 ShaderNode 类型，99 种可实例化 |
-| Cinema 4D 2025.3.2／Redshift 2025.3.0 | [目录](../dictionaries/catalogs/cinema4d-redshift-2025.3.0.json) | [字典](../dictionaries/cinema4d-redshift-2025.3.0.json) | 154 个节点资产可实例化 |
-| Cinema 4D 2025.3.2／Arnold 7.4.3.0，C4DtoA 4.8.3.1 | [目录](../dictionaries/catalogs/cinema4d-arnold-7.4.3.0.json) | [字典](../dictionaries/cinema4d-arnold-7.4.3.0.json) | 131 个内置 shader／custom shader 可实例化 |
-| Maya 2022.5／Arnold 7.2.5.3，MtoA 5.3.5.3 | [任务所需类型目录](../dictionaries/catalogs/maya-arnold-7.2.5.3.json) | [字典](../dictionaries/maya-arnold-7.2.5.3.json) | 19 种原生类型实际创建及属性查询；不是完整探测目录 |
+| Blender 5.2.3 LTS／Cycles 5.2.3 | [目录](../dictionaries/catalogs/blender-cycles-5.2.3.json) | [字典](../dictionaries/blender-cycles.json) | 发现 100 种 ShaderNode 类型，99 种可实例化 |
+| Cinema 4D 2025.3.2／Redshift 2025.3.0 | [目录](../dictionaries/catalogs/cinema4d-redshift-2025.3.0.json) | [字典](../dictionaries/cinema4d-redshift.json) | 154 个节点资产可实例化 |
+| Cinema 4D 2025.3.2／Arnold 7.4.3.0，C4DtoA 4.8.3.1 | [目录](../dictionaries/catalogs/cinema4d-arnold-7.4.3.0.json) | [字典](../dictionaries/cinema4d-arnold.json) | 131 个内置 shader／custom shader 可实例化 |
+| Maya 2022.5／Arnold 7.2.5.3，MtoA 5.3.5.3 | [任务所需类型目录](../dictionaries/catalogs/maya-arnold-7.2.5.3.json) | [字典](../dictionaries/maya-arnold.json) | 19 种原生类型实际创建及属性查询；不是完整探测目录 |
 
-Maya 新增目标的节点映射、31 / 89 份实际文件导入及 5 / 5 份 HSV 夹具结果见 [Maya 导入文档](maya-materialx-import.md)。A12 后续已实现受限 Maya 原生读取及再导出，见 [三宿主报告](a12-materialx-interoperability.md)；初次字典提交本身不构成原生读取／导出实现，MtoA 精确版本另由宿主适配器检查。下文三端数量和 18 组跨端结果是原 Blender / C4D 验证记录，不包含本次 Maya 增量。
+Maya 新增目标的节点映射、31 / 89 份实际文件导入及 5 / 5 份 HSV 夹具结果见 [Maya 导入文档](maya-materialx-import.md)。A12 后续已实现受限 Maya 原生读取及再导出，见 [三宿主报告](a12-materialx-interoperability.md)；初次字典提交本身不构成原生读取／导出实现，当时的 MtoA 精确版本门槛已由 ADR-0010 调整为实际插件加载与节点接口检查。下文三端数量和 18 组跨端结果是原 Blender / C4D 验证记录，不包含本次 Maya 增量。
 
 目录记录类型名称、字符串 ID 或整数 code、端口、默认值及探测状态。Blender 的 `ShaderNodeCustomGroup` 不能直接实例化，保留失败原因。动态节点组、用户资产、第三方程序生成节点和不同模式下新增的端口不属于此次完整性范围。个别 Arnold 类型的头文件没有可提取的参数表，个别 Redshift 端口的 Python 值不可读；目录明确保留空列表或 `unreadable`，不猜测数值。
 
-**目录类型不等于可互换节点。** 基础共有语义包括标准表面、图片、切线法线、高度凹凸、通道及 RGB 加权求和；当前标准数学、ColorRamp／Mix 配方等范围按精确字典判断。Blender 0.4.0 有 123 个实现配置，Maya 0.4.0 有 32 个，Redshift 0.5.0 有 23 个；一个原生类型可对应多种模式，实现配置数不等于类型数。C4DtoA 的早期范围保持，不能沿用其他字典的新能力。最新实机链路见[完善报告](editable-materialx-20261111.md)。核心只加载 `dictionaries/` 顶层字典，不把 `catalogs/` 当成转换规则。
+**目录类型不等于可互换节点。** 基础共有语义包括标准表面、图片、切线法线、高度凹凸、通道及 RGB 加权求和；当前标准数学、ColorRamp／Mix 配方等范围按共享字典及实际接口判断。本次四份字典内容版本统一为 0.6.0；Blender 有 123 个实现配置，Maya 有 32 个，Redshift 有 23 个；一个原生类型可对应多种模式，实现配置数不等于类型数。C4DtoA 的早期范围保持，不能沿用其他字典的新能力。最新实机链路见[完善报告](editable-materialx-20261111.md)。核心只加载 `dictionaries/` 顶层字典，不把 `catalogs/` 当成转换规则。
 
 ## 真实名称与 code 示例
 

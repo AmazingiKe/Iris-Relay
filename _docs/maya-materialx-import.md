@@ -1,4 +1,6 @@
-# Maya 2022：MaterialX 导入与原生图再导出
+# Maya：MaterialX 导入与原生图再导出
+
+字典已改为跨软件版本复用；新增 Maya 2026 / Arnold 7.4.4.0 与 Maya 2022 共用字典的结构往返验证，见[跨版本记录](native-dictionaries.md#跨版本共享与验证记录)。下文较大批次的材质数量属于 Maya 2022 的原有验证范围，不自动扩展为 Maya 2026 的全量覆盖。
 
 2026-11-11 最新批次 50 / 50 个材质完成导入、保存重开、当前原生回读再导出，全部回到 Blender 并进入 C4D Redshift。已增加有界 RGBA、命名 UV／静态矩阵、功能容器、共享参数及独立未标记原生图读取。最新数量、实际采样和边界见[完善报告](editable-materialx-20261111.md)。下文 A1 的 31 / 89 与 422 项测试是初次导入阶段的历史记录。
 
@@ -96,7 +98,7 @@ Autodesk 提供的 [MaterialX Shader](https://help.autodesk.com/cloudhelp/ENU/AR
 & "本机Maya2022/bin/mayapy.exe" _scripts/verify_maya_import.py --documents "已有mtlx目录" --out "新的验证输出目录" --transactions
 ```
 
-字典生成入口是 `_scripts/build_maya_dictionary.py`，输入 `dictionaries/catalogs/maya-arnold-7.2.5.3.json`。目录现有 19 种实际创建、查询过的原生类型，字典含 32 个实现配置；不是完整 Maya 节点大全。Maya 与 MtoA 版本由适配器检查，Arnold 版本由字典精确匹配。
+字典生成入口是 `_scripts/build_maya_dictionary.py`，输入 `dictionaries/catalogs/maya-arnold-7.2.5.3.json`。目录现有 19 种实际创建、查询过的原生类型，字典含 32 个实现配置；不是完整 Maya 节点大全。运行时使用 `dictionaries/maya-arnold.json` 共享字典；Maya／Arnold 的实际版本保留在请求和报告中，MtoA 只要求能够加载。适配器核对实际节点属性及类型，不因软件版本不同自动拒绝，见 [ADR-0010](adr/0010-共享字典与运行时接口兼容检查.md)。
 
 目前图片接受实际 1／3 通道，以及具有明确格式／Alpha 说明的有界 4 通道路径；文档声明必须与实际文件相符。PNG 与 Raw RGBA EXR 分别声明关联行为；非 Raw RGBA EXR、当前解码器不能读取的 AVIF／WebP 明确阻断。PNG 零 Alpha 隐藏颜色与过滤差异不能完全恢复。floor 使用 32 位整数输出，极大数值、动态枚举索引和未支持坐标链不宣称等价。窗口不调整工作色彩空间，当前上下文作为警告输出。
 
