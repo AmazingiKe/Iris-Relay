@@ -1,6 +1,8 @@
 # 统一插件 API v1
 
-所有插件调用同一抽象服务：`RelayService.handle(request) -> response`。业务协议与传输方式分离；Python 插件可直接使用 `RelayAPI`，其他宿主可发送 UTF-8 JSON 给命令行核心。插件只读取和创建宿主材质，不实现字典转换或联合校正。
+所有插件调用同一抽象服务：`RelayService.handle(request) -> response`。业务协议与传输方式分离；Python 插件可直接使用 `RelayAPI`，其他宿主可通过 JSON 子进程或 `HttpRelayService` 调用同一核心。插件只读取和创建宿主材质，不实现字典转换或联合校正。
+
+HTTP 接入使用 `POST /v1/handle`，请求响应保持下文协议；业务错误使用 HTTP 200 并在 `status/error` 中报告，非 200 表示传输层失败。服务启动与宿主连接示例见 [HTTP 服务调用](http.md)。
 
 真实宿主配置与参考配置共用此协议。真实绑定范围见[原生字典文档](native-dictionaries.md)；结构验证不代表视觉等价。0.4.0 新增的 `materialx.*` 操作见 [MaterialX 核心](materialx-core.md)，沿用同一请求与响应外层。
 

@@ -113,7 +113,9 @@ runpy.run_path(r"仓库绝对路径/_examples/maya_demo_gui.py", run_name="__mai
 
 GUI 导入入口为 `ui.run_import` → `controller.check_import / import_material` → `BlenderAdapter.create_material`，依次负责界面选择、公开 API 校验与转换、目标节点创建。控制层不读取核心桥接实现。
 
-所有插件依赖 `RelayService.handle(request) -> response`。进程内使用 `RelayAPI`；跨进程使用同一 JSON 协议，Python 侧可使用 `JsonCommandService`。插件只读写宿主材质，转换和校正规则集中在核心。
+所有插件依赖 `RelayService.handle(request) -> response`。进程内使用 `RelayAPI`；跨进程可使用 JSON 子进程客户端或 `HttpRelayService`，请求与响应协议共用。插件只读写宿主材质，转换和校正规则集中在核心。
+
+可选的本机 HTTP 服务位于 `iris_relay/server/`：执行 `uv sync --extra dev --extra http`，然后运行 `uv run --extra http python -m iris_relay.server --dictionaries dictionaries`。默认监听 `127.0.0.1:8765`；宿主设置 `IRIS_RELAY_HTTP_URL=http://127.0.0.1:8765` 后重新创建服务即可使用。默认调用方式不变，连接失败不静默回退。启动、模型加载、资源约定及限制见 [HTTP 服务调用](_docs/http.md)。
 
 API 提供能力查询、通用功能定义查询（`semantics`）、原生模式识别（`identify`）、原生绑定查询、材质校验和转换。真实配置同时匹配宿主、渲染器与节点系统的版本。版本不匹配、未知节点、无法表达的连接和非法数值均有明确错误；缺少模型时可返回基础转换结果及警告。插件辅助接口默认不应用带警告的方案，也不会自动替换场景中的材质绑定。
 
@@ -121,6 +123,7 @@ API 提供能力查询、通用功能定义查询（`semantics`）、原生模�
 
 ```text
 iris_relay/            核心、公开 API、插件辅助接口与命令行
+  server/              可选 HTTP 接入、配置与核心实例生命周期
 dictionaries/          真实转换字典；catalogs/ 保存原生节点探测目录
 plugins/               宿主接入层，按实际宿主分目录
   blender/             GUI（ui.py）、导入导出控制（controller.py）、材质读写（adapter.py）
@@ -136,8 +139,8 @@ _docs/                 API 文档和架构决策
 ## 开发检查
 
 ```powershell
-uv run --extra dev pytest -q
-uv run --extra dev coverage run -m pytest -q
+uv run --extra dev --extra http pytest -q
+uv run --extra dev --extra http coverage run -m pytest -q
 uv run --extra dev coverage report
 uv run --extra dev ruff check iris_relay _tests _examples _scripts plugins
 uv run --extra dev ruff format --check iris_relay _tests _examples _scripts plugins
