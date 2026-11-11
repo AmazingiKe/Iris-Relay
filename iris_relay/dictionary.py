@@ -12,6 +12,22 @@ from .semantics import validate_contract
 VALUE_TYPES = {"float", "color", "color4", "vector", "string", "bool", "texture"}
 
 
+def version_limits(binding: dict) -> frozenset[str] | None:
+    """读取可选的精确版本限制；省略表示共享规则，空表及通配符不冒充支持声明。"""
+    if "versions" not in binding:
+        return None
+    versions = binding["versions"]
+    if not isinstance(versions, list) or not versions:
+        raise ValidationError("版本限制必须为非空列表；跨版本共享请省略 versions")
+    for version in versions:
+        text(version, "版本限制")
+        if "*" in version:
+            raise ValidationError("版本限制不接受通配符；跨版本共享请省略 versions")
+    if len(set(versions)) != len(versions):
+        raise ValidationError("版本限制重复")
+    return frozenset(versions)
+
+
 def validate_value(value: Any, rule: dict) -> None:
     if value is None and rule.get("nullable", False):
         return
@@ -214,24 +230,13 @@ class Dictionary:
                 raise ValidationError("未知或重复的图片 Alpha 目标模式")
         if "host" in value:
             host = value["host"]
-            fields(host, {"id", "versions", "node_system"})
+            fields(host, {"id", "node_system"}, {"versions"})
             text(host["id"], "宿主 ID")
             text(host["node_system"], "节点系统")
-            if not isinstance(host["versions"], list) or not host["versions"]:
-                raise ValidationError("必须明确支持的宿主版本")
-            for version in host["versions"]:
-                text(version, "宿主版本")
-            if len(set(host["versions"])) != len(host["versions"]):
-                raise ValidationError("宿主版本重复")
-        fields(value["renderer"], {"id", "versions"})
+            version_limits(host)
+        fields(value["renderer"], {"id"}, {"versions"})
         text(value["renderer"]["id"], "渲染器 ID")
-        versions = value["renderer"]["versions"]
-        if not isinstance(versions, list) or not versions:
-            raise ValidationError("字典必须明确列出支持的渲染器版本")
-        for version in versions:
-            text(version, "渲染器版本")
-        if len(versions) != len(set(versions)):
-            raise ValidationError("字典版本列表重复")
+        version_limits(value["renderer"])
         if not isinstance(value["nodes"], dict) or not value["nodes"]:
             raise ValidationError("字典 nodes 必须为非空对象")
         if "semantic_schema_version" in value and value["semantic_schema_version"] != "1":
@@ -423,6 +428,7 @@ class Dictionary:
             "semantic_schema_version": self.data.get("semantic_schema_version"),
             "renderer": deepcopy(self.data["renderer"]),
             "host": deepcopy(self.data.get("host")),
+            "evidence": deepcopy(self.data.get("evidence", {})),
             "fingerprint": self.fingerprint,
             "conversion_scope": {
                 "evidence": "dictionary_declaration",
@@ -439,41 +445,36 @@ class Dictionary:
 
 class Registry:
     def __init__(self, profiles):
+        """按接入身份注册共享规则；显式版本限制仅作附加过滤，重叠规则启动时拒绝。"""
         self._profiles = {}
         self._dictionaries = []
         for profile in profiles:
             dictionary = Dictionary.parse(profile)
             renderer = dictionary.data["renderer"]
             host = dictionary.data.get("host", {})
-            for version in renderer["versions"]:
-                for host_version in host.get("versions", [None]):
-                    key = (
-                        renderer["id"],
-                        version,
-                        host.get("id"),
-                        host_version,
-                        host.get("node_system"),
-                    )
-                    if key in self._profiles:
-                        raise ValidationError(f"渲染器和宿主版本存在重复字典：{key}")
-                    self._profiles[key] = dictionary
+            key = (renderer["id"], host.get("id"), host.get("node_system"))
+            limits = (version_limits(renderer), version_limits(host))
+            entries = self._profiles.setdefault(key, [])
+            for prior, _ in entries:
+                if all(a is None or b is None or a & b for a, b in zip(prior, limits, strict=True)):
+                    raise ValidationError(f"接入身份存在重叠字典：{key}")
+            entries.append((limits, dictionary))
             self._dictionaries.append(dictionary)
 
     def get(self, renderer: dict) -> Dictionary:
-        try:
-            return self._profiles[
-                (
-                    renderer["id"],
-                    renderer["version"],
-                    renderer.get("host"),
-                    renderer.get("host_version"),
-                    renderer.get("node_system"),
-                )
-            ]
-        except KeyError as exc:
-            raise ValidationError(
-                f"没有对应字典：{renderer['id']} / {renderer['version']}", "UNSUPPORTED_RENDERER"
-            ) from exc
+        """选择唯一的身份匹配字典，保留请求中的实际版本供报告追踪。"""
+        key = (renderer["id"], renderer.get("host"), renderer.get("node_system"))
+        versions = (renderer["version"], renderer.get("host_version"))
+        for limits, dictionary in self._profiles.get(key, []):
+            if all(
+                limit is None or version in limit
+                for limit, version in zip(limits, versions, strict=True)
+            ):
+                return dictionary
+        raise ValidationError(
+            f"没有对应字典：{key}；实际版本 {versions}（检查接入身份及显式版本限制）",
+            "UNSUPPORTED_RENDERER",
+        )
 
     def capabilities(self) -> list[dict]:
         return [dictionary.summary() for dictionary in self._dictionaries]
