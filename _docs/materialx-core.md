@@ -234,3 +234,32 @@ Blender GUI 的“导入”页也通过 `materialx.validate`、`materialx.conver
 目标字典可通过 `materialx_lowerings` 引用内联计算子图，核心检查官方接口、静态选择条件、定义冲突、展开规模及收敛后进行替换。Redshift 的相等／大于、clamp、分量和广播等已完成组合接入；图片辅助节点继续整组核验，不能被通用替换破坏。目标扩展与源文档重名而不等价时拒绝。
 
 `materialx.preserve` 是单独的结构保存操作：输出节点接口、无实现声明、显式连接及原生记录。`iris_preservation_only=true` 的文件在目标转换时以 `MATERIALX_PRESERVED_ONLY` 拒绝。快照使用显式 Base64 编码，源图非有限值仅以标签保存，标准数值校验没有放宽。完整实例、实测范围与未解决项见 [A12 报告](a12-materialx-interoperability.md)和 [ADR-0006](adr/0006-未知原生图保存与目标组合转换.md)。
+
+
+## 功能接口与目标配方
+
+ADR-0012 的首条链路已接入 HSV／颜色校正。新导出使用继承官方 `ND_colorcorrect_color3` 的通用接口；`mix`、`hue_center`、`saturation_max`、`output_min` 是有类型的细节输入，允许连接，文件不携带 HSV 实现子图。通用接口的声明默认值不等同于任意 DCC 的默认值，源实例会写入其实际参数。
+
+目标字典使用以下字段，所有规则均为声明式数据：
+
+| 字段 | 内容 | 执行阶段 |
+| --- | --- | --- |
+| `materialx_function_exports` | 源定义到通用定义的端口映射与显式细节常量 | 导出时 |
+| `materialx_function_implementations` | 通用定义到目标定义的候选、端口映射、常量条件、实现种类与依据 | 导入时 |
+| `materialx_function_recipes` | 可变配置的已知编译器及可选原生绑定；不接受任意代码 | 导入配置功能时 |
+| `materialx_extensions` | 接口定义、原生绑定定义和目标配方图 | 核心加载字典时 |
+| `materialx_lowerings` | 目标基础运算缺失时的有条件组合 | 选中目标配方后 |
+
+实现种类为 `native`、`hybrid`、`recipe`，依次优先。没有原生绑定时继续查询数学后备；相同优先级匹配多个候选则阻断。条件遇到动态连接不会当作常量匹配；映射保持当前值、输出选择和连接。参数类型或已知接口被篡改时拒绝转换，历史内联文档仍核验实际实现。
+
+未知细节暂不应用，报告 `MATERIALX_DETAIL_UNAPPLIED`；完整来源仍在 API 响应的 `source` 中。目标材质的 `metadata.deferred_details` 存档保留端口、来源文档及动态上游；Blender、Maya 和 C4D 已在颜色校正夹具中验证保存重开和再导出。再次导出时存档写入 `iris_deferred_details` 元数据并报告 `MATERIALX_DETAILS_ARCHIVED`。存档按文档摘要去重，不嵌套旧存档，不参与着色或覆盖用户当前编辑；尚未实现自动重新应用。
+
+没有可用主功能实现时报告 `MATERIALX_FUNCTION_UNSUPPORTED`，不使用输入文件里伪装成声明的数学图作为后备。被忽略细节的独占支路也保存在存档中；若同一上游仍供主功能使用，则照常核验其目标支持。文件校验可能提示 `MATERIALX_IMPLEMENTATION_MISSING`：这是只有功能声明而没有外部可执行实现的实际限制，不能据此声称任意 MaterialX 渲染器可直接渲染。
+
+目前 Blender HSV 使用原生映射；Maya Arnold 与 C4D Redshift 使用原生颜色校正加少量辅助节点，仍有近似警告。各目标可以引用相同的已验证配方生成器，再声明自己的原生绑定和基础运算替代，无需复制相同公式；不能仅因渲染器同名而跨宿主共用原生 ID。
+
+混合、Gamma、亮度对比度、比较及分量原语已接入功能导出。Mix／MixRGB 的相同行为共用接口，目标原生布局可能不同。渐变和命名法线通过 `configuration` 字符串保存经过校验的 JSON 配置；例如渐变的控制点、颜色和插值，或法线的 UV 集和基底约定。动态因子、颜色及强度仍使用独立的有类型输入及连接。目标未声明配置编译器时阻断，不从文件中借用公式。真实作者创建的数学节点继续作为材质内容保存。
+
+四种渐变插值及命名法线已在 Blender、Maya Arnold、C4D Redshift 通过保存重开、参数／连线核对和当前图再导出。未支持配置若仅供忽略细节使用，则随该细节归档；若主要输入也依赖它，转换仍阻断。源文件不因配方选择或配置规范化被改写。
+
+纯官方颜色校正的默认实例当前可转 Maya Arnold／C4D Redshift；Blender 仅有本次明确登记的 HSV 扩展规则，不能推定支持官方颜色校正的所有参数。当前版本 837 项完整回归通过，核心覆盖率为 90.43%，完整验证范围记录于 [ADR-0012](adr/0012-功能交换与目标实现字典分离.md)。新接口没有通用可执行实现，不能把可保存的文件称为任意 MaterialX 渲染器均可直接渲染；本轮未验证渲染外观等价。
