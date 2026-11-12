@@ -8,6 +8,7 @@
 import json
 from dataclasses import dataclass
 from functools import lru_cache
+from math import isclose
 from pathlib import Path
 
 import bpy
@@ -48,7 +49,7 @@ def write_property(node, binding, value):
     """按核心已验证的配置创建原生复合属性；不从快照猜测节点功能。"""
     output = binding.get("properties", {}).get("output_socket")
     if output:
-        find_socket(node.outputs, output).default_value = encode_value(value, {"native": binding})
+        write_socket(find_socket(node.outputs, output), encode_value(value, {"native": binding}))
         return
     if binding.get("codec") != "color_ramp":
         setattr(node, binding["id"], value)
@@ -124,6 +125,30 @@ def socket_value(socket):
     if value is None or isinstance(value, (str, bool, int, float)):
         return value
     return list(value)
+
+
+def write_socket(socket, value):
+    """写入并核对真实端口；拒绝宿主静默钳制、截断或类型变化，允许浮点存储误差。"""
+    socket.default_value = value
+    actual = socket_value(socket)
+    expected = list(value) if isinstance(value, (tuple, list)) else value
+
+    def equal(left, right):
+        if isinstance(right, list):
+            return (
+                isinstance(left, list)
+                and len(left) == len(right)
+                and all(equal(a, b) for a, b in zip(left, right, strict=True))
+            )
+        if type(right) in {int, float}:
+            return type(left) in {int, float} and isclose(left, right, rel_tol=1e-6, abs_tol=1e-7)
+        return type(left) is type(right) and left == right
+
+    if not equal(actual, expected):
+        raise ValidationError(
+            f"原生端口无法保持输入值：{socket.identifier}，请求 {expected}，实际 {actual}",
+            "NATIVE_VALUE_UNREPRESENTABLE",
+        )
 
 
 def source_snapshot(material):
@@ -735,8 +760,8 @@ class BlenderAdapter:
                     elif binding["kind"] == "property":
                         write_property(node, binding, value)
                     elif value is not None:
-                        find_socket(node.inputs, binding["id"]).default_value = encode_value(
-                            value, port_rule
+                        write_socket(
+                            find_socket(node.inputs, binding["id"]), encode_value(value, port_rule)
                         )
             # 3. 原生功能节点名称确定后再建坐标节点，避免辅助节点抢占协议 ID。
             for node, coordinates in image_coordinates:

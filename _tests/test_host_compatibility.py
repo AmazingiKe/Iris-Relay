@@ -105,6 +105,42 @@ def test_blender_checks_socket_types_and_missing_outputs(blender_adapter):
         blender_adapter.validate_node_interface(node, rule())
 
 
+def test_blender_rejects_silent_socket_clamping(blender_adapter):
+    class ClampingSocket:
+        identifier = "Color"
+
+        @property
+        def default_value(self):
+            return self.value
+
+        @default_value.setter
+        def default_value(self, value):
+            self.value = [max(0.0, v) for v in value]
+
+    with pytest.raises(ValidationError) as error:
+        blender_adapter.write_socket(ClampingSocket(), [-0.2, 0.3, 1.4, 1.0])
+    assert error.value.code == "NATIVE_VALUE_UNREPRESENTABLE"
+
+
+def test_blender_socket_write_accepts_float32_rounding(blender_adapter):
+    import struct
+
+    class FloatSocket:
+        identifier = "Value"
+
+        @property
+        def default_value(self):
+            return self.value
+
+        @default_value.setter
+        def default_value(self, value):
+            self.value = struct.unpack("f", struct.pack("f", value))[0]
+
+    socket = FloatSocket()
+    blender_adapter.write_socket(socket, 0.37)
+    assert socket.default_value == pytest.approx(0.37)
+
+
 def test_cinema4d_checks_all_declared_ports(monkeypatch):
     from plugins.cinema4d import adapter
 
