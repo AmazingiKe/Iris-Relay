@@ -444,7 +444,19 @@ def build(catalog):
             from _scripts.build_redshift_dictionary import extend
 
             extend(profile, catalog)
-    profile["version"] = "0.6.0"
+    if engine in {"cycles", "redshift"}:
+        from _scripts.materialx_function_library import add_color_correction_functions
+
+        add_color_correction_functions(profile, native=engine == "cycles")
+        if engine == "redshift":
+            from _scripts.materialx_function_library import add_native_color_correction_recipe
+
+            add_native_color_correction_recipe(profile)
+    from _scripts.materialx_function_library import add_static_functions
+
+    if engine in {"cycles", "redshift"}:
+        add_static_functions(profile)
+    profile["version"] = "0.7.0"
     return profile
 
 

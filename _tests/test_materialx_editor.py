@@ -72,6 +72,10 @@ def test_expanded_hsv_parameters_become_shared_controls_and_function_group():
     document = call(RelayAPI([data]), "materialx.export", material=source)["result"]["document"]
     path = Path(__file__).resolve().parents[1] / "dictionaries/catalogs/maya-arnold-7.2.5.3.json"
     maya = build(json.loads(path.read_text("utf-8")))
+    for name, choices in maya["materialx_function_implementations"].items():
+        maya["materialx_function_implementations"][name] = [
+            e for e in choices if e["kind"] == "recipe"
+        ]
     response = call(RelayAPI([maya]), "materialx.convert", document=document, target=renderer(maya))
     assert response["result"]["material"], response
     output = response["result"]["material"]

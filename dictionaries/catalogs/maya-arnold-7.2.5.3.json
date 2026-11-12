@@ -6155,6 +6155,612 @@
           "parent": null
         }
       }
+    },
+    "aiColorCorrect": {
+      "status": "instantiated",
+      "actual_type": "aiColorCorrect",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ],
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "binMembership": {
+          "type": "string",
+          "value": null,
+          "enum": null,
+          "writable": true,
+          "connectable": false,
+          "parent": null
+        },
+        "outColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": null
+        },
+        "outColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outColor"
+          ]
+        },
+        "outColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outColor"
+          ]
+        },
+        "outColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outColor"
+          ]
+        },
+        "outAlpha": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": null
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outTransparency"
+          ]
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outTransparency"
+          ]
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outTransparency"
+          ]
+        },
+        "inputA": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "input": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "inputR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "input"
+          ]
+        },
+        "inputG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "input"
+          ]
+        },
+        "inputB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "input"
+          ]
+        },
+        "alphaIsLuminance": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "alphaMultiply": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "alphaAdd": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "invert": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "invertAlpha": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "gamma": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "hueShift": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "saturation": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "contrast": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "contrastPivot": {
+          "type": "float",
+          "value": 0.18000000715255737,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "exposure": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "multiply": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "multiplyR": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "multiply"
+          ]
+        },
+        "multiplyG": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "multiply"
+          ]
+        },
+        "multiplyB": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "multiply"
+          ]
+        },
+        "add": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "addR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "add"
+          ]
+        },
+        "addG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "add"
+          ]
+        },
+        "addB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "add"
+          ]
+        },
+        "mask": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        }
+      },
+      "evidence": {
+        "host": {
+          "id": "maya",
+          "version": "2022",
+          "api": 20220500
+        },
+        "renderer": {
+          "id": "arnold",
+          "version": "7.2.2.1",
+          "plugin_version": "5.3.2.1"
+        },
+        "evidence": "2026-11-12 Maya 2022 standalone 实际创建并读取颜色节点；宿主与插件版本均来自本次运行；无渲染等价结论"
+      }
+    },
+    "aiColorConvert": {
+      "status": "instantiated",
+      "actual_type": "aiColorConvert",
+      "attributes": {
+        "caching": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "frozen": {
+          "type": "bool",
+          "value": false,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "isHistoricallyInteresting": {
+          "type": "byte",
+          "value": 2,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "nodeState": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "Normal:HasNoEffect:Blocking:Waiting-Normal=8:Waiting-HasNoEffect:Waiting-Blocking"
+          ],
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "binMembership": {
+          "type": "string",
+          "value": null,
+          "enum": null,
+          "writable": true,
+          "connectable": false,
+          "parent": null
+        },
+        "outColor": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": null
+        },
+        "outColorR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outColor"
+          ]
+        },
+        "outColorG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outColor"
+          ]
+        },
+        "outColorB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outColor"
+          ]
+        },
+        "outTransparency": {
+          "type": "float3",
+          "value": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": null
+        },
+        "outTransparencyR": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outTransparency"
+          ]
+        },
+        "outTransparencyG": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outTransparency"
+          ]
+        },
+        "outTransparencyB": {
+          "type": "float",
+          "value": 0.0,
+          "enum": null,
+          "writable": false,
+          "connectable": true,
+          "parent": [
+            "outTransparency"
+          ]
+        },
+        "input": {
+          "type": "float3",
+          "value": [
+            [
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "inputR": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "input"
+          ]
+        },
+        "inputG": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "input"
+          ]
+        },
+        "inputB": {
+          "type": "float",
+          "value": 1.0,
+          "enum": null,
+          "writable": true,
+          "connectable": true,
+          "parent": [
+            "input"
+          ]
+        },
+        "from": {
+          "type": "enum",
+          "value": 0,
+          "enum": [
+            "RGB:HSV"
+          ],
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        },
+        "to": {
+          "type": "enum",
+          "value": 1,
+          "enum": [
+            "RGB:HSV"
+          ],
+          "writable": true,
+          "connectable": true,
+          "parent": null
+        }
+      },
+      "evidence": {
+        "host": {
+          "id": "maya",
+          "version": "2022",
+          "api": 20220500
+        },
+        "renderer": {
+          "id": "arnold",
+          "version": "7.2.2.1",
+          "plugin_version": "5.3.2.1"
+        },
+        "evidence": "2026-11-12 Maya 2022 standalone 实际创建并读取颜色节点；宿主与插件版本均来自本次运行；无渲染等价结论"
+      }
     }
   },
   "runtime": {

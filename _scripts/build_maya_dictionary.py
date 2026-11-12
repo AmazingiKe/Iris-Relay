@@ -275,6 +275,27 @@ def build(catalog):
         )
 
     # 2. HSV 展开的每一步保留为可编辑原生节点；整数枚举按端口编码验证。
+    standard(
+        "color_correct",
+        "aiColorCorrect",
+        "ND_colorcorrect_color3",
+        {
+            "in": "input",
+            "hue": "hueShift",
+            "saturation": "saturation",
+            "gamma": "gamma",
+            "gain": "multiply",
+            "contrast": "contrast",
+            "contrastpivot": "contrastPivot",
+            "exposure": "exposure",
+        },
+        "outColor",
+        gray=("gain",),
+    )
+    profile["nodes"]["color_correct"]["approximation"] = (
+        "Arnold 原生颜色校正端口已实机核验；与 MaterialX 的运算顺序及边界尚未完成渲染等价验证"
+    )
+    profile["evidence"]["color_correct"] = catalog["nodes"]["aiColorCorrect"]["evidence"]
     for operation, native in {
         "add": "aiAdd",
         "subtract": "aiSubtract",
@@ -400,7 +421,17 @@ def build(catalog):
     profile["materialx_lowerings"] = {
         "ND_separate3_color3": [{"when": {}, "replacement": "ND_iris_separate3_color3"}]
     }
-    profile["version"] = "0.6.0"
+    from _scripts.materialx_function_library import (
+        add_color_correction_functions,
+        add_native_color_correction_recipe,
+    )
+
+    add_color_correction_functions(profile)
+    add_native_color_correction_recipe(profile)
+    from _scripts.materialx_function_library import add_static_functions
+
+    add_static_functions(profile)
+    profile["version"] = "0.7.0"
     return profile
 
 

@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "id": "cinema4d.arnold.native",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "semantic_schema_version": "1",
   "description": "真实原生绑定；标准表面、图片、切线法线、高度凹凸与显式 R 通道提取。其余节点见探测目录。",
   "renderer": {

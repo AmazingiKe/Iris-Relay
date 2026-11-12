@@ -13,6 +13,7 @@ def main():
     """实机创建并读取目标节点；未知节点记录失败，不伪造端口。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--nodes", nargs="+", help="只探测指定节点；省略时沿用完整目录")
     args = parser.parse_args()
     import maya.standalone
 
@@ -26,7 +27,12 @@ def main():
     result = {k: v for k, v in old.items() if k != "nodes"}
     result["nodes"] = {}
     result["runtime"] = target
-    for kind in list(old["nodes"]) + [
+    result["renderer"] = {
+        "id": target["id"],
+        "version": target["version"],
+        "plugin_version": cmds.pluginInfo("mtoa", query=True, version=True),
+    }
+    for kind in args.nodes or list(old["nodes"]) + [
         "aiUvTransform",
         "aiUserDataVector",
         "aiUtility",

@@ -19,6 +19,10 @@ def rs_profile():
 
 def test_complete_hsv_lowers_to_editable_redshift_math_graph():
     target = rs_profile()
+    for name, choices in target["materialx_function_implementations"].items():
+        target["materialx_function_implementations"][name] = [
+            e for e in choices if e["kind"] == "recipe"
+        ]
     response = RelayAPI([target]).handle(
         {
             "api_version": "1",

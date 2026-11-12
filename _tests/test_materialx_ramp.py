@@ -54,8 +54,14 @@ def test_ramp_portable_math_matches_piecewise_rgba_and_native_roundtrip(mode):
     assert result["result"]["document"], result
     core = MaterialXCore()
     doc = core.read(result["result"]["document"])
+    assert not [g for g in doc.getNodeGraphs() if g.getDocument() == doc]
+    from iris_relay.materialx.recipes import ramp_library
+
+    implementation, _, _, _ = ramp_library(core, config)
     graph = next(
-        g for g in doc.getNodeGraphs() if g.getAttribute("iris_recipe") == "blender.color_ramp"
+        g
+        for g in implementation.getNodeGraphs()
+        if g.getAttribute("iris_recipe") == "blender.color_ramp"
     )
     for factor in [-1, 0.2, 0.37, 0.5, 0.8, 1.5]:
         # Blender RNA、evaluate 与 MaterialX float 都使用 32 位数值，边界须在同一域比较。
@@ -92,6 +98,8 @@ def test_ramp_portable_math_matches_piecewise_rgba_and_native_roundtrip(mode):
 
 def test_tampered_compiled_ramp_cannot_restore_as_native_color_ramp():
     data, source, _ = ramp_source()
+    # 历史内联文档仍逐项核验，不能因为新接口可用就信任旧图的名称。
+    data.pop("materialx_function_recipes")
     result = export(data, source)
     assert result["result"]["document"], result
     document = result["result"]["document"].replace(

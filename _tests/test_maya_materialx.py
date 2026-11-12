@@ -48,8 +48,12 @@ def hsv_document():
     return export(profile(), source)["result"]["document"]
 
 
-def test_hsv_expands_to_editable_maya_nodes_without_source_snapshot():
+def test_hsv_math_fallback_keeps_editable_maya_nodes_without_source_snapshot():
     target = maya_profile()
+    for name, choices in target["materialx_function_implementations"].items():
+        target["materialx_function_implementations"][name] = [
+            e for e in choices if e["kind"] == "recipe"
+        ]
     response = RelayAPI([target]).handle(
         {
             "api_version": "1",

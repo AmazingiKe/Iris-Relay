@@ -80,6 +80,27 @@ def extend(profile, catalog):
     )
     bind("rscolorconstant", "ND_constant_color3", {"value": "color"}, "outcolor")
     bind("rsmathadd", "ND_constant_float", {"value": "input1"}, fixed={"input2": 0})
+    bind(
+        "rscolorcorrection",
+        "ND_colorcorrect_color3",
+        {
+            "in": "input",
+            "hue": "hue",
+            "saturation": "saturation",
+            "gamma": "gamma",
+            "gain": "level",
+        },
+        "outcolor",
+        fixed={"contrast": 0.5, "updatedmode": True, "xsimode": False},
+    )
+    profile["nodes"]["ND_colorcorrect_color3"]["approximation"] = (
+        "Redshift 颜色校正采用实机端口与官方 Hue/Level 说明；对比度固定中性值，"
+        "饱和度及 Gamma 的跨渲染器外观未验证"
+    )
+    profile.setdefault("evidence", {})["color_correct"] = (
+        "https://help.maxon.net/c4d/en-us/Content/html/"
+        "COM_REDSHIFT3D_REDSHIFT4C4D_NODES_CORE_RSCOLORCORRECTION-NET_MAXON_NODE_BASE_GROUP_INPUTS.html"
+    )
     profile["nodes"][RS + "rsmathadd"]["source_default"] = True
     for channel in "rgb":
         bind("rscolorsplitter", "ND_iris_rs_extract_" + channel, {"in": "input"}, "out" + channel)

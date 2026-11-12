@@ -100,9 +100,11 @@ def main():
         )
         assert result.saved_path, result
         xml = ET.fromstring(Path(result.saved_path).read_text("utf-8"))
-        graph = xml.find("nodegraph[@name='NG_iris_blender_hsv_color3']")
-        assert graph is not None and xml.find("iris_blender_hsv") is not None
-        graph.find("clamp[@name='saturation_clamp']/input[@name='high']").set("value", "2")
+        definition = xml.find("nodedef[@name='ND_iris_colorcorrect_color3']")
+        assert definition is not None and xml.find("iris_colorcorrect") is not None
+        assert xml.find("nodegraph") is None
+        # 接口只保存功能；篡改已知细节默认值不能仍被当作原契约导入。
+        definition.find("input[@name='saturation_max']").set("value", "2")
         rejected = controller.request(
             service,
             "materialx.convert",

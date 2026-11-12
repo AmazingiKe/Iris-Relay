@@ -107,6 +107,8 @@ def test_mixrgb_modes_are_portable_and_can_restore_native_node(mode):
     assert len([d for d in document.getNodeDefs() if d.getDocument() == document]) == 1
     restored = convert(data, source, result["result"]["document"])
     assert restored["result"]["material"], restored
-    assert (
-        next(n for n in restored["result"]["material"]["nodes"] if n["id"] == "mix")["type"] == key
-    )
+    actual = next(n for n in restored["result"]["material"]["nodes"] if n["id"] == "mix")
+    assert actual["type"] == f"ShaderNodeMix.rgba_{mode}_cf1_cr0"
+    assert actual["inputs"]["Factor_Float"] == pytest.approx(0.3)
+    assert actual["inputs"]["A_Color"] == pytest.approx([0.2, 0.4, 0.6])
+    assert actual["inputs"]["B_Color"] == pytest.approx([0.8, 0.3, 0.1])
