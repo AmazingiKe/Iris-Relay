@@ -33,6 +33,8 @@
 
 ## 本次路径迁移
 
+本节记录已完成的目录迁移。后续职责与维护遵循 [ADR-0013](adr/0013-按能力族推进转换与隔离宿主差异.md)：原生 API 差异留在宿主，功能与目标实现按 ADR-0012 分离，公共图流程不承接逐资产补丁。`recipes.py` 的配置编译与端口映射已合并登记，报告分析及依赖检查位于 `_scripts/`，见[维护流程](capability-maintenance.md)。文件拆分须由实际职责和重复处理驱动，不以模块数量作为解耦指标。
+
 原 `iris_relay.materialx_<名称>` 移至 `iris_relay.materialx.<名称>`；原 `iris_relay.naming` 移至 `iris_relay.tools.naming`。仓库内测试、开发脚本与文档引用同步更新。上述内部实现路径不额外保留转发文件；直接依赖旧内部模块的外部开发脚本需要相应修改导入。
 
 公开 `from iris_relay import RelayAPI, RelayService`、宿主辅助接口、模型推理入口、命令行及请求协议保持不变。此次仅调整目录和导入路径，不修改名称处理、材质转换或模型校正规则。

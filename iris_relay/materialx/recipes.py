@@ -256,6 +256,19 @@ FUNCTION_RECIPES = {
     "normal_map": "ND_iris_tangent_normal",
 }
 
+_CONFIGURATION_RECIPES = {
+    "color_ramp": (ramp_library, {"factor": "factor"}),
+    "normal_map": (normal_library, {"color": "color", "strength": "strength"}),
+}
+
+
+def _configuration_recipe(name):
+    """统一取得已登记的配置编译器与端口映射；未知配方不能落入另一功能的默认分支。"""
+    try:
+        return _CONFIGURATION_RECIPES[name]
+    except KeyError as exc:
+        raise ValidationError("未登记的配置配方：" + name, "MATERIALX_RECIPE_UNSUPPORTED") from exc
+
 
 def recipe_interfaces():
     """声明渐变及命名法线的可变配置接口；不包含公式或宿主参数名称。"""
@@ -297,11 +310,8 @@ def prepare_recipes(core, dictionary, source=None, document=None, deferred_error
 
     def install(key, config, actual=None):
         recipe = recipes[key]
-        generated, nd_name, encoded, digest = (
-            ramp_library(core, config)
-            if recipe == "blender.color_ramp"
-            else normal_library(core, config)
-        )
+        compiler, inputs = _configuration_recipe(recipe.removeprefix("blender."))
+        generated, nd_name, encoded, digest = compiler(core, config)
         if actual is not None:
             # 2. 只认可本核心从配置重新产生的计算，禁止通过自定义名称伪装为原生节点。
             for expected in generated.getChildren():
@@ -328,17 +338,9 @@ def prepare_recipes(core, dictionary, source=None, document=None, deferred_error
         restore[runtime_key] = key
         function = FUNCTION_RECIPES[recipe.removeprefix("blender.")]
         if function in functional:
-            inputs = (
-                {"factor": "factor"}
-                if recipe == "blender.color_ramp"
-                else {
-                    "color": "color",
-                    "strength": "strength",
-                }
-            )
             data.setdefault("materialx_function_exports", {})[nd_name] = {
                 "definition": function,
-                "inputs": inputs,
+                "inputs": dict(inputs),
                 "constants": {"configuration": encoded},
             }
         return runtime_key, encoded
@@ -354,9 +356,8 @@ def prepare_recipes(core, dictionary, source=None, document=None, deferred_error
             )
         config = parse_json(port.getValueString().encode("utf-8"))
         recipe = specification["recipe"]
-        generated, nd_name, encoded, _ = (
-            ramp_library(core, config) if recipe == "color_ramp" else normal_library(core, config)
-        )
+        compiler, inputs = _configuration_recipe(recipe)
+        generated, nd_name, encoded, _ = compiler(core, config)
         # JSON 空白及键顺序不构成语义差异；只在工作副本规范化条件值。
         actual = node.getInput("configuration") or node.addInput("configuration", "string")
         actual.setValueString(encoded)
@@ -365,17 +366,9 @@ def prepare_recipes(core, dictionary, source=None, document=None, deferred_error
             install(native, config)
         else:
             library.importLibrary(generated)
-        inputs = (
-            {"factor": "factor"}
-            if recipe == "color_ramp"
-            else {
-                "color": "color",
-                "strength": "strength",
-            }
-        )
         entry = {
             "definition": nd_name,
-            "inputs": inputs,
+            "inputs": dict(inputs),
             "when": {"configuration": encoded},
             "kind": "native" if native else "recipe",
             "evidence": (

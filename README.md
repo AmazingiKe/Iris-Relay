@@ -148,6 +148,7 @@ uv run --extra dev --extra http coverage run -m pytest -q
 uv run --extra dev coverage report
 uv run --extra dev ruff check iris_relay _tests _examples _scripts plugins
 uv run --extra dev ruff format --check iris_relay _tests _examples _scripts plugins
+uv run python _scripts/check_dependency_boundaries.py
 ```
 
 测试包含单元、API 集成及 JSON 子进程流程；覆盖率门槛为 80%。`uv.lock` 固定开发依赖。当前直接从仓库根目录导入 `iris_relay/`。`uv sync` 只安装第三方依赖，不安装项目自身；开发检查不生成源码发行包或 wheel，不需要 `dist/`。
@@ -165,6 +166,10 @@ uv run --extra dev ruff format --check iris_relay _tests _examples _scripts plug
 - [ADR-0005：MaterialX 材质图核心与自定义节点扩展](_docs/adr/0005-MaterialX材质图核心与自定义节点扩展.md)
 - [协作与开发约定](AGENTS.md)
 
-下一步继续扩展真实材质导出与节点覆盖，并推进渲染对照及首轮神经实验之后的泛化验证。MaterialX 桥接已显式处理颜色转亮度、标量转灰度颜色，以及受限的图片 Alpha 模式和通道；Blender 完整颜色反相现可直接绑定官方 NodeDef，部分反相与尚未实现的端口变换仍阻断。图片双输出、资源探测及跨宿主限制见 [Alpha 说明](_docs/materialx-core.md#图片-alpha-与透明度连接)。
+后续开发遵循 [ADR-0013：按能力族推进转换与隔离宿主差异](_docs/adr/0013-按能力族推进转换与隔离宿主差异.md)：先归并失败根因、建立最小复现，再选择共性能力验证源数据、核心规则与目标实现的分工，按受影响集及阶段性全量回归验收。该策略衔接 [ADR-0012 的功能交换与目标实现分离](_docs/adr/0012-功能交换与目标实现字典分离.md)。首个配置去重试点、离线报告分析、影响集核心复测和自动依赖检查已实现，使用方法见[按能力维护材质转换](_docs/capability-maintenance.md)。节点覆盖继续作为结果统计，开发顺序不只由单个 DCC 的导出报错或样本通过数决定。渲染对照及神经实验的泛化验证仍单独推进。
+
+现有 MaterialX 桥接已显式处理颜色转亮度、标量转灰度颜色，以及受限的图片 Alpha 模式和通道；Blender 完整颜色反相现可直接绑定官方 NodeDef，部分反相与尚未实现的端口变换仍阻断。图片双输出、资源探测及跨宿主限制见 [Alpha 说明](_docs/materialx-core.md#图片-alpha-与透明度连接)。
+
+以下 A1 数据属于历史批次记录，保留当时的范围和证据，不作为当前新增覆盖任务；后续 A12 结果见前述最新交换报告。
 
 A1 全量测试继续覆盖全部 1,803 个材质。静态 UV 读取已扩展到常量数学、向量加减乘／缩放及五种旋转模式，回导重建可编辑 Mapping；常量计算子图与共享坐标节点身份未重建，动画和跨分支共享依赖明确阻断。组接口的一次类型转换保留到展开后的连接，由核心显式表达，浮点组默认值可还原为灰度颜色。10 组坐标、3 组反相、4 组接口夹具完成独立 Blender 保存重开；完整 HSV 增加五个端口及标准数学子图，回导重建可编辑原生节点；五组 HSV 夹具完成独立回读。389 项自动测试通过，合计覆盖率 93%。实际样本累计 690 项完整导出并具备独立回读证据、1,113 项阻断；本轮新增 88 项，已按用户时间限制停止新增转换，尚未完成全量目标，详见 [A1 问题与验证记录](_docs/a1-materialx-roundtrip.md)。
