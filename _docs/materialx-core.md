@@ -8,6 +8,8 @@ Iris Relay 0.4.0 使用官方 MaterialX 1.39.5 SDK，提供材质文档校验、
 
 功能交换方向见 [ADR-0012](adr/0012-功能交换与目标实现字典分离.md)，维护遵循 [ADR-0013](adr/0013-按能力族推进转换与隔离宿主差异.md)，报告工具及配置去重见[维护流程](capability-maintenance.md)。下文保留既有桥接能力、历史实现和验证边界；不能将这些逐节点记录当作继续复制源公式或逐 DCC 追加特例的开发要求。新增实现证据须随实际迁移补充。
 
+实现选择进一步遵循 [ADR-0014](adr/0014-以艺术家工作流选择目标材质表达.md)：先采用艺术家在目标软件中的正常搭法，复用已有输出、连接和原生模式，再补必要差异。以下亮度及类型转换记录描述当前或历史实现，不代表每个目标都必须添加辅助节点；这些路径尚待按新准则审查。
+
 ## 最小调用
 
 核心位于仓库根目录的 `iris_relay/`，无需安装项目自身。在仓库根目录运行 `uv sync --extra dev` 安装第三方依赖，然后：
@@ -34,7 +36,7 @@ if response["status"] != "error":
 
 完整示例：
 
-Blender 中可直接运行 [GUI demo](../_examples/blender_demo_gui.py)，经宿主适配器读取所选材质并调用本页的导出／校验 API。操作步骤、警告接受策略和核心环境要求见 [README](../README.md#blender-gui-demo)。下文分别说明导出和目标转换范围。
+Blender 中可直接运行 [GUI demo](../_examples/blender_demo_gui.py)，经宿主适配器读取所选材质并调用本页的导出／校验 API。操作步骤、警告接受策略和核心环境要求见 [Blender 操作说明](unified-ui.md#blender-操作步骤)。下文分别说明导出和目标转换范围。
 
 ```powershell
 uv run python _examples/materialx_demo.py --out .local/materialx-demo-新编号
@@ -219,7 +221,7 @@ uv run python _scripts/verify_materialx.py --blender "本机blender.exe路径" -
 
 指定 `--input` 时直接验证已有文档，图片需使用存在的本机绝对路径。验证器接受并保存近似警告，创建新材质而不替换用户场景绑定；记录输入 `.mtlx` 和引用图片的前后 SHA-256。输出含 `host.blend`、`summary.json`、转换报告和读回再导出的文档。
 
-Blender GUI 的“导入”页也通过 `materialx.validate`、`materialx.convert` 完成检查与新材质创建，支持导出后自动填入路径。GUI 默认阻止带警告的创建，明确接受后仍需重新检查；目标版本由当前 Blender 提供，未知节点或缺图继续阻断。GUI 控制层将相对图片路径按 `.mtlx` 目录解析，独立验证脚本仍要求绝对路径。新材质保留以供保存，不替换对象绑定；完整操作见 [README](../README.md#blender-gui-demo)。
+Blender GUI 的“导入”页也通过 `materialx.validate`、`materialx.convert` 完成检查与新材质创建，支持导出后自动填入路径。GUI 默认阻止带警告的创建，明确接受后仍需重新检查；目标版本由当前 Blender 提供，未知节点或缺图继续阻断。GUI 控制层将相对图片路径按 `.mtlx` 目录解析，独立验证脚本仍要求绝对路径。新材质保留以供保存，不替换对象绑定；完整操作见 [Blender 操作说明](unified-ui.md#blender-操作步骤)。
 
 2026-11-10 GUI 木地板往返：在 Blender 5.2.3 LTS 中从源材质重新导出表面文档，经 GUI 导入创建新材质、保存重开并再次导出；42 个输入和 6 条连接核对通过。原 `.blend` 与四张图片哈希、对象绑定和记录的场景条件未变。报告位于忽略目录 `.local/wood-gui-roundtrip-01/summary.json`；该结果不含位移或渲染外观验证。
 
