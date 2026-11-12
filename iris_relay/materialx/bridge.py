@@ -28,6 +28,7 @@ from .editor import (
     set_text_attribute,
 )
 from .extensions import install_extensions, load_extensions, preserved_extensions
+from .functions import export_functions, import_functions
 from .images import (
     IMAGE_TYPES,
     ImageGraphReader,
@@ -38,6 +39,7 @@ from .images import (
     check_target_alpha,
 )
 from .lowerings import apply_lowerings
+from .preserve import collect_deferred_details, read_deferred_details, write_deferred_details
 from .recipes import prepare_recipes
 
 # 这里只声明已核验的语义对应，不复制 MaterialX 的类型和默认值定义。
@@ -337,6 +339,8 @@ def export_material(core, source, dictionary):
         )
 
         # 5. 整图通过校验后才序列化；这里返回 XML 字符串，尚未保存文件。
+        export_functions(core, doc, dictionary, extensions)
+        write_deferred_details(doc, source.data.get("metadata", {}).get("deferred_details"), issues)
         finalize_node_names(doc)
         issues.extend(core.inspect(doc))
         if status_for(issues) != "error":
@@ -840,6 +844,15 @@ def convert_document(core, source, dictionary, target, material_name=None):
     try:
         # 1. 保存完整来源，检查文档结构，拒绝带阻断问题的输入。
         doc = core.read(source)
+        archived_details = read_deferred_details(doc)
+        if archived_details["records"]:
+            issues.append(
+                issue(
+                    "MATERIALX_DETAILS_ARCHIVED",
+                    "来源携带未应用细节存档；保留但不自动参与着色",
+                    severity="warning",
+                )
+            )
         issues.extend(core.inspect(doc))
         if status_for(issues) == "error":
             return result
@@ -851,9 +864,15 @@ def convert_document(core, source, dictionary, target, material_name=None):
             )
             return result
         # 2. 提取可转换部分，再按目标字典生成原生参数与连接。
-        _, dictionary, recipe_types = prepare_recipes(core, dictionary, document=doc)
+        recipe_errors = {}
+        _, dictionary, recipe_types = prepare_recipes(
+            core, dictionary, document=doc, deferred_errors=recipe_errors
+        )
         extensions = load_extensions(core, dictionary)
         bindings = bindings_for(core, dictionary, extensions)
+        import_functions(
+            core, doc, dictionary, extensions, bindings, issues, material_name, recipe_errors
+        )
         preserve = preserved_extensions(doc, extensions, bindings)
         preserve = apply_lowerings(core, doc, dictionary, extensions, bindings, preserve, issues)
         if adapt_target_image_graphs(
@@ -897,6 +916,9 @@ def convert_document(core, source, dictionary, target, material_name=None):
                 record["type"] = recipe_types.get(record["type"], record["type"])
             from ..tools.naming import normalize_names
 
+            archived_details = collect_deferred_details(core, source, archived_details, issues)
+            if archived_details["records"]:
+                candidate.setdefault("metadata", {})["deferred_details"] = archived_details
             result["material"] = Material.parse(
                 decorate_material(normalize_names(candidate), dictionary)
             ).to_dict()

@@ -133,6 +133,9 @@ class Dictionary:
                 "materialx_extensions",
                 "materialx_lowerings",
                 "materialx_recipes",
+                "materialx_function_exports",
+                "materialx_function_implementations",
+                "materialx_function_recipes",
                 "texture_coordinates",
                 "texture_alpha_modes",
                 "texture_image_channels",
@@ -186,12 +189,33 @@ class Dictionary:
                 for k, v in recipes.items()
             ):
                 raise ValidationError("未知或未绑定的原生计算配方")
+        if "materialx_function_recipes" in value:
+            recipes = value["materialx_function_recipes"]
+            if not isinstance(recipes, dict):
+                raise ValidationError("功能配置配方必须为对象")
+            for name, rule in recipes.items():
+                text(name, "功能配置接口")
+                fields(rule, {"recipe"}, {"native"})
+                if rule["recipe"] not in {"color_ramp", "normal_map"}:
+                    raise ValidationError("未知的功能配置配方")
+                if "native" in rule and rule["native"] not in value["nodes"]:
+                    raise ValidationError("功能配置配方的原生绑定不存在")
+                if (
+                    "native" in rule
+                    and value.get("materialx_recipes", {}).get(rule["native"])
+                    != "blender." + rule["recipe"]
+                ):
+                    raise ValidationError("功能配置配方与原生配置绑定不一致")
         if "materialx_export" in value:
             rules = fields(value["materialx_export"], {"color_to_float"})
             if rules["color_to_float"] != "scene_linear_luminance":
                 raise ValidationError("未知的 MaterialX 隐式颜色连接规则")
         if "materialx_extensions" in value:
             text(value["materialx_extensions"], "内联 MaterialX 扩展库")
+        if "materialx_function_exports" in value or "materialx_function_implementations" in value:
+            from .materialx.functions import validate_function_rules
+
+            validate_function_rules(value)
         if "texture_coordinates" in value:
             coordinates = fields(
                 value["texture_coordinates"], {"named_uv", "transforms"}, {"sampler"}

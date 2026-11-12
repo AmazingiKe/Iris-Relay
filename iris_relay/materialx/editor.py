@@ -206,6 +206,16 @@ def flatten_editable(graph, core, preserve, *, controls=False):
         label = editor.get("function_label") or editor.get("label") or selected.getName()
         if controls and selected.getAttribute("iris_internal_lowering") != "true":
             for declared in selected.getNodeDef().getActiveInputs():
+                if selected.getAttribute("iris_native_function") == "true":
+                    # 原生节点本身可编辑；仅被多处使用的接口需要额外共享控制。
+                    implementation = selected.getNodeDef().getImplementation()
+                    uses = sum(
+                        p.getInterfaceName() == declared.getName()
+                        for n in implementation.getNodes()
+                        for p in n.getInputs()
+                    )
+                    if uses <= 1:
+                        continue
                 port = selected.getInput(declared.getName())
                 if declared.getType() not in controls or (
                     port is not None

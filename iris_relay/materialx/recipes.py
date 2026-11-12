@@ -251,13 +251,41 @@ def normal_library(core, config):
     return doc, nd.getName(), serialized, digest
 
 
-def prepare_recipes(core, dictionary, source=None, document=None):
+FUNCTION_RECIPES = {
+    "color_ramp": "ND_iris_color_ramp",
+    "normal_map": "ND_iris_tangent_normal",
+}
+
+
+def recipe_interfaces():
+    """声明渐变及命名法线的可变配置接口；不包含公式或宿主参数名称。"""
+    doc = mx.createDocument()
+    for recipe, name in FUNCTION_RECIPES.items():
+        ramp = recipe == "color_ramp"
+        nd = doc.addNodeDef(name, "multioutput" if ramp else "vector3", name.removeprefix("ND_"))
+        nd.setAttribute("iris_function_version", "1")
+        nd.addInput("configuration", "string").setValueString("{}")
+        if ramp:
+            for port in list(nd.getOutputs()):
+                nd.removeOutput(port.getName())
+            nd.addInput("factor", "float").setValue(0.5)
+            nd.addOutput("color", "color3")
+            nd.addOutput("alpha", "float")
+        else:
+            nd.addInput("color", "color3").setValueString("0.5, 0.5, 1")
+            nd.addInput("strength", "float").setValue(1.0)
+    return doc
+
+
+def prepare_recipes(core, dictionary, source=None, document=None, deferred_errors=None):
     """只编译字典明确授权的配方；目标折叠须验证完整定义及子图，返回原生类型恢复表。"""
     recipes = dictionary.data.get("materialx_recipes", {})
-    if not recipes:
+    functional = dictionary.data.get("materialx_function_recipes", {})
+    if not recipes and not functional:
         return source, dictionary, {}
     data, source = deepcopy(dictionary.data), deepcopy(source)
-    data.pop("materialx_recipes")
+    data.pop("materialx_recipes", None)
+    data.pop("materialx_function_recipes", None)
     originals = {key: deepcopy(data["nodes"][key]) for key in recipes}
     for key, recipe in recipes.items():
         if recipe == "blender.color_ramp":
@@ -298,7 +326,67 @@ def prepare_recipes(core, dictionary, source=None, document=None):
             data["nodes"][runtime_key] = rule
             library.importLibrary(generated)
         restore[runtime_key] = key
+        function = FUNCTION_RECIPES[recipe.removeprefix("blender.")]
+        if function in functional:
+            inputs = (
+                {"factor": "factor"}
+                if recipe == "blender.color_ramp"
+                else {
+                    "color": "color",
+                    "strength": "strength",
+                }
+            )
+            data.setdefault("materialx_function_exports", {})[nd_name] = {
+                "definition": function,
+                "inputs": inputs,
+                "constants": {"configuration": encoded},
+            }
         return runtime_key, encoded
+
+    def prepare_function(node, function, specification):
+        """按目标授权编译配置；值进入工作库，输入文件始终只携带接口和配置。"""
+        port = node.getInput("configuration") or node.getNodeDef().getInput("configuration")
+        if port is None or port.getType() != "string":
+            raise ValidationError("功能配置缺少字符串接口", "MATERIALX_BINDING_INVALID")
+        if any(port.getAttribute(k) for k in ("nodename", "nodegraph", "interfacename")):
+            raise ValidationError(
+                "功能配置需要静态数据，不能以连接代替", "MATERIALX_RECIPE_UNSUPPORTED"
+            )
+        config = parse_json(port.getValueString().encode("utf-8"))
+        recipe = specification["recipe"]
+        generated, nd_name, encoded, _ = (
+            ramp_library(core, config) if recipe == "color_ramp" else normal_library(core, config)
+        )
+        # JSON 空白及键顺序不构成语义差异；只在工作副本规范化条件值。
+        actual = node.getInput("configuration") or node.addInput("configuration", "string")
+        actual.setValueString(encoded)
+        native = specification.get("native")
+        if native:
+            install(native, config)
+        else:
+            library.importLibrary(generated)
+        inputs = (
+            {"factor": "factor"}
+            if recipe == "color_ramp"
+            else {
+                "color": "color",
+                "strength": "strength",
+            }
+        )
+        entry = {
+            "definition": nd_name,
+            "inputs": inputs,
+            "when": {"configuration": encoded},
+            "kind": "native" if native else "recipe",
+            "evidence": (
+                "目标字典授权的配置配方；只在工作图编译。法线仍要求对应的默认 UV 基底，外观未验证"
+            ),
+        }
+        choices = data.setdefault("materialx_function_implementations", {}).setdefault(function, [])
+        if entry not in choices:
+            choices.append(entry)
+            if native:
+                choices.append(dict(entry, kind="recipe"))
 
     if source is not None:
         linked = {(e["to"]["node"], e["to"]["socket"]) for e in source["links"]}
@@ -355,5 +443,15 @@ def prepare_recipes(core, dictionary, source=None, document=None):
             for key, recipe in recipes.items():
                 if recipe == nd.getAttribute("iris_recipe"):
                     install(key, json.loads(value), nd)
+        for node in document.getNodes():
+            nd = node.getNodeDef()
+            if nd is not None and nd.getName() in functional:
+                try:
+                    prepare_function(node, nd.getName(), functional[nd.getName()])
+                except ValidationError as exc:
+                    if deferred_errors is None:
+                        raise
+                    # 细节支路可能在功能映射时被归档；只有仍被主要输入使用才阻断。
+                    deferred_errors[node.getNamePath()] = exc
     data["materialx_extensions"] = mx.writeToXmlString(library)
     return source, Dictionary.parse(data), restore

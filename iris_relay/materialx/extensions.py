@@ -36,6 +36,10 @@ def load_extensions(core, dictionary):
     if not definitions or any(g.getNodeDefString() not in definitions for g in graphs):
         raise ValidationError("扩展子图需要对应的本地 NodeDef", "MATERIALX_BINDING_INVALID")
     for name in definitions:
+        if document.getNodeDef(name).getAttribute("iris_function_version") == "1":
+            if any(g.getNodeDefString() == name for g in graphs):
+                raise ValidationError("功能接口不能携带实现子图", "MATERIALX_BINDING_INVALID")
+            continue
         if sum(g.getNodeDefString() == name for g in graphs) != 1:
             raise ValidationError("每个字典扩展定义需要唯一内联子图", "MATERIALX_BINDING_INVALID")
     if status_for(core.inspect(document)) == "error":

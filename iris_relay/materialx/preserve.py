@@ -1,4 +1,4 @@
-"""保存无法转换的原生图结构；自定义声明没有可执行含义，禁止冒充标准着色节点。"""
+"""保存原生结构及未应用细节；存档不参与着色，也不能替代当前宿主数据。"""
 
 import base64
 import json
@@ -7,9 +7,9 @@ from copy import deepcopy
 import MaterialX as mx
 
 from ..conversion import issue, status_for
-from ..model import ValidationError, fields, json_value, text
+from ..model import ValidationError, fields, json_value, parse_json, text
 from ..tools.naming import normalize_names
-from .editor import finalize_node_names, set_text_attribute
+from .editor import finalize_node_names, get_text_attribute, set_text_attribute
 
 TYPES = {
     "float",
@@ -29,6 +29,78 @@ TYPES = {
     "displacementshader",
     "material",
 }
+
+
+def deferred_details(value):
+    """检查未启用细节存档；只保存数据，不执行或重放存档中的材质图。"""
+    if value is None:
+        return {"version": "1", "documents": {}, "records": []}
+    json_value(value)
+    fields(value, {"version", "documents", "records"})
+    if value["version"] != "1" or not isinstance(value["documents"], dict):
+        raise ValidationError("未知的未应用细节存档版本", "MATERIALX_METADATA_INVALID")
+    if not isinstance(value["records"], list) or len(value["records"]) > 5000:
+        raise ValidationError("未应用细节记录超限", "MATERIALX_LIMIT")
+    from hashlib import sha256
+
+    for digest, document in value["documents"].items():
+        text(document, "未应用细节的来源文档")
+        if sha256(document.encode("utf-8")).hexdigest() != digest:
+            raise ValidationError("未应用细节的来源摘要不符", "MATERIALX_METADATA_INVALID")
+    for record in value["records"]:
+        fields(record, {"node", "ports", "document"})
+        text(record["node"], "未应用细节的来源节点")
+        text(record["document"], "未应用细节的文档摘要")
+        if record["document"] not in value["documents"]:
+            raise ValidationError("未应用细节缺少来源文档", "MATERIALX_METADATA_INVALID")
+        if not isinstance(record["ports"], list) or not record["ports"]:
+            raise ValidationError("未应用细节缺少参数名称", "MATERIALX_METADATA_INVALID")
+        for port in record["ports"]:
+            text(port, "未应用细节的参数名")
+    return deepcopy(value)
+
+
+def read_deferred_details(doc):
+    """从交换文件读取未启用的存档，不把它注入当前着色图。"""
+    encoded = get_text_attribute(doc, "iris_deferred_details")
+    return deferred_details(parse_json(encoded.encode("utf-8")) if encoded else None)
+
+
+def collect_deferred_details(core, source, archive, issues):
+    """按来源摘要归档未应用端口及其动态上游；去除旧存档以避免递归膨胀。"""
+    from hashlib import sha256
+
+    result = deferred_details(archive)
+    pending = {}
+    for entry in issues:
+        if entry["code"] == "MATERIALX_DETAIL_UNAPPLIED":
+            pending.setdefault(entry["node"], set()).add(entry["port"])
+    if pending:
+        document = core.read(source)
+        document.removeAttribute("iris_deferred_details")
+        document.removeAttribute("iris_deferred_details_encoding")
+        snapshot = core.serialize(document)
+        digest = sha256(snapshot.encode("utf-8")).hexdigest()
+        result["documents"][digest] = snapshot
+        for node, ports in pending.items():
+            record = {"node": node, "ports": sorted(ports), "document": digest}
+            if record not in result["records"]:
+                result["records"].append(record)
+    return deferred_details(result)
+
+
+def write_deferred_details(doc, value, issues):
+    """将存档原样附在当前导出图上；用户的有效输入与连线始终来自当前宿主。"""
+    archive = deferred_details(value)
+    if archive["records"]:
+        set_text_attribute(doc, "iris_deferred_details", json.dumps(archive, ensure_ascii=False))
+        issues.append(
+            issue(
+                "MATERIALX_DETAILS_ARCHIVED",
+                "材质携带未应用细节的存档；存档不参与当前着色计算",
+                severity="warning",
+            )
+        )
 
 
 def _native_attribute(element, key, value):
