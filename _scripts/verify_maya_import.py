@@ -205,6 +205,9 @@ def verify_live_read(adapter, expected, created):
     from plugins.maya.adapter import equal
 
     actual = adapter.read_material(created["material"])
+    assert actual.get("metadata", {}).get("deferred_details") == expected.get("metadata", {}).get(
+        "deferred_details"
+    )
     names = created["nodes"]
     reverse = {name: key for key, name in names.items()}
     nodes = {reverse[n["id"]]: n for n in actual["nodes"]}
@@ -258,6 +261,8 @@ def main():
     parser.add_argument("--export-documents", action="store_true", help="从重开后的真实节点再导出")
     parser.add_argument("--require-success", type=int, default=0)
     args = parser.parse_args()
+    args.documents = args.documents.resolve()
+    args.out = args.out.resolve()
     args.out.mkdir(parents=True, exist_ok=False)
     import maya.standalone
 

@@ -487,6 +487,8 @@ class BlenderAdapter:
         }
         if graph.needs_color_cast:
             result["metadata"]["color_to_float"] = color_to_float_context()
+        if isinstance(material.get("irisDeferredDetails"), str):
+            result["metadata"]["deferred_details"] = json.loads(material["irisDeferredDetails"])
         failures = []
         for node in graph.nodes.values():
             try:
@@ -674,6 +676,9 @@ class BlenderAdapter:
         created_images = []
         try:
             # 2. 创建目标节点和输入值；图片单独加载，避免更改源图片的色彩空间。
+            archive = data.get("metadata", {}).get("deferred_details")
+            if archive is not None:
+                material["irisDeferredDetails"] = json.dumps(archive, ensure_ascii=True)
             material.use_nodes = True
             tree = material.node_tree
             tree.nodes.clear()

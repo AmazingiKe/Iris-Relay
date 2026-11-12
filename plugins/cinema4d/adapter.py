@@ -13,6 +13,24 @@ SPACE = "com.redshift3d.redshift4c4d.class.nodespace"
 OUTPUT = "com.redshift3d.redshift4c4d.node.output"
 
 
+def deferred_details(material, value=None):
+    """只读写核心返回的未应用细节存档；宿主不解释、执行或重放其来源图。"""
+    import c4d
+
+    label = "Iris Relay 未应用细节"
+    for identifier, description in material.GetUserDataContainer():
+        if description[c4d.DESC_NAME] == label:
+            if value is not None:
+                material[identifier] = json.dumps(value, ensure_ascii=True)
+                return value
+            return json.loads(material[identifier])
+    if value is not None:
+        description = c4d.GetCustomDataTypeDefault(c4d.DTYPE_STRING)
+        description[c4d.DESC_NAME] = label
+        material[material.AddUserData(description)] = json.dumps(value, ensure_ascii=True)
+    return value
+
+
 def source_names(material, values=None):
     """读写唯一的原名备份表；名称只用于溯源，不用于节点创建或显示。"""
     import c4d
@@ -349,6 +367,9 @@ class Cinema4DAdapter:
             "output": {},
             "metadata": {},
         }
+        archive = deferred_details(material)
+        if archive is not None:
+            data["metadata"]["deferred_details"] = archive
         pending, rules, edges = [origin_id(output_port)], {}, []
         hints = implementation_hints(material)
         if origins:
@@ -611,6 +632,9 @@ class Cinema4DAdapter:
         staging.InsertMaterial(created)
         undo_open = False
         try:
+            archive = material.get("metadata", {}).get("deferred_details")
+            if archive is not None:
+                deferred_details(created, archive)
             graph = maxon.GraphDescription.GetGraph(created, maxon.Id(SPACE), createEmpty=True)
             nodes, rules, written = {}, {}, []
             settings = maxon.DataDictionary()

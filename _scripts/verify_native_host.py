@@ -62,6 +62,9 @@ def run_blender(job, api):
     results = []
     for case, name in cases:
         actual = BlenderAdapter(bpy.data.materials[name], api).read_material()
+        assert actual.get("metadata", {}).get("deferred_details") == case["material"].get(
+            "metadata", {}
+        ).get("deferred_details")
         expected = case["material"]
         # 读取遍历顺序可以不同，比较完整连接集合而非列表位置；仍保留重复项检查。
         assert sorted(map(json.dumps, actual["links"])) == sorted(

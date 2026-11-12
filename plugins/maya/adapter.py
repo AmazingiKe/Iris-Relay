@@ -296,6 +296,10 @@ class MayaAdapter:
             cmds.connectAttr(surface + "." + rule["native"]["id"], group + ".surfaceShader")
             cmds.addAttr(surface, longName="irisMaterialName", dataType="string")
             set_value(surface + ".irisMaterialName", material["name"])
+            archive = material.get("metadata", {}).get("deferred_details")
+            if archive is not None:
+                cmds.addAttr(surface, longName="irisDeferredDetails", dataType="string")
+                set_value(surface + ".irisDeferredDetails", json.dumps(archive, ensure_ascii=True))
             containers = self.create_editing_groups(material, nodes, wrappers, created, prefix)
             return {
                 "material": surface,
@@ -497,6 +501,10 @@ class MayaAdapter:
         }
         if cmds.attributeQuery("irisMaterialName", node=surface, exists=True):
             data["name"] = cmds.getAttr(surface + ".irisMaterialName")
+        if cmds.attributeQuery("irisDeferredDetails", node=surface, exists=True):
+            data["metadata"]["deferred_details"] = json.loads(
+                cmds.getAttr(surface + ".irisDeferredDetails")
+            )
         pending, rules, origins, contexts = [surface], {}, [], {}
         # 1. 按当前连线遍历，读取当前属性，不用导入时的文档或材质快照。
         while pending:
